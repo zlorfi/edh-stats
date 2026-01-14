@@ -182,10 +182,10 @@ async function start() {
   try {
     const app = await build({
       logger: {
-        level: process.env.LOG_LEVEL || 'info',
-        transport: {
-          target: 'pino-pretty'
-        }
+        level: process.env.LOG_LEVEL || 'info'
+        // transport: {
+        //   target: 'pino-pretty'
+        // }
       }
     })
     

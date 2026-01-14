@@ -32,7 +32,7 @@ function app() {
         },
 
         async checkAuth() {
-            const token = localStorage.getItem('edh-stats-token')
+            const token = localStorage.getItem('edh-stats-token') || sessionStorage.getItem('edh-stats-token')
             if (token) {
                 try {
                     const response = await fetch('/api/auth/me', {
@@ -47,6 +47,7 @@ function app() {
                     } else {
                         // Token invalid, remove it
                         localStorage.removeItem('edh-stats-token')
+                        sessionStorage.removeItem('edh-stats-token')
                         if (window.location.pathname !== '/login.html') {
                             window.location.href = '/login.html'
                         }
@@ -54,6 +55,7 @@ function app() {
                 } catch (error) {
                     console.error('Auth check failed:', error)
                     localStorage.removeItem('edh-stats-token')
+                    sessionStorage.removeItem('edh-stats-token')
                 }
             } else {
                 if (window.location.pathname !== '/login.html' && window.location.pathname !== '/register.html') {
@@ -66,7 +68,7 @@ function app() {
 
         async loadDashboardData() {
             try {
-                const token = localStorage.getItem('edh-stats-token')
+                const token = localStorage.getItem('edh-stats-token') || sessionStorage.getItem('edh-stats-token')
                 
                 // Load user stats
                 const statsResponse = await fetch('/api/stats/overview', {
@@ -116,6 +118,7 @@ function app() {
 
         logout() {
             localStorage.removeItem('edh-stats-token')
+            sessionStorage.removeItem('edh-stats-token')
             window.location.href = '/login.html'
         },
 
@@ -183,7 +186,7 @@ function app() {
 
         // API helper method
         async apiCall(endpoint, options = {}) {
-            const token = localStorage.getItem('edh-stats-token')
+            const token = localStorage.getItem('edh-stats-token') || sessionStorage.getItem('edh-stats-token')
             const defaultOptions = {
                 headers: {
                     'Content-Type': 'application/json',

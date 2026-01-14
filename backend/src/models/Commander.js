@@ -175,41 +175,7 @@ class Commander {
       throw new Error('Failed to get commander stats')
     }
   }
-        SELECT 
-          c.id,
-          c.name,
-          c.colors,
-          COUNT(g.id) as total_games,
-          SUM(CASE WHEN g.won = 1 THEN 1 ELSE 0 END) as total_wins,
-          ROUND((SUM(CASE WHEN g.won = 1 THEN 1 ELSE 0 END) * 100.0) / COUNT(g.id), 2) as win_rate,
-          AVG(g.rounds) as avg_rounds,
-          MAX(g.date) as last_played
-        FROM commanders c
-        LEFT JOIN games g ON c.id = g.commander_id
-        WHERE c.id = ? AND c.user_id = ?
-        GROUP BY c.id, c.name, c.colors, c.created_at
-        HAVING total_games > 0
-        ORDER BY total_games DESC, c.name ASC
-        LIMIT ?
-      `).get([id, userId])
-      
-      if (!stats) {
-        throw new Error('Commander not found')
-      }
-      
-      return {
-        ...stats,
-        colors: JSON.parse(stats.colors)
-      }
-    } catch (error) {
-      throw new Error('Failed to get commander stats')
-    }
-  }
   
-  static async search(userId, query, limit = 20) {
-    const db = await dbManager.initialize()
-    
-    try {
   static async search(userId, query, limit = 20) {
     const db = await dbManager.initialize()
     
@@ -226,11 +192,10 @@ class Commander {
       return commanders.map(cmd => ({
         ...cmd,
         colors: JSON.parse(cmd.colors || '[]')
-      })
+      }))
     } catch (error) {
       throw new Error('Failed to search commanders')
     }
-  }
   }
   
   static async getPopular(userId, limit = 10) {

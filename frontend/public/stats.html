@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full bg-gray-50">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Statistics - EDH Stats Tracker</title>
+    <meta name="description" content="View detailed statistics for your EDH/Commander games">
+    <link rel="stylesheet" href="/css/styles.css">
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body class="h-full" x-data="statsManager()">
+    
+    <!-- Navigation Header -->
+    <header class="bg-edh-primary text-white shadow-lg">
+        <nav class="container mx-auto px-4 py-4">
+            <div class="flex justify-between items-center">
+                <h1 class="text-2xl font-bold font-mtg">Statistics</h1>
+                <div class="flex space-x-4">
+                    <a href="/dashboard.html" class="hover:text-edh-accent transition-colors">
+                        ← Back to Dashboard
+                    </a>
+                </div>
+            </div>
+        </nav>
+    </header>
+
+    <!-- Main Content -->
+    <main class="container mx-auto px-4 py-8">
+        <!-- Stats Filters (Future Phase) -->
+        <!-- <div class="mb-8 card">
+            <h3 class="font-semibold mb-4">Filters</h3>
+            <div class="flex flex-wrap gap-4">
+                <select class="form-select w-auto">
+                    <option>All Time</option>
+                    <option>Last 30 Days</option>
+                    <option>Last Year</option>
+                </select>
+                <select class="form-select w-auto">
+                    <option>All Commanders</option>
+                    <option>Color: White</option>
+                    <option>Color: Blue</option>
+                    <option>Color: Black</option>
+                    <option>Color: Red</option>
+                    <option>Color: Green</option>
+                </select>
+            </div>
+        </div> -->
+
+        <!-- Overview Cards -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            <div class="stat-card">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-white/80 text-sm">Total Games</p>
+                        <p class="text-3xl font-bold" x-text="overview.totalGames || 0"></p>
+                    </div>
+                    <svg class="w-8 h-8 text-white/60" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                </div>
+            </div>
+            
+            <div class="stat-card">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-white/80 text-sm">Win Rate</p>
+                        <p class="text-3xl font-bold"><span x-text="overview.winRate || 0"></span>%</p>
+                    </div>
+                    <svg class="w-8 h-8 text-white/60" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path>
+                    </svg>
+                </div>
+            </div>
+            
+            <div class="stat-card">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-white/80 text-sm">Active Decks</p>
+                        <p class="text-3xl font-bold" x-text="overview.totalCommanders || 0"></p>
+                    </div>
+                    <svg class="w-8 h-8 text-white/60" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path>
+                    </svg>
+                </div>
+            </div>
+            
+            <div class="stat-card">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-white/80 text-sm">Avg Rounds</p>
+                        <p class="text-3xl font-bold" x-text="overview.avgRounds || 0"></p>
+                    </div>
+                    <svg class="w-8 h-8 text-white/60" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                </div>
+            </div>
+        </div>
+
+        <!-- Charts Grid -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+            <!-- Win Rate by Color -->
+            <div class="card">
+                <h3 class="text-lg font-semibold mb-6">Win Rate by Color Identity</h3>
+                <div class="h-64 relative">
+                    <canvas id="colorWinRateChart"></canvas>
+                    <div x-show="loading" class="absolute inset-0 flex items-center justify-center bg-white/50">
+                        <div class="loading-spinner w-8 h-8"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Games per Month (Future) -->
+            <!-- <div class="card">
+                <h3 class="text-lg font-semibold mb-6">Games Played History</h3>
+                <div class="h-64 relative">
+                    <canvas id="gamesHistoryChart"></canvas>
+                </div>
+            </div> -->
+            
+            <!-- Win Rate by Player Count -->
+            <div class="card">
+                <h3 class="text-lg font-semibold mb-6">Win Rate by Player Count</h3>
+                <div class="h-64 relative">
+                    <canvas id="playerCountChart"></canvas>
+                    <div x-show="loading" class="absolute inset-0 flex items-center justify-center bg-white/50">
+                        <div class="loading-spinner w-8 h-8"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Detailed Stats Table -->
+        <div class="card">
+            <h3 class="text-lg font-semibold mb-6">Commander Performance</h3>
+            <div class="overflow-x-auto">
+                <table class="w-full text-left">
+                    <thead class="bg-gray-50 text-gray-600 text-xs uppercase font-semibold">
+                        <tr>
+                            <th class="px-6 py-3">Commander</th>
+                            <th class="px-6 py-3 text-center">Games</th>
+                            <th class="px-6 py-3 text-center">Win Rate</th>
+                            <th class="px-6 py-3 text-center">Avg Rounds</th>
+                            <th class="px-6 py-3 text-center">Starting Win %</th>
+                            <th class="px-6 py-3 text-center">Sol Ring Win %</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-100">
+                        <template x-for="stat in commanderStats" :key="stat.commander_id">
+                            <tr class="hover:bg-gray-50 transition-colors">
+                                <td class="px-6 py-4">
+                                    <div class="font-medium text-gray-900" x-text="stat.name"></div>
+                                    <div class="flex space-x-1 mt-1">
+                                        <template x-for="color in JSON.parse(stat.colors)">
+                                            <div class="w-3 h-3 rounded-sm" :class="'color-' + color.toLowerCase()" :title="color"></div>
+                                        </template>
+                                    </div>
+                                </td>
+                                <td class="px-6 py-4 text-center" x-text="stat.total_games"></td>
+                                <td class="px-6 py-4 text-center">
+                                    <span class="px-2 py-1 rounded text-xs font-semibold" 
+                                          :class="stat.win_rate >= 25 ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'"
+                                          x-text="stat.win_rate + '%'"></span>
+                                </td>
+                                <td class="px-6 py-4 text-center" x-text="Math.round(stat.avg_rounds)"></td>
+                                <td class="px-6 py-4 text-center text-sm text-gray-500" x-text="calculatePercentage(stat.starting_player_wins, stat.total_games) + '%'"></td>
+                                <td class="px-6 py-4 text-center text-sm text-gray-500" x-text="calculatePercentage(stat.sol_ring_wins, stat.total_games) + '%'"></td>
+                            </tr>
+                        </template>
+                        <tr x-show="commanderStats.length === 0">
+                            <td colspan="6" class="px-6 py-8 text-center text-gray-500">
+                                No data available yet. <a href="/games.html" class="text-edh-primary hover:underline">Log some games!</a>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-gray-800 text-white py-8 mt-12">
+        <div class="container mx-auto px-4 text-center">
+            <p class="text-gray-400">EDH Stats Tracker</p>
+        </div>
+    </footer>
+
+    <!-- Scripts -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <script src="/js/stats.js"></script>
+</body>
+</html>

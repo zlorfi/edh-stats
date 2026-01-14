@@ -34,7 +34,9 @@ class DatabaseManager {
       this.db.pragma('query_only = false')
 
       // Run migrations
-      await this.runMigrations()
+      if (process.env.NODE_ENV !== 'test') {
+        await this.runMigrations()
+      }
 
       this.isInitialized = true
       console.log('Database initialized successfully')
