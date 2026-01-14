@@ -4,29 +4,48 @@ A lightweight, responsive web application for tracking Magic: The Gathering EDH/
 
 ## Features
 
-- **Secure Authentication**: JWT-based login system with password hashing
-- **Commander Management**: Track all your commanders with MTG color identity
-- **Game Logging**: Detailed game statistics including:
-  - Player count (2-8 players)
-  - Commander played
-  - Game date and duration
-  - Win/loss tracking
-  - Round count
-  - Starting player advantage
-  - Sol Ring turn one impact
-- **Statistics Dashboard**: Visual analytics with Chart.js
-- **Live Round Counter**: Track ongoing games in real-time
-- **Responsive Design**: Mobile-friendly interface with Tailwind CSS
+### ✅ Implemented
+- **Secure Authentication**: JWT-based login/registration system with password hashing (HS512).
+- **Commander Management**:
+  - CRUD operations for Commanders.
+  - MTG Color Identity picker (WUBRG).
+  - Search and filter functionality.
+  - Validation for names and colors.
+- **Game Logging**:
+  - Log game results (Win/Loss).
+  - Track player count, rounds, and specific win conditions (Starting Player, Sol Ring T1).
+  - Associate games with specific Commanders.
+- **Statistics Dashboard**:
+  - **Overview**: Total games, win rate, active decks, average rounds.
+  - **Visualizations**:
+    - Win Rate by Color Identity (Chart.js Doughnut).
+    - Win Rate by Player Count (Chart.js Bar).
+  - **Detailed Tables**: Per-commander performance metrics.
+- **Responsive UI**: Mobile-friendly design using Tailwind CSS and Alpine.js.
+- **Infrastructure**: Docker Compose setup for development and production.
+
+### 🚧 Pending / Roadmap
+- **Live Round Counter**: Interactive real-time counter during games (currently post-game entry only).
+- **Advanced Trends**: Historical performance trends over time (endpoints `/api/stats/trends` not yet implemented).
+- **Commander Comparison**: Direct head-to-head comparison tool.
+- **HTTPS Configuration**: Production Nginx setup with SSL.
+- **Unit/Integration Tests**: Comprehensive test suite (currently partial).
 
 ## Technology Stack
 
-- **Backend**: Fastify with JWT authentication (HS512)
-- **Database**: SQLite with volume persistence
-- **Frontend**: Alpine.js (~10KB) with Tailwind CSS
-- **Deployment**: Docker Compose with multi-stage builds
-- **Charts**: Chart.js with Alpine.js reactivity
+- **Backend**: Fastify (Node.js v20+)
+- **Database**: SQLite (better-sqlite3) with WAL mode
+- **Frontend**: Alpine.js, Tailwind CSS (CDN)
+- **Visualization**: Chart.js
+- **Containerization**: Docker & Docker Compose
 
 ## Quick Start
+
+### Prerequisites
+- Docker & Docker Compose
+- Git
+
+### Running with Docker (Recommended)
 
 ```bash
 # Clone the repository
@@ -37,149 +56,85 @@ cd edh-stats
 docker-compose up -d
 
 # Access the application
-# Frontend: http://localhost:80
-# Backend API: http://localhost:3000
+# Frontend: http://localhost:8081
+# Backend API: http://localhost:3002
+```
+
+> **Note:** Default ports are `8081` (Frontend) and `3002` (Backend) to avoid conflicts.
+
+### Local Development
+
+If you prefer running without Docker:
+
+```bash
+# Backend
+cd backend
+npm install
+npm run dev
+
+# Frontend (served via simple HTTP server or Nginx)
+cd frontend
+# Use any static file server, e.g., 'serve'
+npx serve public -p 8081
 ```
 
 ## Project Structure
 
 ```
 edh-stats/
-├── README.md                     # This documentation
-├── docker-compose.yml             # Development environment
-├── docker-compose.prod.yml        # Production environment
-├── .env.example                   # Environment variables template
-├── .gitignore                     # Git ignore patterns
 ├── backend/
-│   ├── Dockerfile                 # Multi-stage Docker build
-│   ├── package.json               # Node.js dependencies
-│   ├── .dockerignore              # Docker build optimizations
-│   └── src/
-│       ├── server.js              # Main application entry point
-│       ├── config/
-│       ├── models/
-│       ├── routes/
-│       ├── middleware/
-│       ├── database/
-│       └── utils/
+│   ├── src/
+│   │   ├── config/         # DB & Auth config
+│   │   ├── database/       # Migrations & Seeds
+│   │   ├── models/         # Data access layer (Commander, Game, User)
+│   │   ├── routes/         # API endpoints
+│   │   └── server.js       # App entry point
+│   └── Dockerfile
 ├── frontend/
-│   ├── public/                    # HTML pages
-│   ├── css/                       # Compiled styles
-│   └── js/                        # Alpine.js components
-└── database/
-    └── data/                      # SQLite data directory
+│   ├── public/             # Static assets
+│   │   ├── css/            # Custom styles
+│   │   ├── js/             # Alpine.js logic
+│   │   └── *.html          # Views
+│   └── Dockerfile
+├── database/               # Persisted SQLite data
+├── docker-compose.yml      # Dev orchestration
+└── README.md
 ```
 
 ## API Endpoints
 
 ### Authentication (`/api/auth`)
-- `POST /register` - User registration
-- `POST /login` - JWT token generation
-- `POST /refresh` - Token refresh
+- `POST /register`
+- `POST /login`
+- `GET /me`
 
 ### Commanders (`/api/commanders`)
-- `GET /` - List user's commanders
-- `POST /` - Create new commander
-- `PUT /:id` - Update commander
-- `DELETE /:id` - Delete commander
+- `GET /` - List/Search
+- `POST /` - Create
+- `GET /popular` - Top commanders
+- `GET /:id` - Details
+- `PUT /:id` - Update
+- `DELETE /:id` - Remove
 
 ### Games (`/api/games`)
-- `GET /` - List games with filtering
-- `POST /` - Log new game
-- `PUT /:id` - Update game
-- `DELETE /:id` - Delete game
+- `GET /` - History
+- `POST /` - Log result
+- `PUT /:id` - Edit record
+- `DELETE /:id` - Remove record
 
 ### Statistics (`/api/stats`)
-- `GET /overview` - Overall statistics
-- `GET /commanders/:id` - Commander performance
-- `GET /trends` - Performance trends
-- `GET /comparison` - Commander comparison
+- `GET /overview` - KPI cards
+- `GET /commanders` - Detailed breakdown & charts
 
-## Database Schema
+## Development Notes
 
-The application uses SQLite with the following main tables:
+### Database
+The SQLite database file is stored in `./database/data/edh-stats.db`. It uses `PRAGMA journal_mode = WAL` for performance.
+Migrations are run automatically on server start if `NODE_ENV != 'test'`.
 
-- `users` - User accounts and authentication
-- `commanders` - Commander cards with color identity
-- `games` - Game records with detailed statistics
-
-## Development
-
-### Prerequisites
-- Docker and Docker Compose
-- Node.js 20+ (for local development)
-- Git
-
-### Development Setup
-
-```bash
-# Install dependencies (backend)
-cd backend
-npm install
-
-# Install dependencies (frontend)
-cd ../frontend
-npm install
-
-# Start development environment
-docker-compose up
-
-# Or run locally
-cd backend && npm run dev
-cd frontend && npm run dev
-```
-
-### Environment Variables
-
-Create a `.env` file from `.env.example`:
-
-```bash
-cp .env.example .env
-```
-
-Configure the following variables:
-- `JWT_SECRET` - JWT signing secret
-- `DATABASE_PATH` - SQLite database file location
-- `NODE_ENV` - Environment (development/production)
-- `CORS_ORIGIN` - Frontend domain
-
-## Deployment
-
-### Production Deployment
-
-```bash
-# Build and deploy to production
-docker-compose -f docker-compose.yml -f docker-compose.prod.yml up -d
-
-# View logs
-docker-compose logs -f
-
-# Stop application
-docker-compose down
-```
-
-### Security Notes
-
-- Use strong JWT secrets in production
-- Enable HTTPS in production
-- Regular database backups recommended
-- Monitor resource usage and logs
-
-## Contributing
-
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Add tests if applicable
-5. Submit a pull request
+### Frontend State
+State management is handled by Alpine.js components (`commanderManager`, `gameManager`, `statsManager`).
+Authentication tokens are stored in `localStorage` or `sessionStorage`.
 
 ## License
-
-This project is licensed under the MIT License.
-
-## Support
-
-For issues and questions:
-- Create an issue in the repository
-- Check the documentation in `/docs`
-- Review API documentation at `/docs/API.md`
+MIT

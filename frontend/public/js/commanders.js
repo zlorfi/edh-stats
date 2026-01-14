@@ -1,6 +1,7 @@
 // Commander management Alpine.js components
 function commanderManager() {
     return {
+        // State
         showAddForm: false,
         editingCommander: null,
         commanders: [],
@@ -10,15 +11,17 @@ function commanderManager() {
         searchQuery: '',
         submitting: false,
         editSubmitting: false,
+        serverError: '',
+        
+        // Form Data
         newCommander: {
             name: '',
             colors: []
         },
         errors: {},
         editErrors: {},
-        serverError: '',
 
-        // MTG Color data
+        // Constants
         mtgColors: [
             { id: 'W', name: 'White', hex: '#F0E6D2' },
             { id: 'U', name: 'Blue', hex: '#0E68AB' },
@@ -27,17 +30,18 @@ function commanderManager() {
             { id: 'G', name: 'Green', hex: '#5A7A3B' }
         ],
 
+        // Lifecycle
         async init() {
             await this.loadCommanders()
         },
 
+        // API Methods
         async loadCommanders() {
             this.loading = true
             try {
+                const token = localStorage.getItem('edh-stats-token') || sessionStorage.getItem('edh-stats-token')
                 const response = await fetch('/api/commanders', {
-                    headers: {
-                        'Authorization': `Bearer ${localStorage.getItem('edh-stats-token') || sessionStorage.getItem('edh-stats-token')}`
-                    }
+                    headers: { 'Authorization': `Bearer ${token}` }
                 })
                 
                 if (response.ok) {
@@ -58,10 +62,9 @@ function commanderManager() {
             this.loading = true
             this.showPopular = true
             try {
+                const token = localStorage.getItem('edh-stats-token') || sessionStorage.getItem('edh-stats-token')
                 const response = await fetch('/api/commanders/popular', {
-                    headers: {
-                        'Authorization': `Bearer ${localStorage.getItem('edh-stats-token') || sessionStorage.getItem('edh-stats-token')}`
-                    }
+                    headers: { 'Authorization': `Bearer ${token}` }
                 })
                 
                 if (response.ok) {
@@ -71,13 +74,14 @@ function commanderManager() {
                     this.serverError = 'Failed to load popular commanders'
                 }
             } catch (error) {
-                console.error('Load popular commanders error:', error)
+                console.error('Load popular error:', error)
                 this.serverError = 'Network error occurred'
             } finally {
                 this.loading = false
             }
         },
 
+        // Validation
         validateCommanderName() {
             if (!this.newCommander.name.trim()) {
                 this.errors.name = 'Commander name is required'
@@ -91,6 +95,7 @@ function commanderManager() {
         },
 
         validateEditCommanderName() {
+            if (!this.editingCommander) return
             if (!this.editingCommander.name.trim()) {
                 this.editErrors.name = 'Commander name is required'
             } else if (this.editingCommander.name.length < 2) {
@@ -102,21 +107,20 @@ function commanderManager() {
             }
         },
 
+        // Actions
         async handleAddCommander() {
             this.validateCommanderName()
-            
-            if (this.errors.name) {
-                return
-            }
+            if (this.errors.name) return
 
             this.submitting = true
             this.serverError = ''
 
             try {
+                const token = localStorage.getItem('edh-stats-token') || sessionStorage.getItem('edh-stats-token')
                 const response = await fetch('/api/commanders', {
                     method: 'POST',
                     headers: {
-                        'Authorization': `Bearer ${localStorage.getItem('edh-stats-token') || sessionStorage.getItem('edh-stats-token')}`,
+                        'Authorization': `Bearer ${token}`,
                         'Content-Type': 'application/json'
                     },
                     body: JSON.stringify(this.newCommander)
@@ -126,7 +130,6 @@ function commanderManager() {
                     const data = await response.json()
                     this.commanders.unshift(data.commander)
                     this.resetAddForm()
-                    await this.loadCommanders() // Refresh the list
                 } else {
                     const errorData = await response.json()
                     this.serverError = errorData.message || 'Failed to create commander'
@@ -140,20 +143,20 @@ function commanderManager() {
         },
 
         async handleUpdateCommander() {
+            if (!this.editingCommander) return
+
             this.validateEditCommanderName()
-            
-            if (this.editErrors.name) {
-                return
-            }
+            if (this.editErrors.name) return
 
             this.editSubmitting = true
             this.serverError = ''
 
             try {
+                const token = localStorage.getItem('edh-stats-token') || sessionStorage.getItem('edh-stats-token')
                 const response = await fetch(`/api/commanders/${this.editingCommander.id}`, {
                     method: 'PUT',
                     headers: {
-                        'Authorization': `Bearer ${localStorage.getItem('edh-stats-token') || sessionStorage.getItem('edh-stats-token')}`,
+                        'Authorization': `Bearer ${token}`,
                         'Content-Type': 'application/json'
                     },
                     body: JSON.stringify({
@@ -164,7 +167,6 @@ function commanderManager() {
 
                 if (response.ok) {
                     const data = await response.json()
-                    // Update the commander in the list
                     const index = this.commanders.findIndex(c => c.id === this.editingCommander.id)
                     if (index !== -1) {
                         this.commanders[index] = data.commander
@@ -181,6 +183,62 @@ function commanderManager() {
             }
         },
 
+        async deleteCommander(commander) {
+            if (!confirm(`Are you sure you want to delete "${commander.name}"?`)) return
+
+            try {
+                const token = localStorage.getItem('edh-stats-token') || sessionStorage.getItem('edh-stats-token')
+                const response = await fetch(`/api/commanders/${commander.id}`, {
+                    method: 'DELETE',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                })
+
+                if (response.ok) {
+                    this.commanders = this.commanders.filter(c => c.id !== commander.id)
+                } else {
+                    this.serverError = 'Failed to delete commander'
+                }
+            } catch (error) {
+                console.error('Delete error:', error)
+                this.serverError = 'Network error occurred'
+            }
+        },
+
+        // Search
+        async searchCommanders() {
+            if (!this.searchQuery.trim()) {
+                await this.loadCommanders()
+                return
+            }
+            this.loading = true
+            try {
+                const token = localStorage.getItem('edh-stats-token') || sessionStorage.getItem('edh-stats-token')
+                const response = await fetch(`/api/commanders?q=${encodeURIComponent(this.searchQuery)}`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                })
+                if (response.ok) {
+                    const data = await response.json()
+                    this.commanders = data.commanders || []
+                }
+            } catch (error) {
+                console.error('Search error:', error)
+            } finally {
+                this.loading = false
+            }
+        },
+
+        debounceSearch() {
+            clearTimeout(this._searchTimeout)
+            this._searchTimeout = setTimeout(() => {
+                if (this.showPopular) {
+                    this.loadCommanders() // Reset to normal view if searching
+                    this.showPopular = false
+                }
+                this.searchCommanders()
+            }, 300)
+        },
+
+        // UI Helpers
         toggleNewColor(colorId) {
             const index = this.newCommander.colors.indexOf(colorId)
             if (index > -1) {
@@ -191,10 +249,11 @@ function commanderManager() {
         },
 
         toggleEditColor(colorId) {
+            if (!this.editingCommander) return
             if (!this.editingCommander.colors) this.editingCommander.colors = []
             const index = this.editingCommander.colors.indexOf(colorId)
             if (index > -1) {
-                this.editingCommander.colors.splice(index, 1)
+                this.editingCommander.colors = this.editingCommander.colors.filter(c => c !== colorId)
             } else {
                 this.editingCommander.colors.push(colorId)
             }
@@ -214,33 +273,12 @@ function commanderManager() {
                 : 'ring-1 ring-offset-1 border-gray-300 hover:border-gray-400'
         },
 
-        async deleteCommander(commander) {
-            if (!confirm(`Are you sure you want to delete "${commander.name}"? This action cannot be undone.`)) {
-                return
-            }
-
-            try {
-                const response = await fetch(`/api/commanders/${commander.id}`, {
-                    method: 'DELETE',
-                    headers: {
-                        'Authorization': `Bearer ${localStorage.getItem('edh-stats-token') || sessionStorage.getItem('edh-stats-token')}`
-                    }
-                })
-
-                if (response.ok) {
-                    // Remove from local list
-                    this.commanders = this.commanders.filter(c => c.id !== commander.id)
-                } else {
-                    this.serverError = 'Failed to delete commander'
-                }
-            } catch (error) {
-                console.error('Delete commander error:', error)
-                this.serverError = 'Network error occurred'
-            }
-        },
-
+        // Form Management
         editCommander(commander) {
-            this.editingCommander = { ...commander }
+            this.editingCommander = JSON.parse(JSON.stringify(commander))
+            if (!Array.isArray(this.editingCommander.colors)) {
+                this.editingCommander.colors = []
+            }
             this.editErrors = {}
             this.serverError = ''
         },
@@ -255,78 +293,25 @@ function commanderManager() {
             this.newCommander = { name: '', colors: [] }
             this.errors = {}
             this.serverError = ''
-        },
-
-        resetEditForm() {
-            this.editingCommander = null
-            this.editErrors = {}
-            this.serverError = ''
-        },
-
-        async debounceSearch() {
-            this.$nextTick(() => {
-                if (this.showPopular) {
-                    await this.loadCommanders()
-                } else {
-                    await this.searchCommanders()
-                }
-            })
-        },
-
-        async searchCommanders() {
-            if (!this.searchQuery.trim()) {
-                await this.loadCommanders()
-                return
-            }
-
-            this.loading = true
-            this.serverError = ''
-
-            try {
-                const response = await fetch(`/api/commanders?q=${encodeURIComponent(this.searchQuery)}`, {
-                    headers: {
-                        'Authorization': `Bearer ${localStorage.getItem('edh-stats-token') || sessionStorage.getItem('edh-stats-token')}`
-                    }
-                })
-
-                if (response.ok) {
-                    const data = await response.json()
-                    this.commanders = data.commanders || []
-                } else {
-                    this.serverError = 'Search failed'
-                }
-            } catch (error) {
-                console.error('Search commanders error:', error)
-                this.serverError = 'Network error occurred'
-            } finally {
-                this.loading = false
-            }
         }
     }
 }
 
-// Utility functions
+// Global Utilities
 function getColorName(colorId) {
-    const colorNames = {
-        'W': 'White',
-        'U': 'Blue', 
-        'B': 'Black',
-        'R': 'Red',
-        'G': 'Green'
-    }
-    return colorNames[colorId] || colorId
+    const map = { 'W': 'White', 'U': 'Blue', 'B': 'Black', 'R': 'Red', 'G': 'Green' }
+    return map[colorId] || colorId
 }
 
 function formatDate(dateString) {
+    if (!dateString) return ''
     const date = new Date(dateString)
     return date.toLocaleDateString('en-US', {
-        month: 'short',
-        day: 'numeric',
-        year: date.getFullYear() !== new Date().getFullYear() ? 'numeric' : undefined
+        month: 'short', day: 'numeric', year: 'numeric'
     })
 }
 
-// Make functions globally available
+// Register Alpine component
 document.addEventListener('alpine:init', () => {
     Alpine.data('commanderManager', commanderManager)
 })

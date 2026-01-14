@@ -28,8 +28,8 @@ class Commander {
       const commander = db.prepare(`
         SELECT id, name, colors, user_id, created_at, updated_at
         FROM commanders 
-        WHERE id = ? AND dbManager.getCurrentUser() = ?
-      `).get([id, dbManager.getCurrentUser()])
+        WHERE id = ?
+      `).get([id])
       
       return commander
     } catch (error) {
@@ -44,7 +44,7 @@ class Commander {
       const query = `
         SELECT id, name, colors, user_id, created_at, updated_at
         FROM commanders 
-        WHERE dbManager.getCurrentUser() = ?
+        WHERE user_id = ?
       `
       
       if (sortBy) {
@@ -110,7 +110,7 @@ class Commander {
       const result = db.prepare(`
         UPDATE commanders 
         SET ${updates.join(', ')}
-        WHERE id = ? AND dbManager.getCurrentUser() = ?
+        WHERE id = ? AND user_id = ?
       `).run([...values, id, userId])
       
       return result.changes > 0
@@ -131,7 +131,7 @@ class Commander {
       
       const result = db.prepare(`
         DELETE FROM commanders 
-        WHERE id = ? AND dbManager.getCurrentUser() = ?
+        WHERE id = ? AND user_id = ?
       `).run([id, userId])
       
       return result.changes > 0
@@ -184,7 +184,7 @@ class Commander {
       const commanders = db.prepare(`
         SELECT id, name, colors, user_id, created_at, updated_at
         FROM commanders 
-        WHERE dbManager.getCurrentUser() = ?
+        WHERE user_id = ?
         ORDER BY name ASC
         LIMIT ?
       `).all([userId, searchQuery, limit])

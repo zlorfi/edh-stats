@@ -25,7 +25,6 @@ export default async function commanderRoutes(fastify, options) {
     preHandler: [async (request, reply) => {
       try {
         await request.jwtVerify()
-        dbManager.setCurrentUser(request.user.id)
       } catch (err) {
         reply.code(401).send({ 
           error: 'Unauthorized',
@@ -63,7 +62,6 @@ export default async function commanderRoutes(fastify, options) {
     preHandler: [async (request, reply) => {
       try {
         await request.jwtVerify()
-        dbManager.setCurrentUser(request.user.id)
       } catch (err) {
         reply.code(401).send({ 
           error: 'Unauthorized',
@@ -107,7 +105,6 @@ export default async function commanderRoutes(fastify, options) {
     preHandler: [async (request, reply) => {
       try {
         await request.jwtVerify()
-        dbManager.setCurrentUser(request.user.id)
       } catch (err) {
         reply.code(401).send({ 
           error: 'Unauthorized',
@@ -117,8 +114,9 @@ export default async function commanderRoutes(fastify, options) {
     }]
   }, async (request, reply) => {
     try {
-      const validatedData = createCommanderSchema.parse(request.body)
+      // Manually parse since fastify.decorate request.user is set by jwtVerify
       const userId = request.user.id
+      const validatedData = createCommanderSchema.parse(request.body)
       
       const commander = await Commander.create({
         ...validatedData,
@@ -155,7 +153,6 @@ export default async function commanderRoutes(fastify, options) {
     preHandler: [async (request, reply) => {
       try {
         await request.jwtVerify()
-        dbManager.setCurrentUser(request.user.id)
       } catch (err) {
         reply.code(401).send({ 
           error: 'Unauthorized',
@@ -211,7 +208,6 @@ export default async function commanderRoutes(fastify, options) {
     preHandler: [async (request, reply) => {
       try {
         await request.jwtVerify()
-        dbManager.setCurrentUser(request.user.id)
       } catch (err) {
         reply.code(401).send({ 
           error: 'Unauthorized',
@@ -251,7 +247,6 @@ export default async function commanderRoutes(fastify, options) {
     preHandler: [async (request, reply) => {
       try {
         await request.jwtVerify()
-        dbManager.setCurrentUser(request.user.id)
       } catch (err) {
         reply.code(401).send({ 
           error: 'Unauthorized',
@@ -287,7 +282,6 @@ export default async function commanderRoutes(fastify, options) {
     preHandler: [async (request, reply) => {
       try {
         await request.jwtVerify()
-        dbManager.setCurrentUser(request.user.id)
       } catch (err) {
         reply.code(401).send({ 
           error: 'Unauthorized',
