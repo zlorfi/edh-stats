@@ -103,7 +103,7 @@ export default async function commanderRoutes(fastify, options) {
   
   // Create new commander
   fastify.post('/', {
-    config: { rateLimit: { max: 5, timeWindow: '1 minute' } }
+    config: { rateLimit: { max: 5, timeWindow: '1 minute' } },
     preHandler: [async (request, reply) => {
       try {
         await request.jwtVerify()
@@ -151,7 +151,7 @@ export default async function commanderRoutes(fastify, options) {
   
   // Update commander
   fastify.put('/:id', {
-    config: { rateLimit: { max: 10, timeWindow: '1 minute' } }
+    config: { rateLimit: { max: 10, timeWindow: '1 minute' } },
     preHandler: [async (request, reply) => {
       try {
         await request.jwtVerify()
@@ -207,7 +207,7 @@ export default async function commanderRoutes(fastify, options) {
   
   // Delete commander
   fastify.delete('/:id', {
-    config: { rateLimit: { max: 5, timeWindow: '1 minute' } }
+    config: { rateLimit: { max: 5, timeWindow: '1 minute' } },
     preHandler: [async (request, reply) => {
       try {
         await request.jwtVerify()

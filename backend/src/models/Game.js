@@ -45,15 +45,14 @@ class Game {
           g.sol_ring_turn_one_won,
           g.notes,
           g.user_id,
-          c.name,
-          cmdr.name,
-          cmdr.colors,
-          c.created_at,
+          cmdr.name as commander_name,
+          cmdr.colors as commander_colors,
+          g.created_at,
           g.updated_at
         FROM games g
         LEFT JOIN commanders cmdr ON g.commander_id = cmdr.id
-        WHERE g.id = ? AND dbManager.getCurrentUser() = ?
-        `).get([id, dbManager.getCurrentUser()])
+        WHERE g.id = ?
+        `).get([id])
       
       return game
     } catch (error) {
@@ -113,8 +112,8 @@ class Game {
         date: new Date(game.date).toLocaleDateString('en-US'),
         won: game.won,
         rounds: game.rounds || 0,
-        commanderName: cmdr.name,
-        commanderColors: JSON.parse(cmdr.colors || '[]'),
+        commanderName: game.name,
+        commanderColors: JSON.parse(game.colors || '[]'),
         id: game.id
       }))
     } catch (error) {

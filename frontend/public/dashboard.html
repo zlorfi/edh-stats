@@ -151,9 +151,9 @@
                                     <p class="text-xs text-gray-400" x-text="game.player_count + ' players'"></p>
                                 </div>
                                 <div>
-                                    <p class="font-medium" x-text="game.commander_name"></p>
+                                    <p class="font-medium" x-text="game.commanderName"></p>
                                     <div class="flex space-x-1">
-                                        <template x-for="color in JSON.parse(game.colors)">
+                                        <template x-for="color in game.commanderColors">
                                             <div class="w-4 h-4 rounded" :class="'color-' + color.toLowerCase()" :title="getColorName(color)"></div>
                                         </template>
                                     </div>

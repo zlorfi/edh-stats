@@ -36,7 +36,7 @@ export default async function gameRoutes(fastify, options) {
   
   // Get all games for authenticated user with pagination and filtering
   fastify.get('/', {
-    config: { rateLimit: { max: 20, timeWindow: '1 minute' } }
+    config: { rateLimit: { max: 20, timeWindow: '1 minute' } },
     preHandler: [async (request, reply) => {
       try {
         await request.jwtVerify()
@@ -129,7 +129,7 @@ export default async function gameRoutes(fastify, options) {
   
   // Create new game
   fastify.post('/', {
-    config: { rateLimit: { max: 3, timeWindow: '1 minute' } }
+    config: { rateLimit: { max: 3, timeWindow: '1 minute' } },
     preHandler: [async (request, reply) => {
       try {
         await request.jwtVerify()
@@ -169,12 +169,11 @@ export default async function gameRoutes(fastify, options) {
           })
         }
       }
-    }
   })
   
   // Update game
   fastify.put('/:id', {
-    config: { rateLimit: { max: 10, timeWindow: '1 minute' } }
+    config: { rateLimit: { max: 10, timeWindow: '1 minute' } },
     preHandler: [async (request, reply) => {
       try {
         await request.jwtVerify()
@@ -228,12 +227,11 @@ export default async function gameRoutes(fastify, options) {
           })
         }
       }
-    }
   })
   
   // Delete game
   fastify.delete('/:id', {
-    config: { rateLimit: { max: 5, timeWindow: '1 minute' } }
+    config: { rateLimit: { max: 5, timeWindow: '1 minute' } },
     preHandler: [async (request, reply) => {
       try {
         await request.jwtVerify()
@@ -243,7 +241,8 @@ export default async function gameRoutes(fastify, options) {
           message: 'Invalid or expired token' 
         })
       }
-    }] }, async (request, reply) => {
+    }]
+  }, async (request, reply) => {
       try {
         const { id } = request.params
         const userId = request.user.id
@@ -267,44 +266,7 @@ export default async function gameRoutes(fastify, options) {
           error: 'Failed to delete game'
         })
       }
-    }
   })
   
-  // Get game stats (for commander specific or overall)
-  fastify.get('/:id/stats', {
-    preHandler: [async (request, reply) => {
-      try {
-        await request.jwtVerify()
-      } catch (err) {
-        reply.code(401).send({ 
-          error: 'Unauthorized',
-          message: 'Invalid or expired token' 
-        })
-      }
-    }] }, async (request, reply) => {
-      try {
-        const { id } = request.params
-        const userId = request.user.id
-        
-        const stats = await Game.getStats(id, userId)
-        
-        if (!stats) {
-          reply.code(404).send({
-            error: 'Game not found'
-          })
-          return
-        }
-        
-        reply.send({
-          ...stats
-        })
-    } catch (error) {
-        fastify.log.error('Get game stats error:', error)
-        reply.code(500).send({
-            error: 'Internal Server Error',
-            message: 'Failed to get game stats'
-          })
-        }
-    }
-  })
+
 }

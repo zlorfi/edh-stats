@@ -3,27 +3,20 @@ import cors from '@fastify/cors'
 import jwt from '@fastify/jwt'
 import underPressure from '@fastify/under-pressure'
 import rateLimit from '@fastify/rate-limit'
-// import metrics from 'fastify-metrics' // Commented out for now
 import closeWithGrace from 'close-with-grace'
 
 // Import configurations
 import { jwtConfig, corsConfig, rateLimitConfig, serverConfig } from './config/jwt.js'
 import dbManager from './config/database.js'
 
-  // Statistics routes (to be implemented)
-  app.get('/api/stats', { preHandler: [async (request, reply) => {
-    try {
-      await request.jwtVerify()
-    } catch (err) {
-      reply.code(401).send({ 
-        error: 'Unauthorized',
-        message: 'Invalid or expired token' 
-        })
-    }]
-  }, async (request, reply) => {
-      return { message: 'Statistics dashboard coming soon!' }
-    })
-  })
+// Import routes
+import authRoutes from './routes/auth.js'
+import commanderRoutes from './routes/commanders.js'
+import gameRoutes from './routes/games.js'
+import statsRoutes from './routes/stats.js'
+
+export default async function build(opts = {}) {
+  const app = fastify(opts)
 
   // Register plugins
   await app.register(cors, corsConfig)
@@ -31,44 +24,6 @@ import dbManager from './config/database.js'
   await app.register(jwt, {
     secret: jwtConfig.secret
   })
-
-  // await app.register(underPressure, {
-  //   maxEventLoopDelay: 1000,
-  //   maxHeapUsedBytes: 0.9 * 1024 * 1024 * 1024, // 1GB
-  //   maxRssBytes: 0.9 * 1024 * 1024 * 1024, // 1GB
-  //   healthCheck: async () => {
-  //     try {
-  //       const db = await dbManager.initialize()
-  //       return await db.healthCheck()
-  //     } catch (error) {
-  //       return false
-  //     }
-  //   },
-  //   healthCheckInterval: 10000,
-  //   exposeStatusRoute: '/under-pressure'
-  // })
-
-  // await app.register(rateLimit, {
-  //   max: rateLimitConfig.max,
-  //   timeWindow: rateLimitConfig.timeWindow,
-  //   skipOnError: rateLimitConfig.skipOnError,
-  //   keyGenerator: (request) => {
-  //     return request.ip || request.headers['x-forwarded-for'] || 'unknown'
-  //   },
-  //   errorResponseBuilder: (request, context) => ({
-  //     code: 'RATE_LIMIT_EXCEEDED',
-  //     error: 'Rate limit exceeded',
-  //     message: `Too many requests. Try again in ${Math.round(context.ttl / 1000)} seconds.`,
-  //     retryAfter: context.ttl
-  //   })
-  // })
-
-  // Metrics (optional, for monitoring) - disabled for now
-  // if (process.env.METRICS_ENABLED === 'true') {
-  //   await app.register(metrics, {
-  //     endpoint: '/metrics'
-  //   })
-  // }
 
   // Authentication decorator
   app.decorate('authenticate', async (request, reply) => {
@@ -116,36 +71,9 @@ import dbManager from './config/database.js'
 
   // API routes
   await app.register(authRoutes, { prefix: '/api/auth' })
-
-  // Commander routes
   await app.register(commanderRoutes, { prefix: '/api/commanders' })
-
-  // Games routes (to be implemented)
-app.get('/api/stats', { preHandler: [async (request, reply) => {
-    try {
-      await request.jwtVerify()
-    } catch (err) {
-      reply.code(401).send({ 
-        error: 'Unauthorized',
-        message: 'Invalid or expired token' 
-        })
-    }] }, async (request, reply) => {
-      return { message: 'Statistics dashboard coming soon!' }
-    })
-
-  // Statistics routes (to be implemented)
-  app.get('/api/stats', { preHandler: [async (request, reply) => {
-    try {
-      await request.jwtVerify()
-    } catch (err) {
-      reply.code(401).send({ 
-        error: 'Unauthorized',
-        message: 'Invalid or expired token' 
-      })
-    }
-  }] }, async (request, reply) => {
-    return { message: 'Statistics routes coming soon!' }
-  })
+  await app.register(gameRoutes, { prefix: '/api/games' })
+  await app.register(statsRoutes, { prefix: '/api/stats' })
 
   // Test endpoint
   app.route({
@@ -252,7 +180,14 @@ app.get('/api/stats', { preHandler: [async (request, reply) => {
 // Start the server
 async function start() {
   try {
-    const app = await build()
+    const app = await build({
+      logger: {
+        level: process.env.LOG_LEVEL || 'info',
+        transport: {
+          target: 'pino-pretty'
+        }
+      }
+    })
     
     // Initialize database
     await dbManager.initialize()
@@ -276,5 +211,3 @@ async function start() {
 if (import.meta.url === `file://${process.argv[1]}`) {
   start()
 }
-
-export default build
