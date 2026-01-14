@@ -4,72 +4,76 @@ import dbManager from '../config/database.js'
 class Commander {
   static async create(commanderData) {
     const db = await dbManager.initialize()
-    
+
     try {
-      const result = db.prepare(`
+      const result = db
+        .prepare(
+          `
         INSERT INTO commanders (name, colors, user_id)
         VALUES (?, ?, ?)
-      `).run([
-        commanderData.name,
-        JSON.stringify(commanderData.colors),
-        commanderData.userId
-      ])
-      
+      `
+        )
+        .run([
+          commanderData.name,
+          JSON.stringify(commanderData.colors),
+          commanderData.userId
+        ])
+
       return await this.findById(result.lastInsertRowid)
     } catch (error) {
       throw new Error('Failed to create commander')
     }
   }
-  
+
   static async findById(id) {
     const db = await dbManager.initialize()
-    
+
     try {
-      const commander = db.prepare(`
+      const commander = db
+        .prepare(
+          `
         SELECT id, name, colors, user_id, created_at, updated_at
-        FROM commanders 
+        FROM commanders
         WHERE id = ?
-      `).get([id])
-      
+      `
+        )
+        .get([id])
+
       return commander
     } catch (error) {
       throw new Error('Failed to find commander')
     }
   }
-  
-  static async findByUserId(userId, limit = 50, offset = 0, sortBy = 'created_at', sortOrder = 'DESC') {
+
+  static async findByUserId(
+    userId,
+    limit = 50,
+    offset = 0,
+    sortBy = 'created_at',
+    sortOrder = 'DESC'
+  ) {
     const db = await dbManager.initialize()
-    
+
     try {
+      // Whitelist allowed sort columns to prevent SQL injection
+      const allowedSortColumns = ['created_at', 'updated_at', 'name']
+      const safeSort = allowedSortColumns.includes(sortBy)
+        ? sortBy
+        : 'created_at'
+      const safeOrder = sortOrder.toUpperCase() === 'ASC' ? 'ASC' : 'DESC'
+
       const query = `
         SELECT id, name, colors, user_id, created_at, updated_at
-        FROM commanders 
+        FROM commanders
         WHERE user_id = ?
+        ORDER BY ${safeSort} ${safeOrder}
+        LIMIT ? OFFSET ?
       `
-      
-      if (sortBy) {
-        query += ` ORDER BY ${sortBy} ${sortOrder.toUpperCase()}`
-      }
-      
-      query += ` LIMIT ? OFFSET ?`
-      
+
       const commanders = db.prepare(query).all([userId, limit, offset])
-      
-      // Apply sorting in JavaScript instead of SQL
-      let sortedCommanders = commanders.sort((a, b) => {
-        if (sortBy === 'DESC') {
-          return new Date(b[sortBy]) - new Date(a[sortBy])
-        } else {
-          return new Date(a[sortBy]) - new Date(b[sortBy])
-        }
-      })
-      
-      // Apply pagination
-      const startIndex = parseInt(offset) || 0
-      const endIndex = startIndex + parseInt(limit || 50)
-      
+
       // Parse colors JSON for frontend
-        return sortedCommanders.slice(startIndex, endIndex).map(cmd => ({
+      return commanders.map((cmd) => ({
         ...cmd,
         colors: JSON.parse(cmd.colors || '[]')
       }))
@@ -77,75 +81,85 @@ class Commander {
       throw new Error('Failed to find commanders by user')
     }
   }
-  
+
   static async update(id, updateData, userId) {
     const db = await dbManager.initialize()
-    
+
     try {
       // Check if commander exists and belongs to user
       const existing = await this.findById(id)
       if (!existing || existing.user_id !== userId) {
         throw new Error('Commander not found or access denied')
       }
-      
+
       const updates = []
       const values = []
-      
+
       if (updateData.name !== undefined) {
         updates.push('name = ?')
         values.push(updateData.name)
       }
-      
+
       if (updateData.colors !== undefined) {
         updates.push('colors = ?')
         values.push(JSON.stringify(updateData.colors))
       }
-      
+
       updates.push('updated_at = CURRENT_TIMESTAMP')
-      
+
       if (updates.length === 0) {
         throw new Error('No valid fields to update')
       }
-      
-      const result = db.prepare(`
-        UPDATE commanders 
+
+      const result = db
+        .prepare(
+          `
+        UPDATE commanders
         SET ${updates.join(', ')}
         WHERE id = ? AND user_id = ?
-      `).run([...values, id, userId])
-      
+      `
+        )
+        .run([...values, id, userId])
+
       return result.changes > 0
     } catch (error) {
       throw new Error('Failed to update commander')
     }
   }
-  
+
   static async delete(id, userId) {
     const db = await dbManager.initialize()
-    
+
     try {
       // Check if commander exists and belongs to user
       const existing = await this.findById(id)
       if (!existing || existing.user_id !== userId) {
         throw new Error('Commander not found or access denied')
       }
-      
-      const result = db.prepare(`
-        DELETE FROM commanders 
+
+      const result = db
+        .prepare(
+          `
+        DELETE FROM commanders
         WHERE id = ? AND user_id = ?
-      `).run([id, userId])
-      
+      `
+        )
+        .run([id, userId])
+
       return result.changes > 0
     } catch (error) {
       throw new Error('Failed to delete commander')
     }
   }
-  
+
   static async getStats(id, userId) {
     const db = await dbManager.initialize()
-    
+
     try {
-      const stats = db.prepare(`
-        SELECT 
+      const stats = db
+        .prepare(
+          `
+        SELECT
           c.id,
           c.name,
           c.colors,
@@ -161,12 +175,14 @@ class Commander {
         HAVING total_games > 0
         ORDER BY total_games DESC, c.name ASC
         LIMIT ?
-      `).get([id, userId])
-      
+      `
+        )
+        .get([id, userId])
+
       if (!stats) {
         throw new Error('Commander not found')
       }
-      
+
       return {
         ...stats,
         colors: JSON.parse(stats.colors)
@@ -175,21 +191,25 @@ class Commander {
       throw new Error('Failed to get commander stats')
     }
   }
-  
+
   static async search(userId, query, limit = 20) {
     const db = await dbManager.initialize()
-    
+
     try {
       const searchQuery = `%${query}%`
-      const commanders = db.prepare(`
+      const commanders = db
+        .prepare(
+          `
         SELECT id, name, colors, user_id, created_at, updated_at
-        FROM commanders 
-        WHERE user_id = ?
+        FROM commanders
+        WHERE user_id = ? AND name LIKE ?
         ORDER BY name ASC
         LIMIT ?
-      `).all([userId, searchQuery, limit])
-      
-      return commanders.map(cmd => ({
+      `
+        )
+        .all([userId, searchQuery, limit])
+
+      return commanders.map((cmd) => ({
         ...cmd,
         colors: JSON.parse(cmd.colors || '[]')
       }))
@@ -197,13 +217,15 @@ class Commander {
       throw new Error('Failed to search commanders')
     }
   }
-  
+
   static async getPopular(userId, limit = 10) {
     const db = await dbManager.initialize()
-    
+
     try {
-      const commanders = db.prepare(`
-        SELECT 
+      const commanders = db
+        .prepare(
+          `
+        SELECT
           c.id,
           c.name,
           c.colors,
@@ -216,9 +238,11 @@ class Commander {
         HAVING total_games > 0
         ORDER BY total_games DESC, c.name ASC
         LIMIT ?
-      `).all([userId, limit])
-      
-      return commanders.map(cmd => ({
+      `
+        )
+        .all([userId, limit])
+
+      return commanders.map((cmd) => ({
         ...cmd,
         colors: JSON.parse(cmd.colors)
       }))

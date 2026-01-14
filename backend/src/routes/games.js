@@ -29,36 +29,40 @@ const updateGameSchema = z.object({
 const gameQuerySchema = z.object({
   q: z.string().min(1).max(50).optional(),
   limit: z.coerce.number().min(1).default(50),
-  offset: z.coerce.number().default(0).default(50)
+  offset: z.coerce.number().default(0)
 })
 
 export default async function gameRoutes(fastify, options) {
-  
   // Get all games for authenticated user with pagination and filtering
-  fastify.get('/', {
-    config: { rateLimit: { max: 20, timeWindow: '1 minute' } },
-    preHandler: [async (request, reply) => {
-      try {
-        await request.jwtVerify()
-      } catch (err) {
-        reply.code(401).send({ 
-          error: 'Unauthorized',
-          message: 'Invalid or expired token' 
-        })
-      }
-    }]
-  }, async (request, reply) => {
+  fastify.get(
+    '/',
+    {
+      config: { rateLimit: { max: 20, timeWindow: '1 minute' } },
+      preHandler: [
+        async (request, reply) => {
+          try {
+            await request.jwtVerify()
+          } catch (err) {
+            reply.code(401).send({
+              error: 'Unauthorized',
+              message: 'Invalid or expired token'
+            })
+          }
+        }
+      ]
+    },
+    async (request, reply) => {
       try {
         const { q, limit, offset } = gameQuerySchema.parse(request.query)
         const userId = request.user.id
-        
+
         const filters = {}
         if (q) {
           filters.commander = `%${q}%`
         }
-        
+
         let games = await Game.findByUserId(userId, limit, offset, filters)
-      
+
         reply.send({
           games,
           pagination: {
@@ -68,34 +72,40 @@ export default async function gameRoutes(fastify, options) {
             offset
           }
         })
-    } catch (error) {
-      fastify.log.error('Get games error:', error)
-      reply.code(500).send({
-        error: 'Internal Server Error',
-        message: 'Failed to fetch games'
-      })
-    }
-  })
-  
-  // Get specific game
-  fastify.get('/:id', {
-    preHandler: [async (request, reply) => {
-      try {
-        await request.jwtVerify()
-      } catch (err) {
-        reply.code(401).send({ 
-          error: 'Unauthorized',
-          message: 'Invalid or expired token' 
+      } catch (error) {
+        fastify.log.error('Get games error:', error)
+        reply.code(500).send({
+          error: 'Internal Server Error',
+          message: 'Failed to fetch games'
         })
       }
-    }]
-  }, async (request, reply) => {
+    }
+  )
+
+  // Get specific game
+  fastify.get(
+    '/:id',
+    {
+      preHandler: [
+        async (request, reply) => {
+          try {
+            await request.jwtVerify()
+          } catch (err) {
+            reply.code(401).send({
+              error: 'Unauthorized',
+              message: 'Invalid or expired token'
+            })
+          }
+        }
+      ]
+    },
+    async (request, reply) => {
       try {
         const { id } = request.params
         const userId = request.user.id
-        
+
         const game = await Game.findById(id)
-        
+
         if (!game || game.user_id !== userId) {
           reply.code(404).send({
             error: 'Not Found',
@@ -103,7 +113,7 @@ export default async function gameRoutes(fastify, options) {
           })
           return
         }
-        
+
         reply.send({
           game: {
             ...game,
@@ -118,38 +128,44 @@ export default async function gameRoutes(fastify, options) {
             notes: game.notes || null
           }
         })
-    } catch (error) {
-      fastify.log.error('Get game error:', error)
-      reply.code(500).send({
-        error: 'Internal Server Error',
-        message: 'Failed to fetch game'
-      })
-    }
-  })
-  
-  // Create new game
-  fastify.post('/', {
-    config: { rateLimit: { max: 3, timeWindow: '1 minute' } },
-    preHandler: [async (request, reply) => {
-      try {
-        await request.jwtVerify()
-      } catch (err) {
-        reply.code(401).send({ 
-          error: 'Unauthorized',
-          message: 'Invalid or expired token' 
+      } catch (error) {
+        fastify.log.error('Get game error:', error)
+        reply.code(500).send({
+          error: 'Internal Server Error',
+          message: 'Failed to fetch game'
         })
       }
-    }]
-  }, async (request, reply) => {
+    }
+  )
+
+  // Create new game
+  fastify.post(
+    '/',
+    {
+      config: { rateLimit: { max: 3, timeWindow: '1 minute' } },
+      preHandler: [
+        async (request, reply) => {
+          try {
+            await request.jwtVerify()
+          } catch (err) {
+            reply.code(401).send({
+              error: 'Unauthorized',
+              message: 'Invalid or expired token'
+            })
+          }
+        }
+      ]
+    },
+    async (request, reply) => {
       try {
         const validatedData = createGameSchema.parse(request.body)
         const userId = request.user.id
-        
+
         const game = await Game.create({
           ...validatedData,
           userId
         })
-      
+
         reply.code(201).send({
           message: 'Game logged successfully',
           game
@@ -159,7 +175,7 @@ export default async function gameRoutes(fastify, options) {
           reply.code(400).send({
             error: 'Validation Error',
             message: 'Invalid input data',
-            details: error.errors.map(e => e.message)
+            details: error.errors.map((e) => e.message)
           })
         } else {
           fastify.log.error('Create game error:', error)
@@ -169,36 +185,45 @@ export default async function gameRoutes(fastify, options) {
           })
         }
       }
-  })
-  
+    }
+  )
+
   // Update game
-  fastify.put('/:id', {
-    config: { rateLimit: { max: 10, timeWindow: '1 minute' } },
-    preHandler: [async (request, reply) => {
-      try {
-        await request.jwtVerify()
-      } catch (err) {
-        reply.code(401).send({ 
-          error: 'Unauthorized',
-          message: 'Invalid or expired token' 
-        })
-      }
-    }]
-  }, async (request, reply) => {
+  fastify.put(
+    '/:id',
+    {
+      config: { rateLimit: { max: 10, timeWindow: '1 minute' } },
+      preHandler: [
+        async (request, reply) => {
+          try {
+            await request.jwtVerify()
+          } catch (err) {
+            reply.code(401).send({
+              error: 'Unauthorized',
+              message: 'Invalid or expired token'
+            })
+          }
+        }
+      ]
+    },
+    async (request, reply) => {
       try {
         const { id } = request.params
         const userId = request.user.id
         const updateData = updateGameSchema.parse(request.body)
-        
+
         const updated = await Game.update(id, updateData, userId)
-        
+
         if (!updated) {
           reply.code(400).send({
             error: 'Update Failed',
             message: 'No valid fields to update or game not found'
           })
+          return
         }
-        
+
+        const game = await Game.findById(id)
+
         reply.send({
           message: 'Game updated successfully',
           game: {
@@ -212,12 +237,12 @@ export default async function gameRoutes(fastify, options) {
             notes: game.notes || null
           }
         })
-    } catch (error) {
-      if (error instanceof z.ZodError) {
-        reply.code(400).send({
+      } catch (error) {
+        if (error instanceof z.ZodError) {
+          reply.code(400).send({
             error: 'Validation Error',
             message: 'Invalid input data',
-            details: error.errors.map(e => e.message)
+            details: error.errors.map((e) => e.message)
           })
         } else {
           fastify.log.error('Update game error:', error)
@@ -227,28 +252,34 @@ export default async function gameRoutes(fastify, options) {
           })
         }
       }
-  })
-  
+    }
+  )
+
   // Delete game
-  fastify.delete('/:id', {
-    config: { rateLimit: { max: 5, timeWindow: '1 minute' } },
-    preHandler: [async (request, reply) => {
-      try {
-        await request.jwtVerify()
-      } catch (err) {
-        reply.code(401).send({ 
-          error: 'Unauthorized',
-          message: 'Invalid or expired token' 
-        })
-      }
-    }]
-  }, async (request, reply) => {
+  fastify.delete(
+    '/:id',
+    {
+      config: { rateLimit: { max: 5, timeWindow: '1 minute' } },
+      preHandler: [
+        async (request, reply) => {
+          try {
+            await request.jwtVerify()
+          } catch (err) {
+            reply.code(401).send({
+              error: 'Unauthorized',
+              message: 'Invalid or expired token'
+            })
+          }
+        }
+      ]
+    },
+    async (request, reply) => {
       try {
         const { id } = request.params
         const userId = request.user.id
-        
+
         const deleted = await Game.delete(id, userId)
-        
+
         if (!deleted) {
           reply.code(404).send({
             error: 'Not Found',
@@ -256,17 +287,16 @@ export default async function gameRoutes(fastify, options) {
           })
           return
         }
-        
+
         reply.send({
           message: 'Game deleted successfully'
         })
-    } catch (error) {
+      } catch (error) {
         fastify.log.error('Delete game error:', error)
         reply.code(500).send({
           error: 'Failed to delete game'
         })
       }
-  })
-  
-
+    }
+  )
 }

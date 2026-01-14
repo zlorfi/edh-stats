@@ -1,5 +1,5 @@
 import Database from 'better-sqlite3'
-import { readFileSync } from 'fs'
+import { readFileSync, existsSync, mkdirSync } from 'fs'
 import { fileURLToPath } from 'url'
 import { dirname, join } from 'path'
 
@@ -18,14 +18,15 @@ class DatabaseManager {
       return this.db
     }
 
-    const dbPath = process.env.DATABASE_PATH || join(__dirname, '../../../database/data/edh-stats.db')
-    
+    const dbPath =
+      process.env.DATABASE_PATH ||
+      join(__dirname, '../../../database/data/edh-stats.db')
+
     try {
       // Create database directory if it doesn't exist
       const dbDir = dirname(dbPath)
-      const fs = await import('fs')
-      if (!fs.existsSync(dbDir)) {
-        fs.mkdirSync(dbDir, { recursive: true })
+      if (!existsSync(dbDir)) {
+        mkdirSync(dbDir, { recursive: true })
       }
 
       this.db = new Database(dbPath)
@@ -51,7 +52,7 @@ class DatabaseManager {
     try {
       const migrationPath = join(__dirname, '../database/migrations.sql')
       const migrationSQL = readFileSync(migrationPath, 'utf8')
-      
+
       this.db.exec(migrationSQL)
       console.log('Database migrations completed')
     } catch (error) {
@@ -64,7 +65,7 @@ class DatabaseManager {
     try {
       const seedPath = join(__dirname, '../database/seeds.sql')
       const seedSQL = readFileSync(seedPath, 'utf8')
-      
+
       this.db.exec(seedSQL)
       console.log('Database seeding completed')
     } catch (error) {
