@@ -161,10 +161,20 @@ export default async function gameRoutes(fastify, options) {
         const validatedData = createGameSchema.parse(request.body)
         const userId = request.user.id
 
-        const game = await Game.create({
-          ...validatedData,
+        // Convert camelCase to snake_case for database
+        const gameData = {
+          date: validatedData.date,
+          player_count: validatedData.playerCount,
+          commander_id: validatedData.commanderId,
+          won: validatedData.won,
+          rounds: validatedData.rounds,
+          starting_player_won: validatedData.startingPlayerWon,
+          sol_ring_turn_one_won: validatedData.solRingTurnOneWon,
+          notes: validatedData.notes,
           userId
-        })
+        }
+
+        const game = await Game.create(gameData)
 
         reply.code(201).send({
           message: 'Game logged successfully',

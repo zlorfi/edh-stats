@@ -1,191 +1,320 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en" class="h-full bg-gray-50">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Games - EDH Stats Tracker</title>
-    <meta name="description" content="Log and track your Magic: The Gathering EDH/Commander games">
-    <link rel="stylesheet" href="/css/styles.css">
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg">
-</head>
-<body class="h-full" x-data="gameManager()">
-    
+    <meta
+      name="description"
+      content="Log and track your Magic: The Gathering EDH/Commander games"
+    />
+    <link rel="stylesheet" href="/css/styles.css" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  </head>
+  <body class="h-full" x-data="gameManager()">
     <!-- Navigation Header -->
     <header class="bg-edh-primary text-white shadow-lg">
-        <nav class="container mx-auto px-4 py-4">
-            <div class="flex justify-between items-center">
-                <h1 class="text-2xl font-bold font-mtg">Game Log</h1>
-                <div class="flex space-x-4">
-                    <a href="/dashboard.html" class="hover:text-edh-accent transition-colors">
-                        ← Back to Dashboard
-                    </a>
-                </div>
-            </div>
-        </nav>
+      <nav class="container mx-auto px-4 py-4">
+        <div class="flex justify-between items-center">
+          <h1 class="text-2xl font-bold font-mtg">Game Log</h1>
+          <div class="flex space-x-4">
+            <a
+              href="/dashboard.html"
+              class="hover:text-edh-accent transition-colors"
+            >
+              ← Back to Dashboard
+            </a>
+          </div>
+        </div>
+      </nav>
     </header>
 
     <!-- Main Content -->
     <main class="container mx-auto px-4 py-8">
-        <!-- Header & Action -->
-        <div class="mb-8 flex justify-between items-center">
-            <h2 class="text-2xl font-semibold text-gray-900">Recent Games</h2>
-            <button @click="showLogForm = !showLogForm" class="btn btn-primary">
-                <span x-show="!showLogForm">Log New Game</span>
-                <span x-show="showLogForm">Cancel</span>
+      <!-- Header & Action -->
+      <div class="mb-8 flex justify-between items-center">
+        <h2 class="text-2xl font-semibold text-gray-900">Recent Games</h2>
+        <button @click="showLogForm = !showLogForm" class="btn btn-primary">
+          <span x-show="!showLogForm">Log New Game</span>
+          <span x-show="showLogForm">Cancel</span>
+        </button>
+      </div>
+
+      <!-- Log Game Form -->
+      <div
+        x-show="showLogForm"
+        x-transition
+        class="mb-8 card border-2 border-edh-primary/20"
+      >
+        <h3 class="text-lg font-semibold mb-6">Log Game Details</h3>
+
+        <form @submit.prevent="handleLogGame">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <!-- Date -->
+            <div>
+              <label class="form-label">Date Played</label>
+              <input
+                type="date"
+                x-model="newGame.date"
+                class="form-input"
+                required
+              />
+            </div>
+
+            <!-- Commander -->
+            <div>
+              <label class="form-label">Commander Played</label>
+              <select
+                x-model="newGame.commanderId"
+                class="form-select"
+                required
+              >
+                <option value="">Select a commander...</option>
+                <template x-for="commander in commanders" :key="commander.id">
+                  <option
+                    :value="commander.id"
+                    x-text="commander.name"
+                  ></option>
+                </template>
+              </select>
+              <p
+                x-show="commanders.length === 0"
+                class="text-sm text-gray-500 mt-1"
+              >
+                No commanders found.
+                <a href="/commanders.html" class="text-edh-primary underline"
+                  >Add one first!</a
+                >
+              </p>
+            </div>
+
+            <!-- Player Count -->
+            <div>
+              <label class="form-label">Number of Players</label>
+              <input
+                type="number"
+                x-model="newGame.playerCount"
+                min="2"
+                max="8"
+                class="form-input"
+                required
+              />
+            </div>
+
+            <!-- Rounds -->
+            <div>
+              <label class="form-label">Rounds Lasted</label>
+              <input
+                type="number"
+                x-model="newGame.rounds"
+                min="1"
+                max="50"
+                class="form-input"
+                required
+              />
+            </div>
+
+            <!-- Game Outcome -->
+            <div class="md:col-span-2">
+              <label class="form-label mb-2 block">Did you win?</label>
+              <div class="flex space-x-4">
+                <label class="inline-flex items-center">
+                  <input
+                    type="radio"
+                    x-model="newGame.won"
+                    :value="true"
+                    class="form-radio text-edh-primary"
+                  />
+                  <span class="ml-2 text-green-700 font-medium"
+                    >Yes, I won! 🏆</span
+                  >
+                </label>
+                <label class="inline-flex items-center">
+                  <input
+                    type="radio"
+                    x-model="newGame.won"
+                    :value="false"
+                    class="form-radio text-edh-primary"
+                  />
+                  <span class="ml-2 text-gray-700">No, maybe next time</span>
+                </label>
+              </div>
+            </div>
+
+            <!-- Additional Stats -->
+            <div class="md:col-span-2 space-y-3 p-4 bg-gray-50 rounded-lg">
+              <label class="inline-flex items-center w-full cursor-pointer">
+                <input
+                  type="checkbox"
+                  x-model="newGame.startingPlayerWon"
+                  class="form-checkbox text-edh-primary rounded"
+                />
+                <span class="ml-2">Did the starting player win?</span>
+              </label>
+
+              <label class="inline-flex items-center w-full cursor-pointer">
+                <input
+                  type="checkbox"
+                  x-model="newGame.solRingTurnOneWon"
+                  class="form-checkbox text-edh-primary rounded"
+                />
+                <span class="ml-2">Did a Turn 1 Sol Ring player win?</span>
+              </label>
+            </div>
+
+            <!-- Notes -->
+            <div class="md:col-span-2">
+              <label class="form-label">Game Notes</label>
+              <textarea
+                x-model="newGame.notes"
+                rows="3"
+                class="form-textarea"
+                placeholder="Any memorable moments, combos, or reasons for winning/losing..."
+              ></textarea>
+            </div>
+          </div>
+
+          <!-- Error Message -->
+          <div
+            x-show="serverError"
+            class="mt-4 p-3 bg-red-100 text-red-700 rounded-lg text-sm"
+            x-text="serverError"
+          ></div>
+
+          <!-- Actions -->
+          <div class="mt-6 flex justify-end space-x-3">
+            <button
+              type="button"
+              @click="showLogForm = false"
+              class="btn btn-secondary"
+            >
+              Cancel
             </button>
-        </div>
-        
-        <!-- Log Game Form -->
-        <div x-show="showLogForm" x-transition class="mb-8 card border-2 border-edh-primary/20">
-            <h3 class="text-lg font-semibold mb-6">Log Game Details</h3>
-            
-            <form @submit.prevent="handleLogGame">
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <!-- Date -->
-                    <div>
-                        <label class="form-label">Date Played</label>
-                        <input type="date" x-model="newGame.date" class="form-input" required>
-                    </div>
+            <button
+              type="submit"
+              :disabled="submitting"
+              class="btn btn-primary"
+            >
+              <span x-show="submitting">Saving...</span>
+              <span x-show="!submitting">Log Game</span>
+            </button>
+          </div>
+        </form>
+      </div>
 
-                    <!-- Commander -->
-                    <div>
-                        <label class="form-label">Commander Played</label>
-                        <select x-model="newGame.commanderId" class="form-select" required>
-                            <option value="">Select a commander...</option>
-                            <template x-for="commander in commanders" :key="commander.id">
-                                <option :value="commander.id" x-text="commander.name"></option>
-                            </template>
-                        </select>
-                        <p x-show="commanders.length === 0" class="text-sm text-gray-500 mt-1">
-                            No commanders found. <a href="/commanders.html" class="text-edh-primary underline">Add one first!</a>
-                        </p>
-                    </div>
-
-                    <!-- Player Count -->
-                    <div>
-                        <label class="form-label">Number of Players</label>
-                        <input type="number" x-model="newGame.playerCount" min="2" max="8" class="form-input" required>
-                    </div>
-
-                    <!-- Rounds -->
-                    <div>
-                        <label class="form-label">Rounds Lasted</label>
-                        <input type="number" x-model="newGame.rounds" min="1" max="50" class="form-input" required>
-                    </div>
-
-                    <!-- Game Outcome -->
-                    <div class="md:col-span-2">
-                        <label class="form-label mb-2 block">Did you win?</label>
-                        <div class="flex space-x-4">
-                            <label class="inline-flex items-center">
-                                <input type="radio" x-model="newGame.won" :value="true" class="form-radio text-edh-primary">
-                                <span class="ml-2 text-green-700 font-medium">Yes, I won! 🏆</span>
-                            </label>
-                            <label class="inline-flex items-center">
-                                <input type="radio" x-model="newGame.won" :value="false" class="form-radio text-edh-primary">
-                                <span class="ml-2 text-gray-700">No, maybe next time</span>
-                            </label>
-                        </div>
-                    </div>
-
-                    <!-- Additional Stats -->
-                    <div class="md:col-span-2 space-y-3 p-4 bg-gray-50 rounded-lg">
-                        <label class="inline-flex items-center w-full cursor-pointer">
-                            <input type="checkbox" x-model="newGame.startingPlayerWon" class="form-checkbox text-edh-primary rounded">
-                            <span class="ml-2">Did the starting player win?</span>
-                        </label>
-                        
-                        <label class="inline-flex items-center w-full cursor-pointer">
-                            <input type="checkbox" x-model="newGame.solRingTurnOneWon" class="form-checkbox text-edh-primary rounded">
-                            <span class="ml-2">Did a Turn 1 Sol Ring player win?</span>
-                        </label>
-                    </div>
-
-                    <!-- Notes -->
-                    <div class="md:col-span-2">
-                        <label class="form-label">Game Notes</label>
-                        <textarea x-model="newGame.notes" rows="3" class="form-textarea" placeholder="Any memorable moments, combos, or reasons for winning/losing..."></textarea>
-                    </div>
-                </div>
-
-                <!-- Error Message -->
-                <div x-show="serverError" class="mt-4 p-3 bg-red-100 text-red-700 rounded-lg text-sm" x-text="serverError"></div>
-
-                <!-- Actions -->
-                <div class="mt-6 flex justify-end space-x-3">
-                    <button type="button" @click="showLogForm = false" class="btn btn-secondary">Cancel</button>
-                    <button type="submit" :disabled="submitting" class="btn btn-primary">
-                        <span x-show="submitting">Saving...</span>
-                        <span x-show="!submitting">Log Game</span>
-                    </button>
-                </div>
-            </form>
+      <!-- Games List -->
+      <div class="space-y-4">
+        <!-- Loading State -->
+        <div
+          x-show="loading && games.length === 0"
+          class="flex justify-center py-12"
+        >
+          <div class="loading-spinner w-8 h-8"></div>
         </div>
 
-        <!-- Games List -->
-        <div class="space-y-4">
-            <!-- Loading State -->
-            <div x-show="loading && games.length === 0" class="flex justify-center py-12">
-                <div class="loading-spinner w-8 h-8"></div>
-            </div>
-
-            <!-- Empty State -->
-            <div x-show="!loading && games.length === 0" class="text-center py-12 bg-white rounded-lg shadow">
-                <p class="text-gray-500 mb-4">No games logged yet.</p>
-                <button @click="showLogForm = true" class="text-edh-primary font-medium hover:underline">Log your first game!</button>
-            </div>
-
-            <!-- List Items -->
-            <template x-for="game in games" :key="game.id">
-                <div class="card hover:shadow-md transition-shadow border-l-4" :class="game.won ? 'border-l-green-500' : 'border-l-gray-300'">
-                    <div class="flex justify-between items-start">
-                        <div>
-                            <div class="flex items-center space-x-2 mb-1">
-                                <h3 class="font-bold text-lg" x-text="game.commanderName || getCommanderName(game.commander_id)"></h3>
-                                <span x-show="game.won" class="px-2 py-0.5 rounded text-xs font-bold bg-green-100 text-green-800">WIN</span>
-                            </div>
-                            <p class="text-sm text-gray-500">
-                                <span x-text="formatDate(game.date)"></span> • 
-                                <span x-text="game.playerCount"></span> Players • 
-                                <span x-text="game.rounds"></span> Rounds
-                            </p>
-                        </div>
-                        <button @click="deleteGame(game.id)" class="text-gray-400 hover:text-red-500 p-2" title="Delete Game">
-                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 00-2.417-2.417L6 12.858V8a2 2 00 2-2.586-2.586 0 1.414l.008.008-.414 0-.414L19 5z" />
-                            </svg>
-                        </button>
-                    </div>
-                    
-                    <div x-show="game.notes" class="mt-3 text-gray-600 text-sm bg-gray-50 p-2 rounded">
-                        <span class="font-semibold text-gray-500 text-xs uppercase tracking-wide">Notes:</span>
-                        <p x-text="game.notes"></p>
-                    </div>
-
-                    <div class="mt-3 flex flex-wrap gap-2 text-xs text-gray-500">
-                        <span x-show="game.startingPlayerWon" class="px-2 py-1 bg-gray-100 rounded">Starting Player Won</span>
-                        <span x-show="game.solRingTurnOneWon" class="px-2 py-1 bg-yellow-50 text-yellow-700 rounded border border-yellow-200">T1 Sol Ring Win</span>
-                    </div>
-                </div>
-            </template>
-
-            <!-- Load More -->
-            <div x-show="pagination.hasMore" class="text-center pt-4">
-                <button @click="loadMore()" class="btn btn-secondary w-full md:w-auto">Load More Games</button>
-            </div>
+        <!-- Empty State -->
+        <div
+          x-show="!loading && games.length === 0"
+          class="text-center py-12 bg-white rounded-lg shadow"
+        >
+          <p class="text-gray-500 mb-4">No games logged yet.</p>
+          <button
+            @click="showLogForm = true"
+            class="text-edh-primary font-medium hover:underline"
+          >
+            Log your first game!
+          </button>
         </div>
+
+        <!-- List Items -->
+        <template x-for="game in games" :key="game.id">
+          <div
+            class="card hover:shadow-md transition-shadow border-l-4"
+            :class="game.won ? 'border-l-green-500' : 'border-l-gray-300'"
+          >
+            <div class="flex justify-between items-start">
+              <div>
+                <div class="flex items-center space-x-2 mb-1">
+                  <h3
+                    class="font-bold text-lg"
+                    x-text="game.commanderName || getCommanderName(game.commander_id)"
+                  ></h3>
+                  <span
+                    x-show="game.won"
+                    class="px-2 py-0.5 rounded text-xs font-bold bg-green-100 text-green-800"
+                    >WIN</span
+                  >
+                </div>
+                <p class="text-sm text-gray-500">
+                  <span x-text="formatDate(game.date)"></span> •
+                  <span x-text="game.playerCount"></span> Players •
+                  <span x-text="game.rounds"></span> Rounds
+                </p>
+              </div>
+              <button
+                @click="deleteGame(game.id)"
+                class="text-gray-400 hover:text-red-500 p-2"
+                title="Delete Game"
+              >
+                <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                  <path
+                    d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9zM4 7a2 2 0 012-2h8a2 2 0 012 2v12a2 2 0 01-2 2H6a2 2 0 01-2-2V7zm3 3a1 1 0 100 2h6a1 1 0 100-2H7z"
+                  />
+                </svg>
+              </button>
+            </div>
+
+            <div
+              x-show="game.notes"
+              class="mt-3 text-gray-600 text-sm bg-gray-50 p-2 rounded"
+            >
+              <span
+                class="font-semibold text-gray-500 text-xs uppercase tracking-wide"
+                >Notes:</span
+              >
+              <p x-text="game.notes"></p>
+            </div>
+
+            <div class="mt-3 flex flex-wrap gap-2 text-xs text-gray-500">
+              <span
+                x-show="game.startingPlayerWon"
+                class="px-2 py-1 bg-gray-100 rounded"
+                >Starting Player Won</span
+              >
+              <span
+                x-show="game.solRingTurnOneWon"
+                class="px-2 py-1 bg-yellow-50 text-yellow-700 rounded border border-yellow-200"
+                >T1 Sol Ring Win</span
+              >
+            </div>
+          </div>
+        </template>
+
+        <!-- Load More -->
+        <div x-show="pagination.hasMore" class="text-center pt-4">
+          <button
+            @click="loadMore()"
+            class="btn btn-secondary w-full md:w-auto"
+          >
+            Load More Games
+          </button>
+        </div>
+      </div>
     </main>
 
     <!-- Footer -->
     <footer class="bg-gray-800 text-white py-8 mt-12">
-        <div class="container mx-auto px-4 text-center">
-            <p class="text-gray-400">EDH Stats Tracker</p>
-        </div>
+      <div class="container mx-auto px-4 text-center">
+        <p class="text-gray-400">EDH Stats Tracker</p>
+      </div>
     </footer>
 
     <!-- Scripts -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <script
+      defer
+      src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"
+    ></script>
     <script src="/js/games.js"></script>
-</body>
+  </body>
 </html>
