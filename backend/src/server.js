@@ -12,6 +12,7 @@ import dbManager from './config/database.js'
 
 // Import routes
 import authRoutes from './routes/auth.js'
+import commanderRoutes from './routes/commanders.js'
 
 // Build the Fastify application
 async function build() {
@@ -112,19 +113,8 @@ async function build() {
   // API routes
   await app.register(authRoutes, { prefix: '/api/auth' })
 
-  // Commander routes (to be implemented)
-  app.get('/api/commanders', { preHandler: [async (request, reply) => {
-    try {
-      await request.jwtVerify()
-    } catch (err) {
-      reply.code(401).send({ 
-        error: 'Unauthorized',
-        message: 'Invalid or expired token' 
-      })
-    }
-  }] }, async (request, reply) => {
-    return { message: 'Commander routes coming soon!' }
-  })
+  // Commander routes
+  await app.register(commanderRoutes, { prefix: '/api/commanders' })
 
   // Games routes (to be implemented)
   app.get('/api/games', { preHandler: [async (request, reply) => {

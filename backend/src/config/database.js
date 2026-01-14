@@ -10,6 +10,7 @@ class DatabaseManager {
   constructor() {
     this.db = null
     this.isInitialized = false
+    this.currentUserId = null
   }
 
   async initialize() {
@@ -84,6 +85,14 @@ class DatabaseManager {
       throw new Error('Database not initialized. Call initialize() first.')
     }
     return this.db
+  }
+
+  setCurrentUser(userId) {
+    this.currentUserId = userId
+  }
+
+  getCurrentUser() {
+    return this.currentUserId
   }
 
   // Helper methods for common operations
