@@ -10,15 +10,19 @@ import closeWithGrace from 'close-with-grace'
 import { jwtConfig, corsConfig, rateLimitConfig, serverConfig } from './config/jwt.js'
 import dbManager from './config/database.js'
 
-// Import routes
-import authRoutes from './routes/auth.js'
-import commanderRoutes from './routes/commanders.js'
-
-// Build the Fastify application
-async function build() {
-  const app = fastify({
-    logger: serverConfig.logger,
-    trustProxy: true
+  // Statistics routes (to be implemented)
+  app.get('/api/stats', { preHandler: [async (request, reply) => {
+    try {
+      await request.jwtVerify()
+    } catch (err) {
+      reply.code(401).send({ 
+        error: 'Unauthorized',
+        message: 'Invalid or expired token' 
+        })
+    }]
+  }, async (request, reply) => {
+      return { message: 'Statistics dashboard coming soon!' }
+    })
   })
 
   // Register plugins
@@ -117,18 +121,17 @@ async function build() {
   await app.register(commanderRoutes, { prefix: '/api/commanders' })
 
   // Games routes (to be implemented)
-  app.get('/api/games', { preHandler: [async (request, reply) => {
+app.get('/api/stats', { preHandler: [async (request, reply) => {
     try {
       await request.jwtVerify()
     } catch (err) {
       reply.code(401).send({ 
         error: 'Unauthorized',
         message: 'Invalid or expired token' 
-      })
-    }
-  }] }, async (request, reply) => {
-    return { message: 'Games routes coming soon!' }
-  })
+        })
+    }] }, async (request, reply) => {
+      return { message: 'Statistics dashboard coming soon!' }
+    })
 
   // Statistics routes (to be implemented)
   app.get('/api/stats', { preHandler: [async (request, reply) => {

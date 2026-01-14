@@ -28,7 +28,7 @@ class Commander {
       const commander = db.prepare(`
         SELECT id, name, colors, user_id, created_at, updated_at
         FROM commanders 
-        WHERE id = ? AND user_id = ?
+        WHERE id = ? AND dbManager.getCurrentUser() = ?
       `).get([id, dbManager.getCurrentUser()])
       
       return commander
@@ -41,10 +41,10 @@ class Commander {
     const db = await dbManager.initialize()
     
     try {
-      let query = `
+      const query = `
         SELECT id, name, colors, user_id, created_at, updated_at
         FROM commanders 
-        WHERE user_id = ?
+        WHERE dbManager.getCurrentUser() = ?
       `
       
       if (sortBy) {
@@ -55,10 +55,23 @@ class Commander {
       
       const commanders = db.prepare(query).all([userId, limit, offset])
       
+      // Apply sorting in JavaScript instead of SQL
+      let sortedCommanders = commanders.sort((a, b) => {
+        if (sortBy === 'DESC') {
+          return new Date(b[sortBy]) - new Date(a[sortBy])
+        } else {
+          return new Date(a[sortBy]) - new Date(b[sortBy])
+        }
+      })
+      
+      // Apply pagination
+      const startIndex = parseInt(offset) || 0
+      const endIndex = startIndex + parseInt(limit || 50)
+      
       // Parse colors JSON for frontend
-      return commanders.map(cmd => ({
+        return sortedCommanders.slice(startIndex, endIndex).map(cmd => ({
         ...cmd,
-        colors: JSON.parse(cmd.colors)
+        colors: JSON.parse(cmd.colors || '[]')
       }))
     } catch (error) {
       throw new Error('Failed to find commanders by user')
@@ -97,7 +110,7 @@ class Commander {
       const result = db.prepare(`
         UPDATE commanders 
         SET ${updates.join(', ')}
-        WHERE id = ? AND user_id = ?
+        WHERE id = ? AND dbManager.getCurrentUser() = ?
       `).run([...values, id, userId])
       
       return result.changes > 0
@@ -118,7 +131,7 @@ class Commander {
       
       const result = db.prepare(`
         DELETE FROM commanders 
-        WHERE id = ? AND user_id = ?
+        WHERE id = ? AND dbManager.getCurrentUser() = ?
       `).run([id, userId])
       
       return result.changes > 0
@@ -145,6 +158,39 @@ class Commander {
         LEFT JOIN games g ON c.id = g.commander_id
         WHERE c.id = ? AND c.user_id = ?
         GROUP BY c.id, c.name, c.colors, c.created_at
+        HAVING total_games > 0
+        ORDER BY total_games DESC, c.name ASC
+        LIMIT ?
+      `).get([id, userId])
+      
+      if (!stats) {
+        throw new Error('Commander not found')
+      }
+      
+      return {
+        ...stats,
+        colors: JSON.parse(stats.colors)
+      }
+    } catch (error) {
+      throw new Error('Failed to get commander stats')
+    }
+  }
+        SELECT 
+          c.id,
+          c.name,
+          c.colors,
+          COUNT(g.id) as total_games,
+          SUM(CASE WHEN g.won = 1 THEN 1 ELSE 0 END) as total_wins,
+          ROUND((SUM(CASE WHEN g.won = 1 THEN 1 ELSE 0 END) * 100.0) / COUNT(g.id), 2) as win_rate,
+          AVG(g.rounds) as avg_rounds,
+          MAX(g.date) as last_played
+        FROM commanders c
+        LEFT JOIN games g ON c.id = g.commander_id
+        WHERE c.id = ? AND c.user_id = ?
+        GROUP BY c.id, c.name, c.colors, c.created_at
+        HAVING total_games > 0
+        ORDER BY total_games DESC, c.name ASC
+        LIMIT ?
       `).get([id, userId])
       
       if (!stats) {
@@ -164,23 +210,27 @@ class Commander {
     const db = await dbManager.initialize()
     
     try {
+  static async search(userId, query, limit = 20) {
+    const db = await dbManager.initialize()
+    
+    try {
       const searchQuery = `%${query}%`
-      
       const commanders = db.prepare(`
-        SELECT id, name, colors, user_id, created_at
+        SELECT id, name, colors, user_id, created_at, updated_at
         FROM commanders 
-        WHERE user_id = ? AND name LIKE ?
+        WHERE dbManager.getCurrentUser() = ?
         ORDER BY name ASC
         LIMIT ?
       `).all([userId, searchQuery, limit])
       
       return commanders.map(cmd => ({
         ...cmd,
-        colors: JSON.parse(cmd.colors)
-      }))
+        colors: JSON.parse(cmd.colors || '[]')
+      })
     } catch (error) {
       throw new Error('Failed to search commanders')
     }
+  }
   }
   
   static async getPopular(userId, limit = 10) {
