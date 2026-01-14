@@ -1,0 +1,29 @@
+{
+  "name": "edh-stats-frontend",
+  "version": "1.0.0",
+  "description": "Frontend for EDH/Commander stats tracking application",
+  "type": "module",
+  "scripts": {
+    "dev": "echo 'Static files - use nginx server' && python3 -m http.server 8080",
+    "build-css": "tailwindcss -i ./css/input.css -o ./css/styles.css --watch",
+    "build-css:prod": "tailwindcss -i ./css/input.css -o ./css/styles.css --minify"
+  },
+  "dependencies": {
+    "alpinejs": "^3.13.3",
+    "chart.js": "^4.4.1"
+  },
+  "devDependencies": {
+    "tailwindcss": "^3.4.0",
+    "autoprefixer": "^10.4.16",
+    "postcss": "^8.4.32"
+  },
+  "keywords": [
+    "alpinejs",
+    "tailwindcss",
+    "magic-the-gathering",
+    "edh",
+    "commander"
+  ],
+  "author": "EDH Stats App",
+  "license": "MIT"
+}

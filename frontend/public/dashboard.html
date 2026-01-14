@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full bg-gray-50">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EDH Stats Tracker - Dashboard</title>
+    <meta name="description" content="Track your Magic: The Gathering EDH/Commander games and statistics">
+    <link rel="stylesheet" href="/css/styles.css">
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+</head>
+<body class="h-full" x-data="app()">
+    
+    <!-- Navigation Header -->
+    <header class="bg-edh-primary text-white shadow-lg">
+        <nav class="container mx-auto px-4 py-4">
+            <div class="flex justify-between items-center">
+                <div class="flex items-center space-x-4">
+                    <h1 class="text-2xl font-bold font-mtg">EDH Stats</h1>
+                    <div class="hidden md:flex space-x-6">
+                        <a href="/dashboard.html" class="hover:text-edh-accent transition-colors">Dashboard</a>
+                        <a href="/commanders.html" class="hover:text-edh-accent transition-colors">Commanders</a>
+                        <a href="/games.html" class="hover:text-edh-accent transition-colors">Log Game</a>
+                        <a href="/stats.html" class="hover:text-edh-accent transition-colors">Statistics</a>
+                    </div>
+                </div>
+                
+                <div class="flex items-center space-x-4">
+                    <!-- Round Counter -->
+                    <div x-show="roundCounter.active" class="flex items-center space-x-2 bg-edh-secondary px-3 py-2 rounded-lg">
+                        <span class="text-sm">Round</span>
+                        <span class="text-xl font-bold" x-text="roundCounter.current"></span>
+                        <button @click="incrementRound()" class="ml-2 hover:text-edh-accent">+</button>
+                        <button @click="resetRoundCounter()" class="hover:text-edh-accent" title="Reset">↺</button>
+                    </div>
+                    
+                    <!-- User Menu -->
+                    <div class="relative" x-data="{ userMenuOpen: false }">
+                        <button @click="userMenuOpen = !userMenuOpen" class="flex items-center space-x-2 hover:text-edh-accent">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+                            </svg>
+                            <span x-text="currentUser?.username"></span>
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                            </svg>
+                        </button>
+                        
+                        <div x-show="userMenuOpen" 
+                             @click.away="userMenuOpen = false"
+                             x-transition
+                             class="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-50">
+                            <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Profile</a>
+                            <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Settings</a>
+                            <hr class="my-1">
+                            <button @click="logout()" class="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Logout</button>
+                        </div>
+                    </div>
+                    
+                    <!-- Mobile Menu Button -->
+                    <button @click="mobileMenuOpen = !mobileMenuOpen" class="md:hidden">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Mobile Menu -->
+            <div x-show="mobileMenuOpen" x-transition class="md:hidden mt-4 pt-4 border-t border-edh-secondary">
+                <div class="flex flex-col space-y-2">
+                    <a href="/dashboard.html" class="hover:text-edh-accent transition-colors py-2">Dashboard</a>
+                    <a href="/commanders.html" class="hover:text-edh-accent transition-colors py-2">Commanders</a>
+                    <a href="/games.html" class="hover:text-edh-accent transition-colors py-2">Log Game</a>
+                    <a href="/stats.html" class="hover:text-edh-accent transition-colors py-2">Statistics</a>
+                </div>
+            </div>
+        </nav>
+    </header>
+
+    <!-- Main Content -->
+    <main class="container mx-auto px-4 py-8">
+        <!-- Quick Stats -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            <div class="stat-card">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-white/80 text-sm">Total Games</p>
+                        <p class="text-3xl font-bold" x-text="stats.totalGames || 0"></p>
+                    </div>
+                    <svg class="w-8 h-8 text-white/60" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                </div>
+            </div>
+            
+            <div class="stat-card">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-white/80 text-sm">Win Rate</p>
+                        <p class="text-3xl font-bold"><span x-text="stats.winRate || 0"></span>%</p>
+                    </div>
+                    <svg class="w-8 h-8 text-white/60" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path>
+                    </svg>
+                </div>
+            </div>
+            
+            <div class="stat-card">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-white/80 text-sm">Commanders</p>
+                        <p class="text-3xl font-bold" x-text="stats.totalCommanders || 0"></p>
+                    </div>
+                    <svg class="w-8 h-8 text-white/60" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path>
+                    </svg>
+                </div>
+            </div>
+            
+            <div class="stat-card">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-white/80 text-sm">Avg Rounds</p>
+                        <p class="text-3xl font-bold" x-text="stats.avgRounds || 0"></p>
+                    </div>
+                    <svg class="w-8 h-8 text-white/60" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                </div>
+            </div>
+        </div>
+
+        <!-- Recent Games -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <div class="card">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-xl font-semibold">Recent Games</h2>
+                    <a href="/games.html" class="text-edh-accent hover:text-edh-primary">Log Game →</a>
+                </div>
+                
+                <div x-show="loading" class="flex justify-center py-8">
+                    <div class="loading-spinner w-8 h-8"></div>
+                </div>
+                
+                <div x-show="!loading" class="space-y-4">
+                    <template x-for="game in recentGames" :key="game.id">
+                        <div class="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+                            <div class="flex items-center space-x-4">
+                                <div class="text-center">
+                                    <p class="text-sm text-gray-500" x-text="formatDate(game.date)"></p>
+                                    <p class="text-xs text-gray-400" x-text="game.player_count + ' players'"></p>
+                                </div>
+                                <div>
+                                    <p class="font-medium" x-text="game.commander_name"></p>
+                                    <div class="flex space-x-1">
+                                        <template x-for="color in JSON.parse(game.colors)">
+                                            <div class="w-4 h-4 rounded" :class="'color-' + color.toLowerCase()" :title="getColorName(color)"></div>
+                                        </template>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="text-right">
+                                <p class="text-sm font-medium" :class="game.won ? 'text-green-600' : 'text-red-600'">
+                                    <span x-text="game.won ? 'Won' : 'Lost'"></span>
+                                </p>
+                                <p class="text-xs text-gray-500">
+                                    <span x-text="game.rounds + ' rounds'"></span>
+                                </p>
+                            </div>
+                        </div>
+                    </template>
+                    
+                    <div x-show="recentGames.length === 0" class="text-center py-8 text-gray-500">
+                        <p>No games logged yet.</p>
+                        <a href="/games.html" class="text-edh-accent hover:text-edh-primary">Log your first game</a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Top Commanders -->
+            <div class="card">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-xl font-semibold">Top Commanders</h2>
+                    <a href="/commanders.html" class="text-edh-accent hover:text-edh-primary">Manage →</a>
+                </div>
+                
+                <div x-show="loading" class="flex justify-center py-8">
+                    <div class="loading-spinner w-8 h-8"></div>
+                </div>
+                
+                <div x-show="!loading" class="space-y-4">
+                    <template x-for="commander in topCommanders" :key="commander.id">
+                        <div class="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+                            <div class="flex items-center space-x-4">
+                                <div class="flex space-x-1">
+                                    <template x-for="color in JSON.parse(commander.colors)">
+                                        <div class="w-6 h-6 rounded" :class="'color-' + color.toLowerCase()" :title="getColorName(color)"></div>
+                                    </template>
+                                </div>
+                                <div>
+                                    <p class="font-medium" x-text="commander.name"></p>
+                                    <p class="text-sm text-gray-500" x-text="commander.total_games + ' games'"></p>
+                                </div>
+                            </div>
+                            
+                            <div class="text-right">
+                                <p class="font-bold text-edh-primary" x-text="commander.win_rate + '%'"></p>
+                                <p class="text-xs text-gray-500">
+                                    <span x-text="Math.round(commander.avg_rounds) + ' avg rounds'"></span>
+                                </p>
+                            </div>
+                        </div>
+                    </template>
+                    
+                    <div x-show="topCommanders.length === 0" class="text-center py-8 text-gray-500">
+                        <p>No commanders added yet.</p>
+                        <a href="/commanders.html" class="text-edh-accent hover:text-edh-primary">Add your first commander</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Quick Actions -->
+        <div class="mt-8 grid grid-cols-1 md:grid-cols-3 gap-6">
+            <button @click="startRoundCounter()" class="card hover:shadow-lg transition-shadow text-center">
+                <svg class="w-12 h-12 mx-auto mb-4 text-edh-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                </svg>
+                <h3 class="font-semibold mb-2">Start Round Counter</h3>
+                <p class="text-sm text-gray-600">Track rounds for your current game</p>
+            </button>
+            
+            <a href="/games.html" class="card hover:shadow-lg transition-shadow text-center block">
+                <svg class="w-12 h-12 mx-auto mb-4 text-edh-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                </svg>
+                <h3 class="font-semibold mb-2">Log Game</h3>
+                <p class="text-sm text-gray-600">Record your latest game results</p>
+            </a>
+            
+            <a href="/stats.html" class="card hover:shadow-lg transition-shadow text-center block">
+                <svg class="w-12 h-12 mx-auto mb-4 text-edh-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                </svg>
+                <h3 class="font-semibold mb-2">View Statistics</h3>
+                <p class="text-sm text-gray-600">Analyze your performance trends</p>
+            </a>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-gray-800 text-white py-8 mt-12">
+        <div class="container mx-auto px-4 text-center">
+            <p class="text-gray-400">EDH Stats Tracker - Track your Commander games with style</p>
+            <p class="text-gray-500 text-sm mt-2">Built with Fastify, SQLite, and Alpine.js</p>
+        </div>
+    </footer>
+
+    <!-- Scripts -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <script src="/js/app.js"></script>
+</body>
+</html>
