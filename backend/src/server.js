@@ -40,8 +40,8 @@ export default async function build(opts = {}) {
   // Health check endpoint
   app.get('/api/health', async (request, reply) => {
     try {
-      const db = await dbManager.initialize()
-      const dbHealthy = await db.healthCheck()
+      await dbManager.initialize()
+      const dbHealthy = await dbManager.healthCheck()
       
       const status = {
         status: 'healthy',
@@ -60,7 +60,7 @@ export default async function build(opts = {}) {
         })
       }
     } catch (error) {
-      app.log.error('Health check failed:', error)
+      app.log.error(error, 'Health check failed')
       reply.code(503).send({
         status: 'unhealthy',
         timestamp: new Date().toISOString(),

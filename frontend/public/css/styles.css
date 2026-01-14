@@ -1,0 +1,120 @@
+@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=Inter:wght@300;400;500;600;700&display=swap');
+
+/* Custom Font for Magic: The Gathering feel */
+.font-mtg {
+    font-family: 'Cinzel', serif;
+}
+
+body {
+    font-family: 'Inter', sans-serif;
+}
+
+/* Custom Colors */
+:root {
+    --edh-primary: #1e293b;
+    --edh-secondary: #334155;
+    --edh-accent: #6366f1;
+}
+
+/* MTG Color Identity Classes */
+.color-w { background-color: #F0E6D2; border: 1px solid #e0d6c2; }
+.color-u { background-color: #0E68AB; border: 1px solid #0c5a8a; }
+.color-b { background-color: #2C2B2D; border: 1px solid #1a1a1c; }
+.color-r { background-color: #C44536; border: 1px solid #a63a2d; }
+.color-g { background-color: #5A7A3B; border: 1px solid #486330; }
+
+/* Utility Components */
+.card {
+    background-color: white;
+    border-radius: 0.5rem;
+    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+    padding: 1.5rem;
+}
+
+.form-input {
+    width: 100%;
+    border-radius: 0.375rem;
+    border: 1px solid #d1d5db;
+    padding: 0.5rem 0.75rem;
+    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+}
+
+.form-input:focus {
+    outline: none;
+    border-color: #6366f1;
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+}
+
+.form-select {
+    width: 100%;
+    border-radius: 0.375rem;
+    border: 1px solid #d1d5db;
+    padding: 0.5rem 0.75rem;
+    background-color: white;
+}
+
+.btn {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.5rem 1rem;
+    border-radius: 0.375rem;
+    font-weight: 500;
+    transition-property: background-color, border-color, color, fill, stroke;
+    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+    transition-duration: 150ms;
+}
+
+.btn-primary {
+    background-color: var(--edh-primary);
+    color: white;
+}
+
+.btn-primary:hover {
+    background-color: var(--edh-secondary);
+}
+
+.btn-secondary {
+    background-color: white;
+    color: #374151;
+    border: 1px solid #d1d5db;
+}
+
+.btn-secondary:hover {
+    background-color: #f9fafb;
+}
+
+.form-label {
+    display: block;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: #374151;
+    margin-bottom: 0.25rem;
+}
+
+.form-error {
+    margin-top: 0.25rem;
+    font-size: 0.875rem;
+    color: #ef4444;
+}
+
+.loading-spinner {
+    border: 3px solid rgba(0, 0, 0, 0.1);
+    border-radius: 50%;
+    border-top: 3px solid #6366f1;
+    width: 1.5rem;
+    height: 1.5rem;
+    animation: spin 1s linear infinite;
+}
+
+.stat-card {
+    background: linear-gradient(135deg, var(--edh-primary) 0%, var(--edh-secondary) 100%);
+    border-radius: 0.5rem;
+    padding: 1.5rem;
+    color: white;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}

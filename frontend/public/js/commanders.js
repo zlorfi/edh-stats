@@ -14,10 +14,6 @@ function commanderManager() {
             name: '',
             colors: []
         },
-        editingCommander: {
-            name: '',
-            colors: []
-        },
         errors: {},
         editErrors: {},
         serverError: '',
@@ -40,7 +36,7 @@ function commanderManager() {
             try {
                 const response = await fetch('/api/commanders', {
                     headers: {
-                        'Authorization': `Bearer ${localStorage.getItem('edh-stats-token')}`
+                        'Authorization': `Bearer ${localStorage.getItem('edh-stats-token') || sessionStorage.getItem('edh-stats-token')}`
                     }
                 })
                 
@@ -64,7 +60,7 @@ function commanderManager() {
             try {
                 const response = await fetch('/api/commanders/popular', {
                     headers: {
-                        'Authorization': `Bearer ${localStorage.getItem('edh-stats-token')}`
+                        'Authorization': `Bearer ${localStorage.getItem('edh-stats-token') || sessionStorage.getItem('edh-stats-token')}`
                     }
                 })
                 
@@ -120,7 +116,7 @@ function commanderManager() {
                 const response = await fetch('/api/commanders', {
                     method: 'POST',
                     headers: {
-                        'Authorization': `Bearer ${localStorage.getItem('edh-stats-token')}`,
+                        'Authorization': `Bearer ${localStorage.getItem('edh-stats-token') || sessionStorage.getItem('edh-stats-token')}`,
                         'Content-Type': 'application/json'
                     },
                     body: JSON.stringify(this.newCommander)
@@ -157,11 +153,12 @@ function commanderManager() {
                 const response = await fetch(`/api/commanders/${this.editingCommander.id}`, {
                     method: 'PUT',
                     headers: {
-                        'Authorization': `Bearer ${localStorage.getItem('edh-stats-token')}`,
+                        'Authorization': `Bearer ${localStorage.getItem('edh-stats-token') || sessionStorage.getItem('edh-stats-token')}`,
                         'Content-Type': 'application/json'
                     },
                     body: JSON.stringify({
-                        name: this.editingCommander.name
+                        name: this.editingCommander.name,
+                        colors: this.editingCommander.colors
                     })
                 })
 
@@ -184,6 +181,39 @@ function commanderManager() {
             }
         },
 
+        toggleNewColor(colorId) {
+            const index = this.newCommander.colors.indexOf(colorId)
+            if (index > -1) {
+                this.newCommander.colors.splice(index, 1)
+            } else {
+                this.newCommander.colors.push(colorId)
+            }
+        },
+
+        toggleEditColor(colorId) {
+            if (!this.editingCommander.colors) this.editingCommander.colors = []
+            const index = this.editingCommander.colors.indexOf(colorId)
+            if (index > -1) {
+                this.editingCommander.colors.splice(index, 1)
+            } else {
+                this.editingCommander.colors.push(colorId)
+            }
+        },
+
+        isNewColorSelected(colorId) {
+            return this.newCommander.colors.includes(colorId)
+        },
+
+        isEditColorSelected(colorId) {
+            return this.editingCommander && this.editingCommander.colors && this.editingCommander.colors.includes(colorId)
+        },
+
+        getButtonClass(isSelected) {
+            return isSelected 
+                ? 'ring-2 ring-offset-2 border-white' 
+                : 'ring-1 ring-offset-1 border-gray-300 hover:border-gray-400'
+        },
+
         async deleteCommander(commander) {
             if (!confirm(`Are you sure you want to delete "${commander.name}"? This action cannot be undone.`)) {
                 return
@@ -193,7 +223,7 @@ function commanderManager() {
                 const response = await fetch(`/api/commanders/${commander.id}`, {
                     method: 'DELETE',
                     headers: {
-                        'Authorization': `Bearer ${localStorage.getItem('edh-stats-token')}`
+                        'Authorization': `Bearer ${localStorage.getItem('edh-stats-token') || sessionStorage.getItem('edh-stats-token')}`
                     }
                 })
 
@@ -255,7 +285,7 @@ function commanderManager() {
             try {
                 const response = await fetch(`/api/commanders?q=${encodeURIComponent(this.searchQuery)}`, {
                     headers: {
-                        'Authorization': `Bearer ${localStorage.getItem('edh-stats-token')}`
+                        'Authorization': `Bearer ${localStorage.getItem('edh-stats-token') || sessionStorage.getItem('edh-stats-token')}`
                     }
                 })
 
@@ -271,28 +301,6 @@ function commanderManager() {
             } finally {
                 this.loading = false
             }
-        }
-    }
-}
-
-// MTG Color Identity Picker Component
-function colorIdentityPicker() {
-    return {
-        selectedColors: [],
-        
-        toggleColor(colorId) {
-            const index = this.selectedColors.indexOf(colorId)
-            if (index > -1) {
-                this.selectedColors.splice(index, 1)
-            } else {
-                this.selectedColors.push(colorId)
-            }
-        },
-
-        getButtonClass(colorId) {
-            return this.selectedColors.includes(colorId) 
-                ? 'ring-2 ring-offset-2 border-white' 
-                : 'ring-1 ring-offset-1 border-gray-300 hover:border-gray-400'
         }
     }
 }
@@ -321,5 +329,4 @@ function formatDate(dateString) {
 // Make functions globally available
 document.addEventListener('alpine:init', () => {
     Alpine.data('commanderManager', commanderManager)
-    Alpine.data('colorIdentityPicker', colorIdentityPicker)
 })

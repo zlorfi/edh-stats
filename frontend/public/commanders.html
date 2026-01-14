@@ -37,89 +37,92 @@
             </div>
             
             <!-- Add Commander Form -->
-            <div x-show="showAddForm" x-transition class="card" @submit.prevent="handleAddCommander">
-                <h3 class="text-lg font-semibold mb-4">Commander Details</h3>
-                
-                <!-- Commander Name -->
-                <div class="mb-4">
-                    <label for="name" class="form-label">Commander Name</label>
-                    <input 
-                        id="name"
-                        name="name"
-                        type="text" 
-                        required
-                        x-model="newCommander.name"
-                        @input="validateCommanderName()"
-                        :class="errors.name ? 'border-red-500 focus:ring-red-500' : ''"
-                        class="form-input"
-                        placeholder="Enter commander name"
-                    >
-                    <p x-show="errors.name" x-text="errors.name" class="form-error"></p>
-                </div>
-                
-                <!-- Color Identity -->
-                <div class="mb-6">
-                    <label class="form-label">Color Identity</label>
-                    <div class="space-y-4">
-                        <div x-data="colorIdentityPicker()">
-                            <!-- MTG Color Selection -->
-                            <div class="grid grid-cols-5 gap-2 mb-4">
-                                <template x-for="color in mtgColors">
-                                    <button 
-                                        type="button"
-                                        @click="toggleColor(color.id)"
-                                        :class="getButtonClass(color.id)"
-                                        :title="color.name"
-                                        class="w-12 h-12 rounded-lg transition-all duration-200"
-                                    >
-                                        <span x-show="selectedColors.includes(color.id)" class="text-white font-bold">✓</span>
-                                    </button>
-                                </template>
-                            </div>
-                            
-                            <!-- Selected Colors Display -->
-                            <div class="flex items-center space-x-2 p-3 bg-gray-100 rounded-lg">
-                                <span class="text-sm text-gray-600">Selected:</span>
-                                <div class="flex space-x-1">
-                                    <template x-for="colorId in selectedColors">
-                                        <div 
-                                            class="w-6 h-6 rounded"
-                                            :class="'color-' + colorId.toLowerCase()"
-                                            :title="getColorName(colorId)"
-                                        ></div>
+            <div x-show="showAddForm" x-transition class="card">
+                <form @submit.prevent="handleAddCommander">
+                    <h3 class="text-lg font-semibold mb-4">Commander Details</h3>
+                    
+                    <!-- Commander Name -->
+                    <div class="mb-4">
+                        <label for="name" class="form-label">Commander Name</label>
+                        <input 
+                            id="name"
+                            name="name"
+                            type="text" 
+                            required
+                            x-model="newCommander.name"
+                            @input="validateCommanderName()"
+                            :class="errors.name ? 'border-red-500 focus:ring-red-500' : ''"
+                            class="form-input"
+                            placeholder="Enter commander name"
+                        >
+                        <p x-show="errors.name" x-text="errors.name" class="form-error"></p>
+                    </div>
+                    
+                    <!-- Color Identity -->
+                    <div class="mb-6">
+                        <label class="form-label">Color Identity</label>
+                        <div class="space-y-4">
+                            <div>
+                                <!-- MTG Color Selection -->
+                                <div class="grid grid-cols-5 gap-2 mb-4">
+                                    <template x-for="color in mtgColors" :key="color.id">
+                                        <button 
+                                            type="button"
+                                            @click="toggleNewColor(color.id)"
+                                            :class="getButtonClass(isNewColorSelected(color.id))"
+                                            :title="color.name"
+                                            class="w-12 h-12 rounded-lg transition-all duration-200 relative"
+                                        >
+                                            <div class="absolute inset-0 rounded-lg opacity-80" :style="`background-color: ${color.hex}`"></div>
+                                            <span x-show="isNewColorSelected(color.id)" class="relative z-10 text-white font-bold text-shadow">✓</span>
+                                        </button>
                                     </template>
-                                    <span x-show="selectedColors.length === 0" class="text-gray-400 text-sm">No colors selected</span>
+                                </div>
+                                
+                                <!-- Selected Colors Display -->
+                                <div class="flex items-center space-x-2 p-3 bg-gray-100 rounded-lg">
+                                    <span class="text-sm text-gray-600">Selected:</span>
+                                    <div class="flex space-x-1">
+                                        <template x-for="colorId in newCommander.colors" :key="colorId">
+                                            <div 
+                                                class="w-6 h-6 rounded"
+                                                :class="'color-' + colorId.toLowerCase()"
+                                                :title="getColorName(colorId)"
+                                            ></div>
+                                        </template>
+                                        <span x-show="newCommander.colors.length === 0" class="text-gray-400 text-sm">No colors selected</span>
+                                    </div>
                                 </div>
                             </div>
                         </div>
                     </div>
-                </div>
-                
-                <!-- Form Actions -->
-                <div class="flex justify-end space-x-4">
-                    <button type="submit" :disabled="submitting" class="btn btn-primary">
-                        <span x-show="!submitting">Add Commander</span>
-                        <span x-show="submitting" class="loading-spinner w-5 h-5 mr-2"></span>
-                        <span x-show="submitting">Adding...</span>
-                    </button>
-                    <button type="button" @click="resetAddForm" class="btn btn-secondary">
-                        Cancel
-                    </button>
-                </div>
-                
-                <!-- Error Message -->
-                <div x-show="serverError" x-transition class="rounded-md bg-red-50 p-4 mt-4">
-                    <div class="flex">
-                        <div class="flex-shrink-0">
-                            <svg class="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
-                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 001.414 1.414L10 17.586a1 1 0 008 858 1.858l-3.293 3.293a1 1 0 00-858 1.858L8.707 7.293z" clip-rule="evenodd" />
-                            </svg>
-                        </div>
-                        <div class="ml-3">
-                            <p class="text-sm text-red-800" x-text="serverError"></p>
+                    
+                    <!-- Form Actions -->
+                    <div class="flex justify-end space-x-4">
+                        <button type="button" @click="resetAddForm" class="btn btn-secondary">
+                            Cancel
+                        </button>
+                        <button type="submit" :disabled="submitting" class="btn btn-primary">
+                            <span x-show="!submitting">Add Commander</span>
+                            <span x-show="submitting" class="loading-spinner w-5 h-5 mr-2 inline-block align-middle"></span>
+                            <span x-show="submitting">Adding...</span>
+                        </button>
+                    </div>
+                    
+                    <!-- Error Message -->
+                    <div x-show="serverError" x-transition class="rounded-md bg-red-50 p-4 mt-4">
+                        <div class="flex">
+                            <div class="flex-shrink-0">
+                                <svg class="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
+                                </svg>
+                            </div>
+                            <div class="ml-3">
+                                <p class="text-sm text-red-800" x-text="serverError"></p>
+                            </div>
                         </div>
                     </div>
-                </div>
+                </form>
             </div>
         </div>
 
@@ -165,16 +168,15 @@
                     <div class="flex justify-between items-start mb-4">
                         <div>
                             <h3 class="text-lg font-semibold text-gray-900" x-text="commander.name"></h3>
-                            <div class="flex space-x-1">
-                                <template x-for="color in commander.colors">
+                            <div class="flex space-x-1 mt-1">
+                                <template x-for="color in commander.colors" :key="color">
                                     <div 
-                                            class="w-6 h-6 rounded"
-                                            :class="'color-' + color.toLowerCase()"
-                                            :title="getColorName(color)"
+                                        class="w-6 h-6 rounded"
+                                        :class="'color-' + color.toLowerCase()"
+                                        :title="getColorName(color)"
                                     ></div>
                                 </template>
                             </div>
-                        </div>
                         </div>
                         
                         <div class="flex space-x-2">
@@ -210,18 +212,11 @@
                             <p class="text-xs text-gray-500">Added</p>
                         </div>
                     </div>
-                    
-                    <!-- View Details Button -->
-                    <div class="mt-4">
-                        <a :href="`/commanders/${commander.id}`" class="btn btn-secondary w-full">
-                            View Details
-                        </a>
-                    </div>
                 </div>
             </template>
             
             <!-- No Commanders Message -->
-            <div x-show="!loading && commanders.length === 0" class="text-center py-12">
+            <div x-show="!loading && commanders.length === 0" class="col-span-full text-center py-12">
                 <div class="card max-w-md mx-auto">
                     <svg class="w-16 h-16 mx-auto text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20 7l-8-8V6a6 6 0 00-6 6l6 6-4v4a6 6 0 00-4-4V3a6 6 0 00-1.65l-4.03-4.03-.586-4.03-2.417l1.414 1.414z" />
@@ -237,12 +232,14 @@
 
         <!-- Edit Modal -->
         <div x-show="editingCommander" x-transition class="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center z-50">
+            <template x-if="editingCommander">
             <div class="card max-w-md w-full mx-4">
                 <div class="flex justify-between items-center mb-4">
                     <h3 class="text-lg font-semibold">Edit Commander</h3>
                     <button @click="cancelEdit()" class="text-gray-400 hover:text-gray-600">
                         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18.571 5.429a1 1 0 0-.658-.353-1.154-.828-1.154l-4.428-4.429a1 1 0 0 .417-.23.217.474-1.474L6 18z" />
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 6l12 12" />
                         </svg>
                     </button>
                 </div>
@@ -267,34 +264,37 @@
                     <!-- Color Identity -->
                     <div class="mb-6">
                         <label class="form-label">Color Identity</label>
-                        <div x-data="colorIdentityPicker()" x-init="selectedColors = JSON.parse(editingCommander.colors || '[]')">
-                            <!-- MTG Color Selection -->
-                            <div class="grid grid-cols-5 gap-2 mb-4">
-                                <template x-for="color in mtgColors">
-                                    <button 
-                                        type="button"
-                                        @click="toggleColor(color.id)"
-                                        :class="getButtonClass(color.id)"
-                                        :title="color.name"
-                                        class="w-12 h-12 rounded-lg transition-all duration-200"
-                                    >
-                                        <span x-show="selectedColors.includes(color.id)" class="text-white font-bold">✓</span>
-                                    </button>
-                                </template>
-                            </div>
-                            
-                            <!-- Selected Colors Display -->
-                            <div class="flex items-center space-x-2 p-3 bg-gray-100 rounded-lg">
-                                <span class="text-sm text-gray-600">Selected:</span>
-                                <div class="flex space-x-1">
-                                    <template x-for="colorId in selectedColors">
-                                        <div 
-                                            class="w-6 h-6 rounded"
-                                            :class="'color-' + colorId.toLowerCase()"
-                                            :title="getColorName(colorId)"
-                                        ></div>
+                        <div class="space-y-4">
+                            <div>
+                                <!-- MTG Color Selection -->
+                                <div class="grid grid-cols-5 gap-2 mb-4">
+                                    <template x-for="color in mtgColors" :key="color.id">
+                                        <button 
+                                            type="button"
+                                            @click="toggleEditColor(color.id)"
+                                            :class="getButtonClass(isEditColorSelected(color.id))"
+                                            :title="color.name"
+                                            class="w-12 h-12 rounded-lg transition-all duration-200 relative"
+                                        >
+                                            <div class="absolute inset-0 rounded-lg opacity-80" :style="`background-color: ${color.hex}`"></div>
+                                            <span x-show="isEditColorSelected(color.id)" class="relative z-10 text-white font-bold text-shadow">✓</span>
+                                        </button>
                                     </template>
-                                    <span x-show="selectedColors.length === 0" class="text-gray-400 text-sm">No colors selected</span>
+                                </div>
+                                
+                                <!-- Selected Colors Display -->
+                                <div class="flex items-center space-x-2 p-3 bg-gray-100 rounded-lg">
+                                    <span class="text-sm text-gray-600">Selected:</span>
+                                    <div class="flex space-x-1">
+                                        <template x-for="colorId in editingCommander.colors" :key="colorId">
+                                            <div 
+                                                class="w-6 h-6 rounded"
+                                                :class="'color-' + colorId.toLowerCase()"
+                                                :title="getColorName(colorId)"
+                                            ></div>
+                                        </template>
+                                        <span x-show="!editingCommander.colors || editingCommander.colors.length === 0" class="text-gray-400 text-sm">No colors selected</span>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -302,13 +302,85 @@
                     
                     <!-- Form Actions -->
                     <div class="flex justify-end space-x-4">
-                        <button type="submit" :disabled="editSubmitting" class="btn btn-primary">
-                            <span x-show="!editSubmitting">Update Commander</span>
-                            <span x-show="editSubmitting" class="loading-spinner w-5 h-5 mr-2"></span>
-                            <span x-show="editSubmitting">Updating...</span>
-                        </button>
                         <button type="button" @click="cancelEdit()" class="btn btn-secondary">
                             Cancel
+                        </button>
+                        <button type="submit" :disabled="editSubmitting" class="btn btn-primary">
+                            <span x-show="!editSubmitting">Update Commander</span>
+                            <span x-show="editSubmitting" class="loading-spinner w-5 h-5 mr-2 inline-block align-middle"></span>
+                            <span x-show="editSubmitting">Updating...</span>
+                        </button>
+                    </div>
+                </form>
+            </div>
+            </template>
+        </div>
+                
+                <form @submit.prevent="handleUpdateCommander">
+                    <!-- Commander Name -->
+                    <div class="mb-4">
+                        <label for="edit-name" class="form-label">Commander Name</label>
+                        <input 
+                            id="edit-name"
+                            name="name"
+                            type="text" 
+                            required
+                            x-model="editingCommander && editingCommander.name"
+                            @input="validateEditCommanderName()"
+                            :class="editErrors.name ? 'border-red-500 focus:ring-red-500' : ''"
+                            class="form-input"
+                        >
+                        <p x-show="editErrors.name" x-text="editErrors.name" class="form-error"></p>
+                    </div>
+                    
+                    <!-- Color Identity -->
+                    <div class="mb-6">
+                        <label class="form-label">Color Identity</label>
+                        <div class="space-y-4">
+                            <div>
+                                <!-- MTG Color Selection -->
+                                <div class="grid grid-cols-5 gap-2 mb-4">
+                                    <template x-for="color in mtgColors" :key="color.id">
+                                        <button 
+                                            type="button"
+                                            @click="toggleEditColor(color.id)"
+                                            :class="getButtonClass(isEditColorSelected(color.id))"
+                                            :title="color.name"
+                                            class="w-12 h-12 rounded-lg transition-all duration-200 relative"
+                                        >
+                                            <div class="absolute inset-0 rounded-lg opacity-80" :style="`background-color: ${color.hex}`"></div>
+                                            <span x-show="isEditColorSelected(color.id)" class="relative z-10 text-white font-bold text-shadow">✓</span>
+                                        </button>
+                                    </template>
+                                </div>
+                                
+                                <!-- Selected Colors Display -->
+                                <div class="flex items-center space-x-2 p-3 bg-gray-100 rounded-lg">
+                                    <span class="text-sm text-gray-600">Selected:</span>
+                                    <div class="flex space-x-1">
+                                        <template x-for="colorId in (editingCommander ? editingCommander.colors : [])" :key="colorId">
+                                            <div 
+                                                class="w-6 h-6 rounded"
+                                                :class="'color-' + colorId.toLowerCase()"
+                                                :title="getColorName(colorId)"
+                                            ></div>
+                                        </template>
+                                        <span x-show="editingCommander && (!editingCommander.colors || editingCommander.colors.length === 0)" class="text-gray-400 text-sm">No colors selected</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Form Actions -->
+                    <div class="flex justify-end space-x-4">
+                        <button type="button" @click="cancelEdit()" class="btn btn-secondary">
+                            Cancel
+                        </button>
+                        <button type="submit" :disabled="editSubmitting" class="btn btn-primary">
+                            <span x-show="!editSubmitting">Update Commander</span>
+                            <span x-show="editSubmitting" class="loading-spinner w-5 h-5 mr-2 inline-block align-middle"></span>
+                            <span x-show="editSubmitting">Updating...</span>
                         </button>
                     </div>
                 </form>
@@ -320,7 +392,7 @@
     <footer class="bg-gray-800 text-white py-8 mt-12">
         <div class="container mx-auto px-4 text-center">
             <p class="text-gray-400">EDH Stats Tracker - Manage your Commander decks</p>
-            <p class="text-gray-500 text-sm">Built with Fastify, SQLite, and Alpine.js</p>
+            <p class="text-gray-500 text-sm mt-2">Built with Fastify, SQLite, and Alpine.js</p>
         </div>
     </footer>
 

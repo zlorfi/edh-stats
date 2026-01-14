@@ -20,7 +20,7 @@ function statsManager() {
             try {
                 // Load overview stats
                 const overviewResponse = await fetch('/api/stats/overview', {
-                    headers: { 'Authorization': `Bearer ${localStorage.getItem('edh-stats-token')}` }
+                    headers: { 'Authorization': `Bearer ${localStorage.getItem('edh-stats-token') || sessionStorage.getItem('edh-stats-token')}` }
                 })
                 
                 if (overviewResponse.ok) {
@@ -29,7 +29,7 @@ function statsManager() {
 
                 // Load commander detailed stats
                 const detailsResponse = await fetch('/api/stats/commanders', {
-                    headers: { 'Authorization': `Bearer ${localStorage.getItem('edh-stats-token')}` }
+                    headers: { 'Authorization': `Bearer ${localStorage.getItem('edh-stats-token') || sessionStorage.getItem('edh-stats-token')}` }
                 })
 
                 if (detailsResponse.ok) {

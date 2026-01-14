@@ -39,7 +39,7 @@ function gameManager() {
             try {
                 const response = await fetch('/api/commanders', {
                     headers: {
-                        'Authorization': `Bearer ${localStorage.getItem('edh-stats-token')}`
+                        'Authorization': `Bearer ${localStorage.getItem('edh-stats-token') || sessionStorage.getItem('edh-stats-token')}`
                     }
                 })
                 
@@ -59,7 +59,7 @@ function gameManager() {
             try {
                 const response = await fetch(`/api/games?limit=${this.pagination.limit}&offset=${offset}`, {
                     headers: {
-                        'Authorization': `Bearer ${localStorage.getItem('edh-stats-token')}`
+                        'Authorization': `Bearer ${localStorage.getItem('edh-stats-token') || sessionStorage.getItem('edh-stats-token')}`
                     }
                 })
                 
@@ -108,7 +108,7 @@ function gameManager() {
                 const response = await fetch('/api/games', {
                     method: 'POST',
                     headers: {
-                        'Authorization': `Bearer ${localStorage.getItem('edh-stats-token')}`,
+                        'Authorization': `Bearer ${localStorage.getItem('edh-stats-token') || sessionStorage.getItem('edh-stats-token')}`,
                         'Content-Type': 'application/json'
                     },
                     body: JSON.stringify(payload)
@@ -142,7 +142,7 @@ function gameManager() {
                 const response = await fetch(`/api/games/${gameId}`, {
                     method: 'DELETE',
                     headers: {
-                        'Authorization': `Bearer ${localStorage.getItem('edh-stats-token')}`
+                        'Authorization': `Bearer ${localStorage.getItem('edh-stats-token') || sessionStorage.getItem('edh-stats-token')}`
                     }
                 })
                 
