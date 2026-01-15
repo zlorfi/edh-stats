@@ -52,107 +52,8 @@
             </div>
         </div> -->
 
-      <!-- Overview Cards -->
-      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-        <div class="stat-card">
-          <div class="flex items-center justify-between">
-            <div>
-              <p class="text-white/80 text-sm">Total Games</p>
-              <p
-                class="text-3xl font-bold"
-                x-text="overview.totalGames || 0"
-              ></p>
-            </div>
-            <svg
-              class="w-8 h-8 text-white/60"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-              ></path>
-            </svg>
-          </div>
-        </div>
-
-        <div class="stat-card">
-          <div class="flex items-center justify-between">
-            <div>
-              <p class="text-white/80 text-sm">Win Rate</p>
-              <p class="text-3xl font-bold">
-                <span x-text="overview.winRate || 0"></span>%
-              </p>
-            </div>
-            <svg
-              class="w-8 h-8 text-white/60"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"
-              ></path>
-            </svg>
-          </div>
-        </div>
-
-        <div class="stat-card">
-          <div class="flex items-center justify-between">
-            <div>
-              <p class="text-white/80 text-sm">Active Decks</p>
-              <p
-                class="text-3xl font-bold"
-                x-text="overview.totalCommanders || 0"
-              ></p>
-            </div>
-            <svg
-              class="w-8 h-8 text-white/60"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"
-              ></path>
-            </svg>
-          </div>
-        </div>
-
-        <div class="stat-card">
-          <div class="flex items-center justify-between">
-            <div>
-              <p class="text-white/80 text-sm">Avg Rounds</p>
-              <p
-                class="text-3xl font-bold"
-                x-text="overview.avgRounds || 0"
-              ></p>
-            </div>
-            <svg
-              class="w-8 h-8 text-white/60"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-              ></path>
-            </svg>
-          </div>
-        </div>
-      </div>
+      <!-- Overview Cards (loaded via stats-cards-loader.js) -->
+      <div id="stats-cards-container"></div>
 
       <!-- Charts Grid -->
       <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
@@ -274,6 +175,7 @@
       src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"
     ></script>
     <script src="/js/stats.js"></script>
+    <script src="/js/stats-cards-loader.js"></script>
     <script src="/js/footer-loader.js"></script>
   </body>
 </html>
