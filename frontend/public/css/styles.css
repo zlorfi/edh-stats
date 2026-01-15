@@ -1,5 +1,10 @@
 @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=Inter:wght@300;400;500;600;700&display=swap');
 
+/* Alpine.js x-cloak - hide elements until Alpine initializes */
+[x-cloak] {
+  display: none !important;
+}
+
 /* Custom Font for Magic: The Gathering feel */
 .font-mtg {
   font-family: 'Cinzel', serif;

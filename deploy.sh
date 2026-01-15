@@ -2,10 +2,10 @@
 
 ##############################################################################
 # EDH Stats Tracker - Production Deployment Script
-# 
+#
 # This script builds Docker images and pushes them to GitHub Container Registry
 # Usage: ./deploy.sh [VERSION] [GHCR_TOKEN]
-# 
+#
 # Example: ./deploy.sh 1.0.0 ghcr_xxxxxxxxxxxxx
 #
 # Prerequisites:
@@ -68,26 +68,26 @@ print_info() {
 
 validate_prerequisites() {
     print_header "Validating Prerequisites"
-    
+
     # Check if Docker is installed
     if ! command -v docker &> /dev/null; then
         print_error "Docker is not installed. Please install Docker first."
         exit 1
     fi
     print_success "Docker is installed"
-    
+
     # Check if Docker daemon is running
     if ! docker info > /dev/null 2>&1; then
         print_error "Docker daemon is not running. Please start Docker."
         exit 1
     fi
     print_success "Docker daemon is running"
-    
+
     # Check if Docker buildx is available
     if ! docker buildx version > /dev/null 2>&1; then
         print_warning "Docker buildx not found. Creating builder..."
         docker buildx create --use --name multiarch-builder > /dev/null 2>&1 || true
-        
+
         if ! docker buildx version > /dev/null 2>&1; then
             print_error "Docker buildx is required for multi-architecture builds."
             print_error "Please ensure you have Docker with buildx support."
@@ -97,14 +97,14 @@ validate_prerequisites() {
     else
         print_success "Docker buildx is available"
     fi
-    
+
     # Check if Git is installed
     if ! command -v git &> /dev/null; then
         print_error "Git is not installed. Please install Git first."
         exit 1
     fi
     print_success "Git is installed"
-    
+
     # Check if we're in a git repository
     if ! git rev-parse --git-dir > /dev/null 2>&1; then
         print_error "Not in a Git repository. Please run this script from the project root."
@@ -119,7 +119,7 @@ check_github_token() {
         print_info "Set GHCR_TOKEN environment variable or pass as second argument to skip this prompt"
         read -sp "Enter GitHub Container Registry Token (or press Enter to use 'docker login'): " GHCR_TOKEN
         echo
-        
+
         if [ -z "$GHCR_TOKEN" ]; then
             print_info "Attempting to use existing Docker credentials..."
             if ! docker info | grep -q "Username"; then
@@ -132,17 +132,17 @@ check_github_token() {
 
 update_version_file() {
     print_header "Updating Version File"
-    
+
     local version_file="./frontend/VERSION"
     local version_txt_file="./frontend/public/version.txt"
     local current_version=""
-    
+
     # Check if version file exists
     if [ -f "$version_file" ]; then
         current_version=$(cat "$version_file")
         print_info "Current version: $current_version"
     fi
-    
+
     # Update version file with new version (strip 'v' prefix if present)
     local new_version="${VERSION#v}"
     echo "$new_version" > "$version_file"
@@ -156,10 +156,10 @@ update_version_file() {
 
 build_backend() {
     print_header "Building Backend Image"
-    
+
     print_info "Building: ${BACKEND_IMAGE}"
     print_info "Building for architectures: linux/amd64,linux/arm64"
-    
+
     docker buildx build \
         --platform linux/amd64,linux/arm64 \
         --file ./backend/Dockerfile \
@@ -169,19 +169,19 @@ build_backend() {
         --build-arg NODE_ENV=production \
         --push \
         ./backend
-    
+
     print_success "Backend image built and pushed successfully"
 }
 
 build_frontend() {
     print_header "Building Frontend Image"
-    
+
     print_info "Building: ${FRONTEND_IMAGE}"
     print_info "Building for architectures: linux/amd64,linux/arm64"
-    
+
     # Note: Dockerfile.prod is now a permanent file in the repository
     # It uses a multi-stage build to compile Tailwind CSS in production
-    
+
     docker buildx build \
         --platform linux/amd64,linux/arm64 \
         --file ./frontend/Dockerfile.prod \
@@ -189,7 +189,7 @@ build_frontend() {
         --tag "${FRONTEND_IMAGE_LATEST}" \
         --push \
         ./frontend
-    
+
     print_success "Frontend image built and pushed successfully"
 }
 
@@ -199,20 +199,20 @@ build_frontend() {
 
 login_to_registry() {
     print_header "Authenticating with GitHub Container Registry"
-    
+
     if [ -n "$GHCR_TOKEN" ]; then
         print_info "Logging in with provided token..."
         echo "$GHCR_TOKEN" | docker login "${REGISTRY}" -u "${GITHUB_USER}" --password-stdin > /dev/null 2>&1
     else
         print_info "Using existing Docker authentication..."
     fi
-    
+
     print_success "Successfully authenticated with registry"
 }
 
 push_backend() {
     print_header "Pushing Backend Image"
-    
+
     # Images are already pushed during buildx build step
     print_success "Backend image already pushed: ${BACKEND_IMAGE}"
     print_success "Latest backend image pushed: ${BACKEND_IMAGE_LATEST}"
@@ -220,7 +220,7 @@ push_backend() {
 
 push_frontend() {
     print_header "Pushing Frontend Image"
-    
+
     # Images are already pushed during buildx build step
     print_success "Frontend image already pushed: ${FRONTEND_IMAGE}"
     print_success "Latest frontend image pushed: ${FRONTEND_IMAGE_LATEST}"
@@ -232,7 +232,7 @@ push_frontend() {
 
 verify_images() {
     print_header "Verifying Built Images"
-    
+
     print_info "Note: Using buildx for multi-architecture builds"
     print_info "Images are built for linux/amd64 and linux/arm64"
     print_info "Images are pushed directly to registry (not stored locally)"
@@ -246,11 +246,11 @@ verify_images() {
 
 generate_deployment_config() {
     print_header "Generating Deployment Configuration"
-    
+
     local config_file="docker-compose.prod.deployed.yml"
-    
+
     print_info "Creating deployment configuration: ${config_file}"
-    
+
     cat > "${config_file}" << EOF
 # Generated production deployment configuration
 # Version: ${VERSION}
@@ -267,8 +267,6 @@ generate_deployment_config() {
 # 2. Run: docker-compose up -d
 # 3. If database error occurs, run: docker volume inspect ${PROJECT_NAME}_sqlite_data
 # 4. Note the Mountpoint path and ensure it's writable by Docker
-
-version: '3.8'
 
 services:
   backend:
@@ -335,6 +333,9 @@ volumes:
 networks:
   edh-stats-network:
     driver: bridge
+x-dockge:
+  urls:
+    - https://edh.zlor.fi
 EOF
 
     print_success "Deployment configuration generated: ${config_file}"
@@ -346,7 +347,7 @@ EOF
 
 cleanup_temp_files() {
     print_header "Cleaning Up Temporary Files"
-    
+
     # Note: Dockerfile.prod is now a permanent file in the repository
     # and should not be deleted after the build completes
     print_info "No temporary files to clean up"
@@ -358,7 +359,7 @@ cleanup_temp_files() {
 
 print_summary() {
     print_header "Deployment Summary"
-    
+
     echo "Backend Image:  ${BACKEND_IMAGE}"
     echo "Frontend Image: ${FRONTEND_IMAGE}"
     echo ""
@@ -391,45 +392,45 @@ print_summary() {
 
 main() {
     print_header "EDH Stats Tracker - Production Deployment"
-    
+
     print_info "Starting deployment process..."
     print_info "Version: ${VERSION}"
     print_info "GitHub User: ${GITHUB_USER}"
     print_info "Registry: ${REGISTRY}"
     echo ""
-    
+
     # Validation
     validate_prerequisites
-    
+
     # Check token
     check_github_token
-    
+
     # Update version file
     update_version_file
-    
+
     # Build images
     build_backend
     build_frontend
-    
+
     # Verify images
     verify_images
-    
+
     # Authenticate
     login_to_registry
-    
+
     # Push images
     push_backend
     push_frontend
-    
+
     # Generate config
     generate_deployment_config
-    
+
     # Cleanup
     cleanup_temp_files
-    
+
     # Summary
     print_summary
-    
+
     print_success "Deployment completed successfully!"
 }
 
