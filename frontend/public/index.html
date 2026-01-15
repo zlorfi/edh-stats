@@ -13,9 +13,10 @@
     <link rel="stylesheet" href="/css/styles.css" />
   </head>
   <body
-    class="h-full flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8"
+    class="min-h-full flex flex-col py-12 px-4 sm:px-6 lg:px-8"
   >
-    <div class="max-w-md w-full space-y-8 text-center" x-data="indexApp()">
+    <div class="flex items-center justify-center flex-1">
+      <div class="max-w-md w-full space-y-8 text-center" x-data="indexApp()">
       <h1 class="text-4xl font-bold font-mtg text-edh-primary mb-4">
         EDH Stats
       </h1>
@@ -37,10 +38,13 @@
       </div>
 
       <div class="text-sm text-gray-500">
-        <p>Built with Fastify, SQLite, and Alpine.js</p>
-        <p>Ready to track your Commander victories!</p>
+         <p>Built with Fastify, SQLite, and Alpine.js</p>
+         <p>Ready to track your Commander victories!</p>
+       </div>
       </div>
-    </div>    <script
+    </div>
+
+    <script
       defer
       src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"
     ></script>
