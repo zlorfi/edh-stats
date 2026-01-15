@@ -327,11 +327,9 @@ EOF
 cleanup_temp_files() {
     print_header "Cleaning Up Temporary Files"
     
-    if [ -f "./frontend/Dockerfile.prod" ] && [ ! -f "./frontend/Dockerfile" ]; then
-        print_info "Removing temporary frontend Dockerfile..."
-        rm -f "./frontend/Dockerfile.prod"
-        print_success "Temporary files cleaned up"
-    fi
+    # Note: Dockerfile.prod is now a permanent file in the repository
+    # and should not be deleted after the build completes
+    print_info "No temporary files to clean up"
 }
 
 ##############################################################################
