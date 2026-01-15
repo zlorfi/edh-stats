@@ -100,3 +100,20 @@ build/
 # Temporary files
 tmp/
 temp/
+
+# Deployment and secrets
+jwt_secret.txt
+jwt_secret
+docker-compose.prod.deployed.yml
+.env.production
+.env.secrets
+
+# Generated deployment configs
+docker-compose.*.deployed.yml
+
+# SSL/TLS certificates
+*.pem
+*.crt
+*.key
+.certs/
+ssl/
