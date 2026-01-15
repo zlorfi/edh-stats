@@ -14,6 +14,7 @@ services:
       - LOG_LEVEL=warn
       - RATE_LIMIT_WINDOW=15
       - RATE_LIMIT_MAX=100
+      - ALLOW_REGISTRATION=${ALLOW_REGISTRATION:-false}
     volumes:
       - sqlite_data:/app/database/data
       - app_logs:/app/logs

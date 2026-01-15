@@ -94,6 +94,28 @@ function registerForm() {
     showConfirmPassword: false,
     loading: false,
     serverError: '',
+    successMessage: '',
+    allowRegistration: true,
+
+    async init() {
+      // Check registration config on page load
+      await this.checkRegistrationConfig()
+    },
+
+    async checkRegistrationConfig() {
+      try {
+        const response = await fetch('/api/auth/config')
+        if (response.ok) {
+          const data = await response.json()
+          this.allowRegistration = data.allowRegistration
+        } else {
+          this.allowRegistration = true
+        }
+      } catch (error) {
+        console.error('Failed to check registration config:', error)
+        this.allowRegistration = true
+      }
+    },
 
     validateUsername() {
       if (!this.formData.username.trim()) {
@@ -191,8 +213,11 @@ function registerForm() {
 
         if (response.ok) {
           // Store token and redirect
+          this.successMessage = 'Account created successfully! Redirecting...'
           localStorage.setItem('edh-stats-token', data.token)
-          window.location.href = '/dashboard.html'
+          setTimeout(() => {
+            window.location.href = '/dashboard.html'
+          }, 1000)
         } else {
           if (data.details && Array.isArray(data.details)) {
             this.serverError = data.details.join(', ')
