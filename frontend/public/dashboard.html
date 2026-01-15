@@ -9,7 +9,7 @@
       content="Track your Magic: The Gathering EDH/Commander games and statistics"
     />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-        <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="/css/styles.css" />
   </head>
   <body class="h-full" x-data="app()">
@@ -111,14 +111,9 @@
                 class="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-50"
               >
                 <a
-                  href="#"
+                  href="/profile.html"
                   class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
                   >Profile</a
-                >
-                <a
-                  href="#"
-                  class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                  >Settings</a
                 >
                 <hr class="my-1" />
                 <button
@@ -276,7 +271,10 @@
           </div>
 
           <div x-show="!loading" class="space-y-4">
-             <template x-for="commander in topCommanders" :key="commander.commanderId">
+            <template
+              x-for="commander in topCommanders"
+              :key="commander.commanderId"
+            >
               <div
                 class="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
               >
@@ -400,13 +398,14 @@
       </div>
     </main>
 
-     <!-- Scripts -->    <script
-       defer
-       src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"
-     ></script>
-     <script src="/js/auth-guard.js"></script>
-     <script src="/js/app.js"></script>
-     <script src="/js/stats-cards-loader.js"></script>
-     <script src="/js/footer-loader.js"></script>
+    <!-- Scripts -->
+    <script
+      defer
+      src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"
+    ></script>
+    <script src="/js/auth-guard.js"></script>
+    <script src="/js/app.js"></script>
+    <script src="/js/stats-cards-loader.js"></script>
+    <script src="/js/footer-loader.js"></script>
   </body>
 </html>

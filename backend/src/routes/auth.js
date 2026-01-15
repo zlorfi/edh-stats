@@ -31,6 +31,17 @@ const updateProfileSchema = z.object({
   email: z.string().email().optional()
 })
 
+const updateUsernameSchema = z.object({
+  newUsername: z
+    .string()
+    .min(3)
+    .max(50)
+    .regex(/^[a-zA-Z0-9_-]+$/, {
+      message:
+        'Username can only contain letters, numbers, underscores, and hyphens'
+    })
+})
+
 export default async function authRoutes(fastify, options) {
   // Public endpoint to check if registration is allowed
   fastify.get('/config', async (request, reply) => {
@@ -333,8 +344,157 @@ export default async function authRoutes(fastify, options) {
     }
   )
 
-  // Change password
+  // Update username (PUT)
+  fastify.put(
+    '/update-username',
+    {
+      preHandler: [
+        async (request, reply) => {
+          try {
+            await request.jwtVerify()
+          } catch (err) {
+            reply.code(401).send({
+              error: 'Unauthorized',
+              message: 'Invalid or expired token'
+            })
+          }
+        }
+      ],
+      config: { rateLimit: { max: 5, timeWindow: '1 hour' } }
+    },
+    async (request, reply) => {
+      try {
+        const { newUsername } = updateUsernameSchema.parse(request.body)
+
+        // Check if username is already taken
+        const existingUser = await User.findByUsername(newUsername)
+        if (existingUser && existingUser.id !== request.user.id) {
+          reply.code(400).send({
+            error: 'Username Taken',
+            message: 'Username is already taken'
+          })
+          return
+        }
+
+        // Update username using User model method
+        const updated = await User.updateUsername(request.user.id, newUsername)
+
+        if (!updated) {
+          reply.code(500).send({
+            error: 'Internal Server Error',
+            message: 'Failed to update username'
+          })
+          return
+        }
+
+        const user = await User.findById(request.user.id)
+
+        reply.send({
+          message: 'Username updated successfully',
+          user: {
+            id: user.id,
+            username: user.username,
+            email: user.email
+          }
+        })
+      } catch (error) {
+        if (error instanceof z.ZodError) {
+          reply.code(400).send({
+            error: 'Validation Error',
+            message: 'Invalid input data',
+            details: error.errors.map((e) => e.message)
+          })
+        } else {
+          fastify.log.error('Update username error:', error)
+          reply.code(500).send({
+            error: 'Internal Server Error',
+            message: 'Failed to update username'
+          })
+        }
+      }
+    }
+  )
+
+  // Change password (POST - keep for backward compatibility)
   fastify.post(
+    '/change-password',
+    {
+      preHandler: [
+        async (request, reply) => {
+          try {
+            await request.jwtVerify()
+          } catch (err) {
+            reply.code(401).send({
+              error: 'Unauthorized',
+              message: 'Invalid or expired token'
+            })
+          }
+        }
+      ],
+      config: { rateLimit: { max: 3, timeWindow: '1 hour' } }
+    },
+    async (request, reply) => {
+      try {
+        const { currentPassword, newPassword } = changePasswordSchema.parse(
+          request.body
+        )
+
+        // Verify current password
+        const user = await User.findByUsername(request.user.username)
+        if (!user) {
+          reply.code(404).send({
+            error: 'Not Found',
+            message: 'User not found'
+          })
+          return
+        }
+
+        const isValidPassword = await User.verifyPassword(
+          currentPassword,
+          user.password_hash
+        )
+        if (!isValidPassword) {
+          reply.code(401).send({
+            error: 'Authentication Failed',
+            message: 'Current password is incorrect'
+          })
+          return
+        }
+
+        // Update password
+        const updated = await User.updatePassword(request.user.id, newPassword)
+
+        if (!updated) {
+          reply.code(500).send({
+            error: 'Internal Server Error',
+            message: 'Failed to update password'
+          })
+          return
+        }
+
+        reply.send({
+          message: 'Password changed successfully'
+        })
+      } catch (error) {
+        if (error instanceof z.ZodError) {
+          reply.code(400).send({
+            error: 'Validation Error',
+            message: 'Invalid input data',
+            details: error.errors.map((e) => e.message)
+          })
+        } else {
+          fastify.log.error('Change password error:', error)
+          reply.code(500).send({
+            error: 'Internal Server Error',
+            message: 'Failed to change password'
+          })
+        }
+      }
+    }
+  )
+
+  // Change password (PUT)
+  fastify.put(
     '/change-password',
     {
       preHandler: [

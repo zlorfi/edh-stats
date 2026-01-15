@@ -82,6 +82,28 @@ class User {
     return result.changes > 0
   }
   
+  static async updateUsername(userId, newUsername) {
+    const db = await dbManager.initialize()
+    
+    // Check if new username is already taken
+    const existingUser = db.prepare(`
+      SELECT id FROM users 
+      WHERE username = ? AND id != ?
+    `).get([newUsername, userId])
+    
+    if (existingUser) {
+      throw new Error('Username already exists')
+    }
+    
+    const result = db.prepare(`
+      UPDATE users 
+      SET username = ?, updated_at = CURRENT_TIMESTAMP
+      WHERE id = ?
+    `).run([newUsername, userId])
+    
+    return result.changes > 0
+  }
+  
   static async updateProfile(userId, profileData) {
     const db = await dbManager.initialize()
     
