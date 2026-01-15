@@ -24,7 +24,7 @@ const updateGameSchema = z.object({
   rounds: z.number().int().min(1).max(50).optional(),
   startingPlayerWon: z.boolean().optional(),
   solRingTurnOneWon: z.boolean().optional(),
-  notes: z.string().max(1000).optional()
+  notes: z.string().max(1000).optional().nullable()
 })
 
 const gameQuerySchema = z.object({
@@ -179,12 +179,27 @@ export default async function gameRoutes(fastify, options) {
           userId
         }
 
-        const game = await Game.create(gameData)
+         const game = await Game.create(gameData)
 
-        reply.code(201).send({
-          message: 'Game logged successfully',
-          game
-        })
+         reply.code(201).send({
+           message: 'Game logged successfully',
+           game: {
+             id: game.id,
+             date: new Date(game.date).toLocaleDateString('en-US'),
+             playerCount: game.player_count,
+             commanderId: game.commander_id,
+             won: game.won,
+             rounds: game.rounds,
+             startingPlayerWon: game.starting_player_won,
+             solRingTurnOneWon: game.sol_ring_turn_one_won,
+             notes: game.notes || null,
+             commanderName: game.commander_name,
+             commanderColors: JSON.parse(game.commander_colors || '[]'),
+             userId: game.user_id,
+             createdAt: game.created_at,
+             updatedAt: game.updated_at
+           }
+         })
       } catch (error) {
         if (error instanceof z.ZodError) {
           reply.code(400).send({
@@ -252,25 +267,27 @@ export default async function gameRoutes(fastify, options) {
           return
         }
 
-        const game = await Game.findById(id)
+         const game = await Game.findById(id)
 
-        reply.send({
-          message: 'Game updated successfully',
-          game: {
-            id: game.id,
-            date: new Date(game.date).toLocaleDateString('en-US'),
-            playerCount: game.player_count,
-            commanderId: game.commander_id,
-            won: game.won,
-            rounds: game.rounds,
-            startingPlayerWon: game.starting_player_won,
-            solRingTurnOneWon: game.sol_ring_turn_one_won,
-            notes: game.notes || null,
-            userId: game.user_id,
-            createdAt: game.created_at,
-            updatedAt: game.updated_at
-          }
-        })
+         reply.send({
+           message: 'Game updated successfully',
+           game: {
+             id: game.id,
+             date: new Date(game.date).toLocaleDateString('en-US'),
+             playerCount: game.player_count,
+             commanderId: game.commander_id,
+             won: game.won,
+             rounds: game.rounds,
+             startingPlayerWon: game.starting_player_won,
+             solRingTurnOneWon: game.sol_ring_turn_one_won,
+             notes: game.notes || null,
+             commanderName: game.commander_name,
+             commanderColors: JSON.parse(game.commander_colors || '[]'),
+             userId: game.user_id,
+             createdAt: game.created_at,
+             updatedAt: game.updated_at
+           }
+         })
       } catch (error) {
         if (error instanceof z.ZodError) {
           reply.code(400).send({

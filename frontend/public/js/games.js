@@ -159,25 +159,29 @@ function gameManager() {
       }
     },
 
-    async handleCreateGame() {
-      this.submitting = true
+     async handleCreateGame() {
+       this.submitting = true
 
-      try {
-        // Ensure boolean values are actual booleans, not strings
-        const payload = {
-          date: this.newGame.date,
-          commanderId: parseInt(this.newGame.commanderId),
-          playerCount: parseInt(this.newGame.playerCount),
-          rounds: parseInt(this.newGame.rounds),
-          won: this.newGame.won === true || this.newGame.won === 'true',
-          startingPlayerWon:
-            this.newGame.startingPlayerWon === true ||
-            this.newGame.startingPlayerWon === 'true',
-          solRingTurnOneWon:
-            this.newGame.solRingTurnOneWon === true ||
-            this.newGame.solRingTurnOneWon === 'true',
-          notes: this.newGame.notes
-        }
+       try {
+         // Ensure boolean values are actual booleans, not strings
+         const payload = {
+           date: this.newGame.date,
+           commanderId: parseInt(this.newGame.commanderId),
+           playerCount: parseInt(this.newGame.playerCount),
+           rounds: parseInt(this.newGame.rounds),
+           won: this.newGame.won === true || this.newGame.won === 'true',
+           startingPlayerWon:
+             this.newGame.startingPlayerWon === true ||
+             this.newGame.startingPlayerWon === 'true',
+           solRingTurnOneWon:
+             this.newGame.solRingTurnOneWon === true ||
+             this.newGame.solRingTurnOneWon === 'true'
+         }
+         
+         // Only include notes if it's not empty
+         if (this.newGame.notes && this.newGame.notes.trim()) {
+           payload.notes = this.newGame.notes
+         }
 
         const response = await fetch('/api/games', {
           method: 'POST',
@@ -206,24 +210,28 @@ function gameManager() {
       }
     },
 
-    async handleUpdateGame() {
-      this.editSubmitting = true
+     async handleUpdateGame() {
+       this.editSubmitting = true
 
-      try {
-        const payload = {
-          date: this.editingGame.date,
-          commanderId: parseInt(this.editingGame.commanderId),
-          playerCount: parseInt(this.editingGame.playerCount),
-          rounds: parseInt(this.editingGame.rounds),
-          won: this.editingGame.won === true || this.editingGame.won === 'true',
-          startingPlayerWon:
-            this.editingGame.startingPlayerWon === true ||
-            this.editingGame.startingPlayerWon === 'true',
-          solRingTurnOneWon:
-            this.editingGame.solRingTurnOneWon === true ||
-            this.editingGame.solRingTurnOneWon === 'true',
-          notes: this.editingGame.notes
-        }
+       try {
+         const payload = {
+           date: this.editingGame.date,
+           commanderId: parseInt(this.editingGame.commanderId),
+           playerCount: parseInt(this.editingGame.playerCount),
+           rounds: parseInt(this.editingGame.rounds),
+           won: this.editingGame.won === true || this.editingGame.won === 'true',
+           startingPlayerWon:
+             this.editingGame.startingPlayerWon === true ||
+             this.editingGame.startingPlayerWon === 'true',
+           solRingTurnOneWon:
+             this.editingGame.solRingTurnOneWon === true ||
+             this.editingGame.solRingTurnOneWon === 'true'
+         }
+         
+         // Only include notes if it's not empty
+         if (this.editingGame.notes && this.editingGame.notes.trim()) {
+           payload.notes = this.editingGame.notes
+         }
 
         const response = await fetch(`/api/games/${this.editingGame.id}`, {
           method: 'PUT',

@@ -84,16 +84,16 @@ export default async function statsRoutes(fastify, options) {
         const db = await dbManager.initialize()
         const userId = request.user.id
 
-        // Get detailed commander stats (minimum 5 games, sorted by win rate)
-        const rawStats = db
-          .prepare(
-            `
-        SELECT * FROM commander_stats
-        WHERE user_id = ? AND total_games >= 5
-        ORDER BY win_rate DESC
-      `
-          )
-          .all([userId])
+         // Get detailed commander stats, sorted by total games then win rate
+         const rawStats = db
+           .prepare(
+             `
+         SELECT * FROM commander_stats
+         WHERE user_id = ?
+         ORDER BY total_games DESC, win_rate DESC
+       `
+           )
+           .all([userId])
 
         // Convert snake_case to camelCase
         const stats = rawStats.map((stat) => ({
