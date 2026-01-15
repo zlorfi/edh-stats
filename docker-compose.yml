@@ -1,5 +1,4 @@
 # Docker Compose configuration for EDH Stats Tracker
-
 services:
   backend:
     build:

@@ -10,6 +10,7 @@ A lightweight, responsive web application for tracking Magic: The Gathering EDH/
 - **Secure Authentication**: JWT-based login/registration system with password hashing (HS512).
 - **User Profile Management**: View and edit user profile information.
 - **Session Management**: Persistent authentication with localStorage/sessionStorage support.
+- **Configurable Registration**: Toggle user registration on/off via `ALLOW_REGISTRATION` environment variable for controlled access.
 
 #### Commander Management
 - **CRUD Operations**: Create, read, update, and delete Commander decks.
@@ -25,9 +26,9 @@ A lightweight, responsive web application for tracking Magic: The Gathering EDH/
 - **Special Conditions**: Record specific win conditions:
   - Did the starting player win?
   - Did a Turn 1 Sol Ring player win?
-- **Game Notes**: Add custom notes to each game record.
-- **Commander Association**: Link games to specific Commanders.
-- **Edit History**: Modify game records after logging.
+- **Game Notes**: Add custom notes to each game record (full-width text area with auto-sizing).
+- **Commander Association**: Link games to specific Commanders with automatic name/color display.
+- **Edit History**: Modify game records after logging with real-time UI updates.
 
 #### Live Round Counter ⭐ (NEW)
 - **Real-Time Tracking**: Interactive counter with live elapsed time (HH:MM:SS).
@@ -50,10 +51,10 @@ A lightweight, responsive web application for tracking Magic: The Gathering EDH/
 - **One-Click Logging**: Minimize manual data entry by prefilling common fields.
 
 #### Statistics Dashboard
-- **KPI Overview**: Display total games, win rate, active decks, average rounds.
-- **Commander Stats**: Top commanders with game counts and win rates.
-- **Recent Games**: Latest game history with quick access.
-- **Game Statistics**: View statistics for individual commanders.
+- **KPI Overview**: Display total games, win rate, active decks, average rounds (dynamically loaded).
+- **Commander Stats**: Top commanders (5+ games) with game counts and win rates, sorted by most-played.
+- **Recent Games**: Latest 5 games with commander colors and results displayed.
+- **Game Statistics**: View statistics for individual commanders with comprehensive metrics.
 
 #### Visualizations (Chart.js)
 - **Win Rate by Color Identity**: Doughnut chart showing performance by color combination.
@@ -129,15 +130,47 @@ docker-compose up -d
 
 > **Note:** Default ports are `8081` (Frontend) and `3002` (Backend) to avoid conflicts.
 
+#### Environment Variables
+
+Key environment variables you can configure in `.env`:
+
+```env
+# Application
+NODE_ENV=development
+PORT=3000
+HOST=0.0.0.0
+
+# Security
+JWT_SECRET=your-secure-secret-key
+SESSION_SECRET=your-session-secret
+
+# User Registration - Set to 'true' to enable signup, 'false' to disable
+ALLOW_REGISTRATION=false
+
+# Database
+DATABASE_PATH=/app/database/data/edh-stats.db
+DATABASE_BACKUP_PATH=/app/database/data/backups
+
+# CORS
+CORS_ORIGIN=http://localhost:80
+
+# Logging
+LOG_LEVEL=info
+```
+
 ### Local Development
 
 If you prefer running without Docker:
 
 ```bash
+# Create .env file in root directory
+cp .env.example .env
+# Edit .env with your configuration
+
 # Backend
 cd backend
 npm install
-npm run dev
+npm run dev  # Starts with hot-reload
 
 # Frontend (in another terminal)
 cd frontend
@@ -146,6 +179,8 @@ npx serve public -p 8081
 # OR
 python3 -m http.server 8081 --directory public
 ```
+
+> **Important**: The `.env` file must be in the root project directory, not in the backend folder. The application will automatically load it from there.
 
 ## Project Structure
 
@@ -255,18 +290,26 @@ edh-stats/
 ## Development Notes
 
 ### Database
-- Location: `./database/data/edh-stats.db`
+- Location: `./database/data/edh-stats.db` (or specified via `DATABASE_PATH`)
 - Mode: SQLite with WAL (Write-Ahead Logging) for performance
 - Migrations: Automatically run on server startup (unless in test mode)
 - Foreign Keys: Enabled for data integrity
 - Auto-migrations: Uses `src/database/migrations.sql`
+- Views: 
+  - `user_stats`: Aggregates user-level statistics
+  - `commander_stats`: Aggregates per-commander statistics (commanders with 5+ games shown in dashboard)
 
 ### Frontend State Management
 - Alpine.js components handle all state management
 - No external state management library needed
-- Components: `app()`, `commanderManager()`, `gameManager()`, `roundCounterApp()`
-- Authentication tokens stored in `localStorage` or `sessionStorage`
+- Components: 
+  - `app()`: Main dashboard and page initialization
+  - `commanderManager()`: Commander CRUD operations
+  - `gameManager()`: Game logging and editing
+  - `roundCounterApp()`: Real-time round counter with game timing
+- Authentication tokens stored in `localStorage` (persistent) or `sessionStorage` (session-only)
 - Data persistence: `localStorage` for round counter state
+- Dynamic content loading: Partial HTML pages loaded and inserted via loaders
 
 ### Authentication Flow
 1. User registers with username and password
@@ -284,7 +327,18 @@ edh-stats/
 
 ## Recent Changes & Fixes
 
-This version includes **19 bug fixes and improvements** addressing:
+### Latest Updates (Session 2)
+- **Top Commanders Display**: Fixed filtering to show all commanders with 5+ games, sorted by most-played first
+- **Game Notes UI**: Expanded textarea width to full width with improved sizing (5 rows)
+- **Data Consistency**: Fixed camelCase/snake_case field naming throughout API and frontend
+- **Environment Configuration**: Fixed .env file loading from root directory in Docker containers
+- **Registration Control**: Added `ALLOW_REGISTRATION` environment variable to toggle signup availability
+- **Game API Response**: Ensured all game endpoints return complete commander information (name, colors)
+- **Form Validation**: Improved notes field handling to prevent null value validation errors
+- **Frontend Error Handling**: Fixed Alpine.js key binding issues in top commanders template
+
+### Previous Session Fixes
+This version includes **19+ bug fixes and improvements** addressing:
 - SQL parameter mismatches and injection vulnerabilities
 - Boolean type conversion issues in form submissions
 - Invalid Alpine.js expressions and duplicate elements
