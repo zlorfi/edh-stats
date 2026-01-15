@@ -115,16 +115,13 @@ function app() {
           }
         })
 
-        if (commandersResponse.ok) {
-          const commandersData = await commandersResponse.json()
-          // Sort by total_games descending and limit to 5, removing duplicates
-          const commanders = Array.isArray(commandersData.stats)
-            ? commandersData.stats
-            : []
-          const uniqueCommanders = [
-            ...new Map(commanders.map((c) => [c.id, c])).values()
-          ]
-          this.topCommanders = uniqueCommanders.slice(0, 5)
+         if (commandersResponse.ok) {
+           const commandersData = await commandersResponse.json()
+           // Get commanders stats and limit to 5 (already sorted by backend)
+           const commanders = Array.isArray(commandersData.stats)
+             ? commandersData.stats
+             : []
+           this.topCommanders = commanders.slice(0, 5)
         } else {
           this.topCommanders = []
         }

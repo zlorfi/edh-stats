@@ -80,9 +80,9 @@ export default async function statsRoutes(fastify, options) {
       ]
     },
     async (request, reply) => {
-      try {
-        const db = await dbManager.initialize()
-        const userId = request.user.id
+       try {
+         const db = await dbManager.initialize()
+         const userId = request.user.id
 
          // Get detailed commander stats, sorted by total games then win rate
          const rawStats = db
