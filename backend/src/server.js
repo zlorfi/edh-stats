@@ -1,12 +1,10 @@
 import fastify from 'fastify'
 import cors from '@fastify/cors'
 import jwt from '@fastify/jwt'
-import underPressure from '@fastify/under-pressure'
-import rateLimit from '@fastify/rate-limit'
 import closeWithGrace from 'close-with-grace'
 
 // Import configurations
-import { jwtConfig, corsConfig, rateLimitConfig, serverConfig } from './config/jwt.js'
+import { jwtConfig, corsConfig, serverConfig } from './config/jwt.js'
 import dbManager from './config/database.js'
 
 // Import routes
@@ -20,7 +18,7 @@ export default async function build(opts = {}) {
 
   // Register plugins
   await app.register(cors, corsConfig)
-  
+
   await app.register(jwt, {
     secret: jwtConfig.secret
   })
@@ -30,9 +28,9 @@ export default async function build(opts = {}) {
     try {
       await request.jwtVerify()
     } catch (err) {
-      reply.code(401).send({ 
+      reply.code(401).send({
         error: 'Unauthorized',
-        message: 'Invalid or expired token' 
+        message: 'Invalid or expired token'
       })
     }
   })
@@ -42,7 +40,7 @@ export default async function build(opts = {}) {
     try {
       await dbManager.initialize()
       const dbHealthy = await dbManager.healthCheck()
-      
+
       const status = {
         status: 'healthy',
         timestamp: new Date().toISOString(),
@@ -50,7 +48,7 @@ export default async function build(opts = {}) {
         memory: process.memoryUsage(),
         database: dbHealthy ? 'connected' : 'disconnected'
       }
-      
+
       if (dbHealthy) {
         return status
       } else {
@@ -86,7 +84,7 @@ export default async function build(opts = {}) {
 
   // Root endpoint
   app.get('/', async (request, reply) => {
-    return { 
+    return {
       message: 'EDH/Commander Stats API',
       version: '1.0.0',
       status: 'running'
@@ -104,7 +102,7 @@ export default async function build(opts = {}) {
   // Error handler
   app.setErrorHandler(async (error, request, reply) => {
     app.log.error(error)
-    
+
     // Handle validation errors
     if (error.validation) {
       reply.code(400).send({
@@ -163,7 +161,7 @@ export default async function build(opts = {}) {
     } else {
       app.log.info({ signal }, 'Received signal')
     }
-    
+
     try {
       await dbManager.close()
       await app.close()
@@ -188,18 +186,18 @@ async function start() {
         // }
       }
     })
-    
+
     // Initialize database
     await dbManager.initialize()
-    
+
     const port = serverConfig.port
     const host = serverConfig.host
-    
+
     await app.listen({ port, host })
-    
+
     app.log.info(`Server listening on http://${host}:${port}`)
     app.log.info(`Health check available at http://${host}:${port}/api/health`)
-    
+
     return app
   } catch (error) {
     console.error('Failed to start server:', error)
