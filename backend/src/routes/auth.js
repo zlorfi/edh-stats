@@ -79,7 +79,7 @@ export default async function authRoutes(fastify, options) {
             id: user.id,
             username: user.username,
             email: user.email,
-            created_at: user.created_at
+            createdAt: user.created_at
           },
           token
         })
@@ -255,7 +255,7 @@ export default async function authRoutes(fastify, options) {
             id: user.id,
             username: user.username,
             email: user.email,
-            created_at: user.created_at
+            createdAt: user.created_at
           }
         })
       } catch (error) {

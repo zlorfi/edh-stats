@@ -85,7 +85,7 @@ export default async function statsRoutes(fastify, options) {
         const userId = request.user.id
 
         // Get detailed commander stats (minimum 5 games, sorted by win rate)
-        const stats = db
+        const rawStats = db
           .prepare(
             `
         SELECT * FROM commander_stats
@@ -94,6 +94,21 @@ export default async function statsRoutes(fastify, options) {
       `
           )
           .all([userId])
+
+        // Convert snake_case to camelCase
+        const stats = rawStats.map((stat) => ({
+          commanderId: stat.commander_id,
+          name: stat.name,
+          colors: stat.colors,
+          userId: stat.user_id,
+          totalGames: stat.total_games,
+          totalWins: stat.total_wins,
+          winRate: stat.win_rate,
+          avgRounds: stat.avg_rounds,
+          startingPlayerWins: stat.starting_player_wins,
+          solRingWins: stat.sol_ring_wins,
+          lastPlayed: stat.last_played
+        }))
 
         // Calculate chart data: Win Rate by Player Count
         const playerCountStats = db

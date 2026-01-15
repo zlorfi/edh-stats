@@ -112,7 +112,7 @@
               </tr>
             </thead>
             <tbody class="divide-y divide-gray-100">
-              <template x-for="stat in commanderStats" :key="stat.commander_id">
+              <template x-for="stat in commanderStats" :key="stat.commanderId">
                 <tr class="hover:bg-gray-50 transition-colors">
                   <td class="px-6 py-4">
                     <div
@@ -131,26 +131,26 @@
                   </td>
                   <td
                     class="px-6 py-4 text-center"
-                    x-text="stat.total_games"
+                    x-text="stat.totalGames"
                   ></td>
                   <td class="px-6 py-4 text-center">
                     <span
                       class="px-2 py-1 rounded text-xs font-semibold"
-                      :class="stat.win_rate >= 25 ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'"
-                      x-text="stat.win_rate + '%'"
+                      :class="stat.winRate >= 25 ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'"
+                      x-text="stat.winRate + '%'"
                     ></span>
                   </td>
                   <td
                     class="px-6 py-4 text-center"
-                    x-text="Math.round(stat.avg_rounds)"
+                    x-text="Math.round(stat.avgRounds)"
                   ></td>
                   <td
                     class="px-6 py-4 text-center text-sm text-gray-500"
-                    x-text="calculatePercentage(stat.starting_player_wins, stat.total_games) + '%'"
+                    x-text="calculatePercentage(stat.startingPlayerWins, stat.totalGames) + '%'"
                   ></td>
                   <td
                     class="px-6 py-4 text-center text-sm text-gray-500"
-                    x-text="calculatePercentage(stat.sol_ring_wins, stat.total_games) + '%'"
+                    x-text="calculatePercentage(stat.solRingWins, stat.totalGames) + '%'"
                   ></td>
                 </tr>
               </template>

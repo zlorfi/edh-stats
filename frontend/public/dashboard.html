@@ -212,7 +212,7 @@
                     ></p>
                     <p
                       class="text-xs text-gray-400"
-                      x-text="game.player_count + ' players'"
+                      x-text="game.playerCount + ' players'"
                     ></p>
                   </div>
                   <div>
@@ -296,7 +296,7 @@
                     <p class="font-medium" x-text="commander.name"></p>
                     <p
                       class="text-sm text-gray-500"
-                      x-text="commander.total_games + ' games'"
+                      x-text="commander.totalGames + ' games'"
                     ></p>
                   </div>
                 </div>
@@ -304,11 +304,11 @@
                 <div class="text-right">
                   <p
                     class="font-bold text-edh-primary"
-                    x-text="(commander.win_rate !== undefined && commander.win_rate !== null ? commander.win_rate : 0) + '%'"
+                    x-text="(commander.winRate !== undefined && commander.winRate !== null ? commander.winRate : 0) + '%'"
                   ></p>
                   <p class="text-xs text-gray-500">
                     <span
-                      x-text="(commander.avg_rounds !== undefined && commander.avg_rounds !== null && !isNaN(commander.avg_rounds) ? Math.round(commander.avg_rounds) : 0) + ' avg rounds'"
+                      x-text="(commander.avgRounds !== undefined && commander.avgRounds !== null && !isNaN(commander.avgRounds) ? Math.round(commander.avgRounds) : 0) + ' avg rounds'"
                     ></span>
                   </p>
                 </div>

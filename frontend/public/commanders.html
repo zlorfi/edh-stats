@@ -302,28 +302,28 @@
               <div class="text-center">
                 <p
                   class="text-2xl font-bold text-edh-primary"
-                  x-text="commander.total_games || 0"
+                  x-text="commander.totalGames || 0"
                 ></p>
                 <p class="text-sm text-gray-600">Games Played</p>
               </div>
               <div class="text-center">
                 <p
                   class="text-2xl font-bold"
-                  x-text="Math.round(commander.win_rate || 0) + '%'"
+                  x-text="Math.round(commander.winRate || 0) + '%'"
                 ></p>
                 <p class="text-sm text-gray-600">Win Rate</p>
               </div>
               <div class="text-center">
                 <p
                   class="text-2xl font-bold"
-                  x-text="Math.round(commander.avg_rounds || 0)"
+                  x-text="Math.round(commander.avgRounds || 0)"
                 ></p>
                 <p class="text-sm text-gray-600">Avg Rounds</p>
               </div>
               <div class="text-center">
                 <p
                   class="text-sm text-gray-400"
-                  x-text="formatDate(commander.created_at)"
+                  x-text="formatDate(commander.createdAt)"
                 ></p>
                 <p class="text-xs text-gray-500">Added</p>
               </div>

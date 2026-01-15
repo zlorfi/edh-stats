@@ -40,6 +40,15 @@ class Commander {
         .get([id])
 
       return commander
+        ? {
+            id: commander.id,
+            name: commander.name,
+            colors: commander.colors,
+            userId: commander.user_id,
+            createdAt: commander.created_at,
+            updatedAt: commander.updated_at
+          }
+        : null
     } catch (error) {
       throw new Error('Failed to find commander')
     }
@@ -88,13 +97,19 @@ class Commander {
 
       const commanders = db.prepare(query).all([userId, limit, offset])
 
-      // Parse colors JSON for frontend
+      // Parse colors JSON for frontend and convert to camelCase
       return commanders.map((cmd) => ({
-        ...cmd,
+        id: cmd.id,
+        name: cmd.name,
         colors: JSON.parse(cmd.colors || '[]'),
-        total_games: cmd.total_games || 0,
-        win_rate: cmd.win_rate || 0,
-        avg_rounds: cmd.avg_rounds || 0
+        userId: cmd.user_id,
+        createdAt: cmd.created_at,
+        updatedAt: cmd.updated_at,
+        totalGames: cmd.total_games || 0,
+        totalWins: cmd.total_wins || 0,
+        winRate: cmd.win_rate || 0,
+        avgRounds: cmd.avg_rounds || 0,
+        lastPlayed: cmd.last_played
       }))
     } catch (error) {
       throw new Error('Failed to find commanders by user')
@@ -198,8 +213,14 @@ class Commander {
       }
 
       return {
-        ...stats,
-        colors: JSON.parse(stats.colors)
+        id: stats.id,
+        name: stats.name,
+        colors: JSON.parse(stats.colors),
+        totalGames: stats.total_games || 0,
+        totalWins: stats.total_wins || 0,
+        winRate: stats.win_rate || 0,
+        avgRounds: stats.avg_rounds || 0,
+        lastPlayed: stats.last_played
       }
     } catch (error) {
       throw new Error('Failed to get commander stats')
@@ -235,11 +256,17 @@ class Commander {
         .all([userId, searchQuery, limit])
 
       return commanders.map((cmd) => ({
-        ...cmd,
+        id: cmd.id,
+        name: cmd.name,
         colors: JSON.parse(cmd.colors || '[]'),
-        total_games: cmd.total_games || 0,
-        win_rate: cmd.win_rate || 0,
-        avg_rounds: cmd.avg_rounds || 0
+        userId: cmd.user_id,
+        createdAt: cmd.created_at,
+        updatedAt: cmd.updated_at,
+        totalGames: cmd.total_games || 0,
+        totalWins: cmd.total_wins || 0,
+        winRate: cmd.win_rate || 0,
+        avgRounds: cmd.avg_rounds || 0,
+        lastPlayed: cmd.last_played
       }))
     } catch (error) {
       throw new Error('Failed to search commanders')
@@ -274,11 +301,17 @@ class Commander {
         .all([userId, limit])
 
       return commanders.map((cmd) => ({
-        ...cmd,
+        id: cmd.id,
+        name: cmd.name,
         colors: JSON.parse(cmd.colors || '[]'),
-        total_games: cmd.total_games || 0,
-        win_rate: cmd.win_rate || 0,
-        avg_rounds: cmd.avg_rounds || 0
+        userId: cmd.user_id,
+        createdAt: cmd.created_at,
+        updatedAt: cmd.updated_at,
+        totalGames: cmd.total_games || 0,
+        totalWins: cmd.total_wins || 0,
+        winRate: cmd.win_rate || 0,
+        avgRounds: cmd.avg_rounds || 0,
+        lastPlayed: cmd.last_played
       }))
     } catch (error) {
       throw new Error('Failed to get popular commanders')
