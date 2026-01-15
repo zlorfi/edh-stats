@@ -10,6 +10,13 @@ function gameManager() {
     editingGame: null,
     serverError: '',
 
+    // Delete confirmation modal
+    deleteConfirm: {
+      show: false,
+      gameId: null,
+      deleting: false
+    },
+
     // Game form data
     newGame: {
       date: new Date().toISOString().split('T')[0],
@@ -301,10 +308,16 @@ function gameManager() {
       this.showLogForm = false
     },
 
-    async deleteGame(gameId) {
-      if (!confirm('Are you sure you want to delete this game record?')) {
-        return
-      }
+    deleteGame(gameId) {
+      this.deleteConfirm.gameId = gameId
+      this.deleteConfirm.show = true
+    },
+
+    async confirmDelete() {
+      const gameId = this.deleteConfirm.gameId
+      if (!gameId) return
+
+      this.deleteConfirm.deleting = true
 
       try {
         const response = await fetch(`/api/games/${gameId}`, {
@@ -316,12 +329,17 @@ function gameManager() {
 
         if (response.ok) {
           this.games = this.games.filter((g) => g.id !== gameId)
+          this.deleteConfirm.show = false
+          this.deleteConfirm.gameId = null
           await this.reloadStats()
         } else {
-          alert('Failed to delete game')
+          this.serverError = 'Failed to delete game'
         }
       } catch (error) {
         console.error('Delete game error:', error)
+        this.serverError = 'Network error occurred while deleting'
+      } finally {
+        this.deleteConfirm.deleting = false
       }
     },
 
