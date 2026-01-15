@@ -159,29 +159,8 @@ build_frontend() {
     print_info "Building: ${FRONTEND_IMAGE}"
     print_info "Building for architectures: linux/amd64,linux/arm64"
     
-    # Create a temporary Dockerfile for frontend if it doesn't exist
-    if [ ! -f "./frontend/Dockerfile.prod" ]; then
-        print_info "Creating production Dockerfile for frontend..."
-        cat > "./frontend/Dockerfile.prod" << 'EOF'
-FROM nginx:alpine
-
-# Copy nginx configuration
-COPY ./nginx.prod.conf /etc/nginx/nginx.conf
-
-# Copy frontend files
-COPY ./public /usr/share/nginx/html
-
-# Expose ports
-EXPOSE 80 443
-
-# Health check
-HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-    CMD wget --no-verbose --tries=1 --spider http://localhost/health.html || exit 1
-
-CMD ["nginx", "-g", "daemon off;"]
-EOF
-        print_success "Created temporary Dockerfile for frontend"
-    fi
+    # Note: Dockerfile.prod is now a permanent file in the repository
+    # It uses a multi-stage build to compile Tailwind CSS in production
     
     docker buildx build \
         --platform linux/amd64,linux/arm64 \
