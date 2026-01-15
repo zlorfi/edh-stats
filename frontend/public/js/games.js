@@ -30,6 +30,38 @@ function gameManager() {
 
     async init() {
       await Promise.all([this.loadCommanders(), this.loadGames()])
+      this.loadPrefilled()
+    },
+
+    loadPrefilled() {
+      const prefilled = localStorage.getItem('edh-prefill-game')
+      if (prefilled) {
+        try {
+          const data = JSON.parse(prefilled)
+
+          // Populate the form with prefilled values
+          this.newGame.date =
+            data.date || new Date().toISOString().split('T')[0]
+          this.newGame.rounds = data.rounds || 8
+          this.newGame.notes =
+            `Ended after ${data.rounds} rounds in ${data.duration}` || ''
+
+          // Show the form automatically
+          this.showLogForm = true
+
+          // Clear the prefilled data from localStorage
+          localStorage.removeItem('edh-prefill-game')
+
+          // Scroll to the form
+          setTimeout(() => {
+            document
+              .querySelector('form')
+              ?.scrollIntoView({ behavior: 'smooth' })
+          }, 100)
+        } catch (error) {
+          console.error('Error loading prefilled game data:', error)
+        }
+      }
     },
 
     async loadCommanders() {

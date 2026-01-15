@@ -5,31 +5,96 @@ A lightweight, responsive web application for tracking Magic: The Gathering EDH/
 ## Features
 
 ### ✅ Implemented
+
+#### Authentication & Users
 - **Secure Authentication**: JWT-based login/registration system with password hashing (HS512).
-- **Commander Management**:
-  - CRUD operations for Commanders.
-  - MTG Color Identity picker (WUBRG).
-  - Search and filter functionality.
-  - Validation for names and colors.
-- **Game Logging**:
-  - Log game results (Win/Loss).
-  - Track player count, rounds, and specific win conditions (Starting Player, Sol Ring T1).
-  - Associate games with specific Commanders.
-- **Statistics Dashboard**:
-  - **Overview**: Total games, win rate, active decks, average rounds.
-  - **Visualizations**:
-    - Win Rate by Color Identity (Chart.js Doughnut).
-    - Win Rate by Player Count (Chart.js Bar).
-  - **Detailed Tables**: Per-commander performance metrics.
-- **Responsive UI**: Mobile-friendly design using Tailwind CSS and Alpine.js.
-- **Infrastructure**: Docker Compose setup for development and production.
+- **User Profile Management**: View and edit user profile information.
+- **Session Management**: Persistent authentication with localStorage/sessionStorage support.
+
+#### Commander Management
+- **CRUD Operations**: Create, read, update, and delete Commander decks.
+- **MTG Color Identity Picker**: Interactive WUBRG color selection with visual indicators.
+- **Search & Filter**: Find commanders by name with real-time search.
+- **Validation**: Comprehensive name and color validation.
+- **Popular Commanders**: View your most-played commanders at a glance.
+
+#### Game Logging
+- **Game Result Tracking**: Log wins and losses with detailed statistics.
+- **Round Tracking**: Record the number of rounds each game lasted.
+- **Player Count**: Track games with 2-8 players.
+- **Special Conditions**: Record specific win conditions:
+  - Did the starting player win?
+  - Did a Turn 1 Sol Ring player win?
+- **Game Notes**: Add custom notes to each game record.
+- **Commander Association**: Link games to specific Commanders.
+- **Edit History**: Modify game records after logging.
+
+#### Live Round Counter ⭐ (NEW)
+- **Real-Time Tracking**: Interactive counter with live elapsed time (HH:MM:SS).
+- **Round Management**: Increment/decrement rounds with large, easy-to-use buttons.
+- **Game Duration**: Automatic calculation of game elapsed time.
+- **Average Time Calculation**: Track average time per round.
+- **Quick Jump**: Jump to specific rounds (5, 7, 10) quickly.
+- **Fullscreen Mode**: Expand counter for better visibility during gameplay.
+- **Persistent State**: Game progress saved to localStorage and survives page refreshes.
+- **24-Hour Auto-Reset**: Counters older than 24 hours automatically reset.
+- **Seamless Integration**: Directly log games from the round counter with prefilled data.
+
+#### Game Logging Workflow Integration ⭐ (NEW)
+- **Smart Prefill**: When ending a game from the round counter, the game logging form automatically populates with:
+  - Actual round count from the counter
+  - Game date (today's date)
+  - Auto-generated notes showing duration and round count
+- **Auto-Open Form**: Game logging form automatically displays when returning from the round counter.
+- **Auto-Scroll**: Form scrolls into view automatically for seamless UX.
+- **One-Click Logging**: Minimize manual data entry by prefilling common fields.
+
+#### Statistics Dashboard
+- **KPI Overview**: Display total games, win rate, active decks, average rounds.
+- **Commander Stats**: Top commanders with game counts and win rates.
+- **Recent Games**: Latest game history with quick access.
+- **Game Statistics**: View statistics for individual commanders.
+
+#### Visualizations (Chart.js)
+- **Win Rate by Color Identity**: Doughnut chart showing performance by color combination.
+- **Win Rate by Player Count**: Bar chart showing win rates across different player counts.
+- **Detailed Tables**: Per-commander performance metrics and trends.
+
+#### User Interface
+- **Responsive Design**: Mobile-friendly layout using Tailwind CSS.
+- **Dark Theme**: Professional dark color scheme with proper contrast.
+- **Alpine.js Components**: Lightweight, reactive UI without heavy frameworks.
+- **Professional Navigation**: Easy access to all major features.
+- **Accessibility**: Semantic HTML and accessible form controls.
+
+#### Infrastructure & Deployment
+- **Docker Support**: Complete Docker and Docker Compose setup.
+- **Development Environment**: Pre-configured with hot-reload and logging.
+- **Database**: SQLite with WAL mode for optimal performance.
+- **Automated Migrations**: Database schema management on startup.
 
 ### 🚧 Pending / Roadmap
-- **Live Round Counter**: Interactive real-time counter during games (currently post-game entry only).
+
+#### Analytics & Insights
 - **Advanced Trends**: Historical performance trends over time (endpoints `/api/stats/trends` not yet implemented).
-- **Commander Comparison**: Direct head-to-head comparison tool.
-- **HTTPS Configuration**: Production Nginx setup with SSL.
-- **Unit/Integration Tests**: Comprehensive test suite (currently partial).
+- **Win Rate Trends**: Visualize win rate changes over weeks/months.
+- **Player Count Analysis**: Identify which player counts you perform best in.
+
+#### Features
+- **Commander Comparison**: Direct head-to-head comparison tool (stats, win rates, matchups).
+- **Deck Notes**: Add longer notes/strategy notes to Commander decks.
+- **Game Filters**: Advanced filtering by date range, player count, color, etc.
+- **Export Data**: CSV/JSON export for external analysis.
+
+#### System Features
+- **Unit/Integration Tests**: Comprehensive test suite for backend and frontend.
+- **API Documentation**: Swagger/OpenAPI documentation.
+- **Performance Optimization**: Database query optimization and caching.
+
+#### Deployment & Security
+- **HTTPS Configuration**: Production-ready Nginx setup with SSL/TLS.
+- **User Preferences**: Store user settings (theme, preferences).
+- **Password Reset**: Forgot password functionality with email verification.
 
 ## Technology Stack
 
@@ -38,12 +103,14 @@ A lightweight, responsive web application for tracking Magic: The Gathering EDH/
 - **Frontend**: Alpine.js, Tailwind CSS (CDN)
 - **Visualization**: Chart.js
 - **Containerization**: Docker & Docker Compose
+- **Authentication**: JWT with HS512 hashing
+- **Password Security**: bcryptjs with 12-round hashing
 
 ## Quick Start
 
 ### Prerequisites
-- Docker & Docker Compose
-- Git
+- Docker & Docker Compose (recommended)
+- Or: Node.js v20+, npm, and Python 3
 
 ### Running with Docker (Recommended)
 
@@ -72,10 +139,12 @@ cd backend
 npm install
 npm run dev
 
-# Frontend (served via simple HTTP server or Nginx)
+# Frontend (in another terminal)
 cd frontend
-# Use any static file server, e.g., 'serve'
+# Use any static file server, e.g., 'serve' or Python's http.server
 npx serve public -p 8081
+# OR
+python3 -m http.server 8081 --directory public
 ```
 
 ## Project Structure
@@ -84,57 +153,164 @@ npx serve public -p 8081
 edh-stats/
 ├── backend/
 │   ├── src/
-│   │   ├── config/         # DB & Auth config
+│   │   ├── config/         # Database & Auth configuration
 │   │   ├── database/       # Migrations & Seeds
+│   │   ├── middleware/     # Fastify middleware
 │   │   ├── models/         # Data access layer (Commander, Game, User)
-│   │   ├── routes/         # API endpoints
-│   │   └── server.js       # App entry point
+│   │   ├── routes/         # API endpoint handlers
+│   │   ├── utils/          # Utility functions
+│   │   └── server.js       # Application entry point
+│   ├── package.json        # Node.js dependencies
 │   └── Dockerfile
 ├── frontend/
-│   ├── public/             # Static assets
-│   │   ├── css/            # Custom styles
-│   │   ├── js/             # Alpine.js logic
-│   │   └── *.html          # Views
+│   ├── public/
+│   │   ├── css/            # Tailwind styles
+│   │   ├── js/             # Alpine.js components
+│   │   ├── components/     # Reusable HTML components
+│   │   ├── *.html          # View files
+│   │   └── round-counter.html  # Live round counter (NEW)
+│   ├── tailwind.config.js  # Tailwind configuration
+│   ├── package.json        # Node.js dependencies
 │   └── Dockerfile
 ├── database/               # Persisted SQLite data
-├── docker-compose.yml      # Dev orchestration
+├── docs/                   # Documentation
+├── FIXES.md                # Detailed list of fixes applied
+├── FEATURES.md             # Feature documentation
+├── docker-compose.yml      # Development orchestration
+├── docker-compose.prod.yml # Production orchestration
 └── README.md
 ```
 
 ## API Endpoints
 
 ### Authentication (`/api/auth`)
-- `POST /register`
-- `POST /login`
-- `GET /me`
+- `POST /register` - Register new user
+- `POST /login` - Login user
+- `GET /me` - Get current user profile
+- `PATCH /me` - Update user profile
+- `POST /change-password` - Change password
+- `POST /refresh` - Refresh authentication token
 
 ### Commanders (`/api/commanders`)
-- `GET /` - List/Search
-- `POST /` - Create
-- `GET /popular` - Top commanders
-- `GET /:id` - Details
-- `PUT /:id` - Update
-- `DELETE /:id` - Remove
+- `GET /` - List/Search commanders
+- `POST /` - Create new commander
+- `GET /popular` - Get top commanders by games played
+- `GET /:id` - Get commander details
+- `GET /:id/stats` - Get commander statistics
+- `PUT /:id` - Update commander
+- `DELETE /:id` - Delete commander
 
 ### Games (`/api/games`)
-- `GET /` - History
-- `POST /` - Log result
-- `PUT /:id` - Edit record
-- `DELETE /:id` - Remove record
+- `GET /` - List games with pagination and filtering
+- `POST /` - Log new game result
+- `GET /:id` - Get game details
+- `PUT /:id` - Edit game record
+- `DELETE /:id` - Delete game record
 
 ### Statistics (`/api/stats`)
-- `GET /overview` - KPI cards
-- `GET /commanders` - Detailed breakdown & charts
+- `GET /overview` - Get user overview statistics (total games, win rate, etc.)
+- `GET /commanders` - Get detailed commander statistics with charts
+
+### Health Check
+- `GET /api/health` - Server and database health status
+
+## Usage Guide
+
+### Logging Into the Application
+1. Navigate to http://localhost:8081
+2. Use the registration or login form
+3. After authentication, you'll be redirected to the dashboard
+
+### Managing Commanders
+1. Click "Commanders" in the navigation
+2. Click "Add Commander" to create a new deck
+3. Select the color identity (WUBRG)
+4. Edit or delete existing commanders from the list
+
+### Logging Games
+1. Click "Log Game" in the navigation
+2. Fill in the game details:
+   - Select your commander
+   - Choose number of players (2-8)
+   - Mark if you won or lost
+   - Record the number of rounds
+   - Check special conditions if applicable
+3. Click "Log Game"
+
+### Using the Round Counter
+1. Click "Start Round Counter" on the dashboard
+2. Click "Start Game" to begin tracking
+3. Use the large **+** button to increment rounds
+4. Use the large **−** button to decrement rounds
+5. View real-time elapsed time and average time per round
+6. Click "End Game & Log Results" when finished
+7. The game logging form will open with prefilled values
+
+### Viewing Statistics
+1. Click "Statistics" in the navigation
+2. View your KPI cards (Total Games, Win Rate, etc.)
+3. See charts for win rate by color and player count
+4. View detailed commander statistics
 
 ## Development Notes
 
 ### Database
-The SQLite database file is stored in `./database/data/edh-stats.db`. It uses `PRAGMA journal_mode = WAL` for performance.
-Migrations are run automatically on server start if `NODE_ENV != 'test'`.
+- Location: `./database/data/edh-stats.db`
+- Mode: SQLite with WAL (Write-Ahead Logging) for performance
+- Migrations: Automatically run on server startup (unless in test mode)
+- Foreign Keys: Enabled for data integrity
+- Auto-migrations: Uses `src/database/migrations.sql`
 
-### Frontend State
-State management is handled by Alpine.js components (`commanderManager`, `gameManager`, `statsManager`).
-Authentication tokens are stored in `localStorage` or `sessionStorage`.
+### Frontend State Management
+- Alpine.js components handle all state management
+- No external state management library needed
+- Components: `app()`, `commanderManager()`, `gameManager()`, `roundCounterApp()`
+- Authentication tokens stored in `localStorage` or `sessionStorage`
+- Data persistence: `localStorage` for round counter state
+
+### Authentication Flow
+1. User registers with username and password
+2. Password hashed with bcryptjs (12 rounds)
+3. JWT token generated (HS512 algorithm)
+4. Token stored in browser (localStorage/sessionStorage)
+5. Token validated on protected routes
+6. Automatic token validation on component initialization
+
+### Error Handling
+- All API errors return appropriate HTTP status codes
+- Validation errors provide detailed feedback
+- Database errors logged but generic messages sent to client
+- Frontend gracefully handles network failures
+
+## Recent Changes & Fixes
+
+This version includes **19 bug fixes and improvements** addressing:
+- SQL parameter mismatches and injection vulnerabilities
+- Boolean type conversion issues in form submissions
+- Invalid Alpine.js expressions and duplicate elements
+- Corrupted SVG paths in UI components
+- Field name mismatches between frontend and backend
+- Color parsing and null/undefined value handling
+- Tailwind dark mode conflicts with system theme
+- Navbar text visibility issues
+
+See `FIXES.md` for detailed documentation of all fixes.
+
+## Future Enhancements
+
+- Real-time multiplayer game tracking
+- Advanced statistical analysis and trends
+- Integration with MTG databases for card suggestions
+- Mobile native application
+- Live notifications for game updates
+- Keyboard shortcuts for faster game logging
+- Voice commands for hands-free operation
+- Cloud backup and sync
 
 ## License
+
 MIT
+
+## Support
+
+For bug reports or feature requests, please create an issue in the repository.
