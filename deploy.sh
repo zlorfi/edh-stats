@@ -262,6 +262,12 @@ generate_deployment_config() {
 #   JWT_SECRET=\$(openssl rand -base64 32)
 #   CORS_ORIGIN=https://yourdomain.com
 #   ALLOW_REGISTRATION=false
+#
+# FIRST TIME SETUP:
+# 1. Create .env file with above variables
+# 2. Run: docker-compose up -d
+# 3. If database error occurs, run: docker volume inspect ${PROJECT_NAME}_sqlite_data
+# 4. Note the Mountpoint path and ensure it's writable by Docker
 
 version: '3.8'
 
@@ -298,6 +304,17 @@ services:
     networks:
       - edh-stats-network
     stop_grace_period: 30s
+    depends_on:
+      - init-db
+
+  init-db:
+    image: alpine:latest
+    volumes:
+      - sqlite_data:/app/database/data
+      - app_logs:/app/logs
+    command: sh -c "mkdir -p /app/database/data /app/logs && chmod 755 /app/database/data /app/logs && echo 'Database directories initialized'"
+    networks:
+      - edh-stats-network
 
   frontend:
     image: ${FRONTEND_IMAGE}

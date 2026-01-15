@@ -486,14 +486,58 @@ docker-compose config
 sudo netstat -tulpn | grep LISTEN
 ```
 
-### Database Issues
+### Database Issues / "unable to open database file"
+
+**Error:**
+```
+Failed to initialize database: SqliteError: unable to open database file
+```
+
+This occurs when the Docker volume directory doesn't exist or lacks write permissions.
+
+**Solution:**
+
+```bash
+# 1. Stop services
+docker-compose down
+
+# 2. Find the volume path
+docker volume inspect edh-stats_sqlite_data
+
+# Look for the "Mountpoint" value - example: /var/lib/docker/volumes/edh-stats_sqlite_data/_data
+
+# 3. Create directories with proper permissions
+VOLUME_PATH="/var/lib/docker/volumes/edh-stats_sqlite_data/_data"
+sudo mkdir -p "$VOLUME_PATH"
+sudo chmod 755 "$VOLUME_PATH"
+
+# 4. Do the same for logs volume
+LOGS_PATH="/var/lib/docker/volumes/edh-stats_app_logs/_data"
+sudo mkdir -p "$LOGS_PATH"
+sudo chmod 755 "$LOGS_PATH"
+
+# 5. Start services again
+docker-compose up -d
+
+# 6. Check logs
+docker-compose logs -f backend
+```
+
+**Or use the automatic init service:**
+
+If you're using the updated docker-compose (with `init-db` service), it will automatically create directories. Just run:
+
+```bash
+docker-compose up -d
+docker-compose logs init-db  # Watch initialization
+docker-compose logs -f backend
+```
+
+**Verify after fix:**
 
 ```bash
 # Check database file exists
 docker-compose exec backend ls -lh /app/database/data/
-
-# Verify permissions
-docker-compose exec backend chmod 666 /app/database/data/edh-stats.db
 
 # Check database integrity
 docker-compose exec backend sqlite3 /app/database/data/edh-stats.db "PRAGMA integrity_check;"

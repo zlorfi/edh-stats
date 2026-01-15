@@ -349,16 +349,26 @@ docker-compose down
 docker-compose up -d
 ```
 
-### Database Issues
+### Database Issues / "unable to open database file"
 ```bash
-# Check database exists
-docker-compose exec backend ls -lh /app/database/data/
+# If you see: "Failed to initialize database: SqliteError: unable to open database file"
 
-# Verify integrity
-docker-compose exec backend sqlite3 /app/database/data/edh-stats.db "PRAGMA integrity_check;"
+# Stop services
+docker-compose down
 
-# Check permissions
-docker-compose exec backend chmod 666 /app/database/data/edh-stats.db
+# Find volume path
+VOLUME_PATH=$(docker volume inspect edh-stats_sqlite_data | grep -o '"Mountpoint": "[^"]*' | cut -d'"' -f4)
+echo "Volume path: $VOLUME_PATH"
+
+# Create directories with permissions
+sudo mkdir -p "$VOLUME_PATH"
+sudo chmod 755 "$VOLUME_PATH"
+
+# Start again
+docker-compose up -d
+
+# Check logs
+docker-compose logs -f backend
 ```
 
 ---
