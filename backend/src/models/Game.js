@@ -114,15 +114,21 @@ class Game {
 
       const games = db.prepare(query).all([userId, limit, offset])
 
-      // Parse dates for frontend
+      // Parse dates for frontend and transform to camelCase
       return games.map((game) => ({
-        ...game,
+        id: game.id,
         date: new Date(game.date).toLocaleDateString('en-US'),
+        playerCount: game.player_count,
+        commanderId: game.commander_id,
         won: game.won,
         rounds: game.rounds || 0,
+        startingPlayerWon: game.starting_player_won,
+        solRingTurnOneWon: game.sol_ring_turn_one_won,
+        notes: game.notes,
         commanderName: game.name,
         commanderColors: JSON.parse(game.colors || '[]'),
-        id: game.id
+        createdAt: game.created_at,
+        updatedAt: game.updated_at
       }))
     } catch (error) {
       throw new Error('Failed to find games by user')

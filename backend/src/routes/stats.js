@@ -47,10 +47,10 @@ export default async function statsRoutes(fastify, options) {
           .get([userId])
 
         reply.send({
-          total_games: stats?.total_games || 0,
-          win_rate: stats?.win_rate || 0,
-          total_commanders: stats?.total_commanders || 0,
-          avg_rounds: Math.round(stats?.avg_rounds || 0)
+          totalGames: stats?.total_games || 0,
+          winRate: stats?.win_rate || 0,
+          totalCommanders: stats?.total_commanders || 0,
+          avgRounds: Math.round(stats?.avg_rounds || 0)
         })
       } catch (error) {
         fastify.log.error('Get stats overview error:', error)

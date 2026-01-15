@@ -26,13 +26,7 @@ function statsManager() {
         })
 
         if (overviewResponse.ok) {
-          const statsData = await overviewResponse.json()
-          this.stats = {
-            totalGames: statsData.total_games || 0,
-            winRate: Math.round(statsData.win_rate || 0),
-            totalCommanders: statsData.total_commanders || 0,
-            avgRounds: Math.round(statsData.avg_rounds || 0)
-          }
+          this.stats = await overviewResponse.json()
         }
 
         // Load commander detailed stats

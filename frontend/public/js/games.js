@@ -269,15 +269,14 @@ function gameManager() {
         this.editingGame = {
           id: game.id,
           date: dateForInput,
-          commanderId: game.commander_id,
-          playerCount: game.player_count,
+          commanderId: game.commanderId,
+          playerCount: game.playerCount,
           won: game.won === 1 || game.won === true,
           rounds: game.rounds,
           startingPlayerWon:
-            game.starting_player_won === 1 || game.starting_player_won === true,
+            game.startingPlayerWon === 1 || game.startingPlayerWon === true,
           solRingTurnOneWon:
-            game.sol_ring_turn_one_won === 1 ||
-            game.sol_ring_turn_one_won === true,
+            game.solRingTurnOneWon === 1 || game.solRingTurnOneWon === true,
           notes: game.notes
         }
         this.showLogForm = true

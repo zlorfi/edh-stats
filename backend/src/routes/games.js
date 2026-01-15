@@ -117,16 +117,20 @@ export default async function gameRoutes(fastify, options) {
 
         reply.send({
           game: {
-            ...game,
-            commanderName: game.commander_name,
-            commanderColors: JSON.parse(game.commander_colors),
+            id: game.id,
             date: new Date(game.date).toLocaleDateString('en-US'),
+            playerCount: game.player_count,
+            commanderId: game.commander_id,
             won: game.won,
             rounds: game.rounds,
-            playerCount: game.player_count,
-            startingPlayerWon: game.starting_player_won ? 'Yes' : 'No',
-            solRingTurnOneWon: game.sol_ring_turn_one_won ? 'Yes' : 'No',
-            notes: game.notes || null
+            startingPlayerWon: game.starting_player_won,
+            solRingTurnOneWon: game.sol_ring_turn_one_won,
+            notes: game.notes || null,
+            commanderName: game.commander_name,
+            commanderColors: JSON.parse(game.commander_colors || '[]'),
+            userId: game.user_id,
+            createdAt: game.created_at,
+            updatedAt: game.updated_at
           }
         })
       } catch (error) {
@@ -253,14 +257,18 @@ export default async function gameRoutes(fastify, options) {
         reply.send({
           message: 'Game updated successfully',
           game: {
-            ...game,
+            id: game.id,
             date: new Date(game.date).toLocaleDateString('en-US'),
+            playerCount: game.player_count,
+            commanderId: game.commander_id,
             won: game.won,
             rounds: game.rounds,
-            playerCount: game.player_count,
-            startingPlayerWon: game.starting_player_won ? 'Yes' : 'No',
-            solRingTurnOneWon: game.sol_ring_turn_one_won ? 'Yes' : 'No',
-            notes: game.notes || null
+            startingPlayerWon: game.starting_player_won,
+            solRingTurnOneWon: game.sol_ring_turn_one_won,
+            notes: game.notes || null,
+            userId: game.user_id,
+            createdAt: game.created_at,
+            updatedAt: game.updated_at
           }
         })
       } catch (error) {
