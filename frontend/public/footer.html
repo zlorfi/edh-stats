@@ -12,21 +12,3 @@
     </p>
   </div>
 </footer>
-
-<script>
-  // Load and display version in footer
-  (async function loadVersion() {
-    try {
-      const response = await fetch('/version.txt');
-      if (response.ok) {
-        const version = await response.text();
-        const versionEl = document.getElementById('version-footer');
-        if (versionEl) {
-          versionEl.textContent = `v${version.trim()}`;
-        }
-      }
-    } catch (error) {
-      console.debug('Version file not available');
-    }
-  })();
-</script>
