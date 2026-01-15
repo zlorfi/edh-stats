@@ -158,10 +158,10 @@ build_backend() {
     print_header "Building Backend Image"
 
     print_info "Building: ${BACKEND_IMAGE}"
-    print_info "Building for architectures: linux/amd64,linux/arm64"
+    print_info "Building for architectures: linux/amd64"
 
     docker buildx build \
-        --platform linux/amd64,linux/arm64 \
+        --platform linux/amd64 \
         --file ./backend/Dockerfile \
         --target production \
         --tag "${BACKEND_IMAGE}" \
@@ -177,18 +177,18 @@ build_frontend() {
     print_header "Building Frontend Image"
 
     print_info "Building: ${FRONTEND_IMAGE}"
-    print_info "Building for architectures: linux/amd64,linux/arm64"
+    print_info "Building for architectures: linux/amd64"
 
     # Note: Dockerfile.prod is now a permanent file in the repository
     # It uses a multi-stage build to compile Tailwind CSS in production
 
     docker buildx build \
-        --platform linux/amd64,linux/arm64 \
+        --platform linux/amd64 \
         --file ./frontend/Dockerfile.prod \
         --tag "${FRONTEND_IMAGE}" \
         --tag "${FRONTEND_IMAGE_LATEST}" \
         --push \
-        ./frontend
+        .
 
     print_success "Frontend image built and pushed successfully"
 }
@@ -233,8 +233,8 @@ push_frontend() {
 verify_images() {
     print_header "Verifying Built Images"
 
-    print_info "Note: Using buildx for multi-architecture builds"
-    print_info "Images are built for linux/amd64 and linux/arm64"
+    print_info "Note: Using buildx for optimized builds"
+    print_info "Images are built for linux/amd64"
     print_info "Images are pushed directly to registry (not stored locally)"
     print_success "Backend image built and pushed: ${BACKEND_IMAGE}"
     print_success "Frontend image built and pushed: ${FRONTEND_IMAGE}"
