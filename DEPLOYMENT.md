@@ -121,20 +121,78 @@ Your JWT secret is stored in the `.env` file which is protected by `.gitignore` 
 
 ## Deployment
 
-### 1. Log in to GHCR
+### 1. Configure Docker Authentication to GHCR
+
+You need to authenticate Docker to pull private images from GitHub Container Registry (GHCR). Choose one of these methods:
+
+#### Option A: Store Credentials in `/etc/docker/daemon.json` (Recommended for Docker Services)
+
+This approach is recommended if you're using Dockge, systemd services, or other Docker management tools that run as services. The credentials are stored globally so all Docker processes can use them.
+
+**Step 1: Generate base64-encoded credentials**
+```bash
+# Replace with your actual GitHub username and token
+echo -n "YOUR_GITHUB_USERNAME:YOUR_GITHUB_TOKEN" | base64
+
+# Output example:
+# WU9VUl9HSVRIVUJfVVNFUk5BTUU6WU9VUl9HSVRIVUJfVE9LRU4=
+```
+
+**Step 2: Update Docker daemon configuration**
+```bash
+sudo nano /etc/docker/daemon.json
+```
+
+Add or update the `auths` section. The full file should look like:
+```json
+{
+  "auths": {
+    "ghcr.io": {
+      "auth": "YOUR_BASE64_CREDENTIALS_HERE"
+    }
+  }
+}
+```
+
+**Step 3: Restart Docker**
+```bash
+sudo systemctl restart docker
+
+# Wait a few seconds for Docker to restart
+sleep 3
+
+# Verify authentication works
+docker pull ghcr.io/YOUR_GITHUB_USER/edh-stats-backend:latest
+```
+
+#### Option B: Interactive Docker Login (Simpler but User-Specific)
+
+Use this if you're deploying manually and don't have other services pulling images.
 
 ```bash
-echo $GITHUB_TOKEN | docker login ghcr.io -u USERNAME --password-stdin
+docker login ghcr.io
+
+# You'll be prompted for:
+# Username: YOUR_GITHUB_USERNAME
+# Password: YOUR_GITHUB_TOKEN (NOT your GitHub password!)
+
+# Verify login worked
+docker pull ghcr.io/YOUR_GITHUB_USER/edh-stats-backend:latest
 ```
+
+**Note:** With this approach, credentials are stored in `~/.docker/config.json` and only the current user can use them. If Docker runs as a different user (like in Dockge), authentication will fail.
 
 ### 2. Pull Latest Images
 
 ```bash
 cd ~/edh-stats
 
-# Pull images
+# Pull images (this will use credentials from daemon.json or docker login)
 docker pull ghcr.io/YOUR_GITHUB_USER/edh-stats-backend:latest
 docker pull ghcr.io/YOUR_GITHUB_USER/edh-stats-frontend:latest
+
+# If pull fails, verify authentication
+docker pull ghcr.io/YOUR_GITHUB_USER/edh-stats-backend:v1.0.0
 ```
 
 ### 3. Start Services
@@ -294,14 +352,72 @@ curl -s http://localhost/ | head -20
 
 ## Troubleshooting
 
-### Images Won't Pull
+### Images Won't Pull / "Unauthorized" Error
 
+**Error Example:**
+```
+Error response from daemon: Head "https://ghcr.io/v2/...": unauthorized
+```
+
+This usually means Docker isn't authenticated to pull from GHCR.
+
+**Solution 1: Verify daemon.json Configuration (Recommended)**
 ```bash
-# Verify GHCR login
-docker login ghcr.io
+# Check the configuration file
+cat /etc/docker/daemon.json
 
-# Check image exists
+# Should contain valid base64 credentials for ghcr.io
+# If missing or malformed, edit it:
+sudo nano /etc/docker/daemon.json
+
+# Then restart Docker
+sudo systemctl restart docker
+
+# Test pull
 docker pull ghcr.io/YOUR_GITHUB_USER/edh-stats-backend:latest
+```
+
+**Solution 2: Use Interactive Login**
+```bash
+docker login ghcr.io
+# Username: YOUR_GITHUB_USERNAME
+# Password: YOUR_GITHUB_TOKEN (NOT your password!)
+
+# Verify login worked
+docker pull ghcr.io/YOUR_GITHUB_USER/edh-stats-backend:latest
+```
+
+**Solution 3: Test with a Public Image First**
+```bash
+# If pulling private images fails, test with a public image
+docker pull nginx:latest
+
+# If this works, your Docker daemon is OK
+# If this fails, restart Docker: sudo systemctl restart docker
+```
+
+**Solution 4: Check Token Scope**
+```bash
+# Make sure your GitHub token has read:packages scope
+# Go to: https://github.com/settings/tokens
+# Click on the token and verify it has:
+# - read:packages
+# - write:packages (for pushing)
+```
+
+**Solution 5: For Dockge or Other Services**
+```bash
+# If Dockge or other services can't pull, ensure daemon.json is used
+# Not ~/.docker/config.json which is user-specific
+
+# Check who's running Docker
+ps aux | grep docker
+
+# Verify /etc/docker/daemon.json has correct permissions
+ls -l /etc/docker/daemon.json
+
+# Restart Docker to apply daemon.json changes
+sudo systemctl restart docker
 ```
 
 ### Services Won't Start

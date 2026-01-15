@@ -140,15 +140,49 @@ chmod 600 .env
 
 **Note:** The `.env` file is already in `.gitignore` so it won't be committed to git.
 
-### 5. Start Services
+### 5. Configure Docker Authentication to GHCR
 
-**Pull Latest Images:**
+**Option A: Store Credentials in `/etc/docker/daemon.json` (Recommended for Services)**
+
+This approach stores credentials globally so Docker services (including Dockge) can pull images without interactive login.
+
 ```bash
-docker login ghcr.io  # Use your GitHub token as password
+# Generate base64-encoded credentials
+echo -n "YOUR_GITHUB_USERNAME:YOUR_GITHUB_TOKEN" | base64
+# Output example: WU9VUl9HSVRIVUJfVVNFUk5BTUU6WU9VUl9HSVRIVUJfVE9LRU4=
 
-docker pull ghcr.io/YOUR_GITHUB_USER/edh-stats-backend:v1.0.0
-docker pull ghcr.io/YOUR_GITHUB_USER/edh-stats-frontend:v1.0.0
+# Edit Docker daemon configuration
+sudo nano /etc/docker/daemon.json
 ```
+
+Add or update the `auths` section in `/etc/docker/daemon.json`:
+```json
+{
+  "auths": {
+    "ghcr.io": {
+      "auth": "YOUR_BASE64_CREDENTIALS_HERE"
+    }
+  }
+}
+```
+
+Then restart Docker:
+```bash
+sudo systemctl restart docker
+```
+
+**Option B: Interactive Docker Login (Simpler but Service-Specific)**
+
+```bash
+docker login ghcr.io
+# Username: YOUR_GITHUB_USERNAME
+# Password: YOUR_GITHUB_TOKEN (NOT your GitHub password!)
+
+# Verify login worked
+docker pull ghcr.io/YOUR_GITHUB_USER/edh-stats-backend:v1.0.0
+```
+
+### 6. Start Services
 
 **Start Docker Compose:**
 ```bash
@@ -173,7 +207,7 @@ curl http://localhost/
 docker-compose logs -f backend
 ```
 
-### 6. Configure SSL (Optional but Recommended)
+### 7. Configure SSL (Optional but Recommended)
 
 **Install Certbot:**
 ```bash
@@ -203,7 +237,7 @@ ssl_certificate_key /etc/nginx/certs/privkey.pem;
 docker-compose up -d
 ```
 
-### 7. Setup Auto-Renewal (SSL)
+### 8. Setup Auto-Renewal (SSL)
 
 **Create renewal script:**
 ```bash
@@ -224,7 +258,7 @@ crontab -e
 0 2 1 * * /home/user/renew-ssl.sh
 ```
 
-### 8. Verify Everything Works
+### 9. Verify Everything Works
 
 **Test the Application:**
 ```bash
@@ -274,15 +308,27 @@ docker-compose down
 docker-compose up -d
 ```
 
-### Can't Login to GHCR
+### Can't Pull Images from GHCR
 ```bash
-# Verify token
+# Error: "unauthorized" when pulling images
+
+# Solution 1: Check if Docker is authenticated
 docker login ghcr.io
 # Username: YOUR_GITHUB_USERNAME
-# Password: YOUR_GITHUB_TOKEN (not your password!)
+# Password: YOUR_GITHUB_TOKEN (NOT your GitHub password!)
 
-# Test login
+# Solution 2: For Docker services (Dockge, systemd, etc.)
+# Use daemon.json approach instead (see step 5 Option A)
+
+# Verify /etc/docker/daemon.json has correct format:
+cat /etc/docker/daemon.json
+
+# Test pull after authentication
 docker pull ghcr.io/YOUR_USER/edh-stats-backend:v1.0.0
+
+# If still failing, restart Docker
+sudo systemctl restart docker
+docker-compose pull
 ```
 
 ### Frontend Shows Blank Page

@@ -94,14 +94,16 @@ git push origin v1.0.0
 - Docker secret files
 - SSL/TLS certificates
 - JWT_SECRET values
+- `/etc/docker/daemon.json` (contains base64-encoded GHCR credentials)
 
 All are properly in `.gitignore` ✓
 
 ### Required Before Deployment
-- [ ] GitHub Personal Access Token with `write:packages` scope
+- [ ] GitHub Personal Access Token with `write:packages` and `read:packages` scopes
 - [ ] Secure JWT secret (generated via `openssl rand -base64 32`)
 - [ ] Domain name with DNS configured
 - [ ] SSL certificates (Let's Encrypt is free)
+- [ ] Docker authentication configured (see QUICK_DEPLOY.md step 5)
 
 ### Production Settings
 - `NODE_ENV=production` ✓
