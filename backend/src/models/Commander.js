@@ -266,8 +266,8 @@ class Commander {
           (SELECT ROUND(AVG(rounds), 2) FROM games WHERE commander_id = c.id) as avg_rounds,
           (SELECT MAX(date) FROM games WHERE commander_id = c.id) as last_played
         FROM commanders c
-        WHERE c.user_id = ? AND (SELECT COUNT(*) FROM games WHERE commander_id = c.id) > 0
-        ORDER BY (SELECT COUNT(*) FROM games WHERE commander_id = c.id) DESC, c.name ASC
+        WHERE c.user_id = ? AND (SELECT COUNT(*) FROM games WHERE commander_id = c.id) >= 5
+        ORDER BY win_rate DESC, c.name ASC
         LIMIT ?
       `
         )

@@ -200,7 +200,7 @@
                     stroke-linecap="round"
                     stroke-linejoin="round"
                     stroke-width="2"
-                    d="M21 21l-6-6m2-6m7 3h14a2 2 00-2h18l2-2V9a2 2 00-4h18L5 12z"
+                    d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"
                   />
                 </svg>
               </div>
@@ -208,7 +208,7 @@
 
             <div class="flex space-x-2">
               <button
-                @click="loadPopular()"
+                @click="togglePopular()"
                 :class="showPopular ? 'btn btn-primary' : 'btn btn-secondary'"
               >
                 <span x-show="!showPopular">Show Popular</span>
