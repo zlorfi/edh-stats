@@ -8,6 +8,12 @@ function roundCounterApp() {
     avgTimePerRound: '00:00',
     timerInterval: null,
 
+    // Reset confirmation modal
+    resetConfirm: {
+      show: false,
+      resetting: false
+    },
+
     async init() {
       // Load saved counter state
       this.loadCounter()
@@ -40,11 +46,14 @@ function roundCounterApp() {
     },
 
     resetCounter() {
-      if (
-        confirm(
-          'Are you sure you want to reset the counter? This will lose all progress.'
-        )
-      ) {
+      this.resetConfirm.show = true
+    },
+
+    confirmReset() {
+      this.resetConfirm.resetting = true
+      
+      // Small delay to simulate work and show loading state
+      setTimeout(() => {
         this.counterActive = false
         this.currentRound = 1
         this.startTime = null
@@ -52,7 +61,9 @@ function roundCounterApp() {
         this.avgTimePerRound = '00:00'
         this.clearTimer()
         this.saveCounter()
-      }
+        this.resetConfirm.show = false
+        this.resetConfirm.resetting = false
+      }, 300)
     },
 
     incrementRound() {
