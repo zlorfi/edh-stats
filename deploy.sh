@@ -83,6 +83,21 @@ validate_prerequisites() {
     fi
     print_success "Docker daemon is running"
     
+    # Check if Docker buildx is available
+    if ! docker buildx version > /dev/null 2>&1; then
+        print_warning "Docker buildx not found. Creating builder..."
+        docker buildx create --use --name multiarch-builder > /dev/null 2>&1 || true
+        
+        if ! docker buildx version > /dev/null 2>&1; then
+            print_error "Docker buildx is required for multi-architecture builds."
+            print_error "Please ensure you have Docker with buildx support."
+            exit 1
+        fi
+        print_success "Docker buildx enabled"
+    else
+        print_success "Docker buildx is available"
+    fi
+    
     # Check if Git is installed
     if ! command -v git &> /dev/null; then
         print_error "Git is not installed. Please install Git first."
@@ -123,21 +138,26 @@ build_backend() {
     print_header "Building Backend Image"
     
     print_info "Building: ${BACKEND_IMAGE}"
-    docker build \
+    print_info "Building for architectures: linux/amd64,linux/arm64"
+    
+    docker buildx build \
+        --platform linux/amd64,linux/arm64 \
         --file ./backend/Dockerfile \
         --target production \
         --tag "${BACKEND_IMAGE}" \
         --tag "${BACKEND_IMAGE_LATEST}" \
         --build-arg NODE_ENV=production \
+        --push \
         ./backend
     
-    print_success "Backend image built successfully"
+    print_success "Backend image built and pushed successfully"
 }
 
 build_frontend() {
     print_header "Building Frontend Image"
     
     print_info "Building: ${FRONTEND_IMAGE}"
+    print_info "Building for architectures: linux/amd64,linux/arm64"
     
     # Create a temporary Dockerfile for frontend if it doesn't exist
     if [ ! -f "./frontend/Dockerfile.prod" ]; then
@@ -163,13 +183,15 @@ EOF
         print_success "Created temporary Dockerfile for frontend"
     fi
     
-    docker build \
+    docker buildx build \
+        --platform linux/amd64,linux/arm64 \
         --file ./frontend/Dockerfile.prod \
         --tag "${FRONTEND_IMAGE}" \
         --tag "${FRONTEND_IMAGE_LATEST}" \
+        --push \
         ./frontend
     
-    print_success "Frontend image built successfully"
+    print_success "Frontend image built and pushed successfully"
 }
 
 ##############################################################################
@@ -192,24 +214,16 @@ login_to_registry() {
 push_backend() {
     print_header "Pushing Backend Image"
     
-    print_info "Pushing: ${BACKEND_IMAGE}"
-    docker push "${BACKEND_IMAGE}"
-    print_success "Backend image pushed: ${BACKEND_IMAGE}"
-    
-    print_info "Pushing latest tag: ${BACKEND_IMAGE_LATEST}"
-    docker push "${BACKEND_IMAGE_LATEST}"
+    # Images are already pushed during buildx build step
+    print_success "Backend image already pushed: ${BACKEND_IMAGE}"
     print_success "Latest backend image pushed: ${BACKEND_IMAGE_LATEST}"
 }
 
 push_frontend() {
     print_header "Pushing Frontend Image"
     
-    print_info "Pushing: ${FRONTEND_IMAGE}"
-    docker push "${FRONTEND_IMAGE}"
-    print_success "Frontend image pushed: ${FRONTEND_IMAGE}"
-    
-    print_info "Pushing latest tag: ${FRONTEND_IMAGE_LATEST}"
-    docker push "${FRONTEND_IMAGE_LATEST}"
+    # Images are already pushed during buildx build step
+    print_success "Frontend image already pushed: ${FRONTEND_IMAGE}"
     print_success "Latest frontend image pushed: ${FRONTEND_IMAGE_LATEST}"
 }
 
@@ -220,23 +234,11 @@ push_frontend() {
 verify_images() {
     print_header "Verifying Built Images"
     
-    print_info "Checking backend image..."
-    if docker image inspect "${BACKEND_IMAGE}" > /dev/null 2>&1; then
-        SIZE=$(docker image inspect "${BACKEND_IMAGE}" --format='{{.Size}}' | numfmt --to=iec 2>/dev/null || docker image inspect "${BACKEND_IMAGE}" --format='{{.Size}}')
-        print_success "Backend image verified (Size: ${SIZE})"
-    else
-        print_error "Backend image verification failed"
-        exit 1
-    fi
-    
-    print_info "Checking frontend image..."
-    if docker image inspect "${FRONTEND_IMAGE}" > /dev/null 2>&1; then
-        SIZE=$(docker image inspect "${FRONTEND_IMAGE}" --format='{{.Size}}' | numfmt --to=iec 2>/dev/null || docker image inspect "${FRONTEND_IMAGE}" --format='{{.Size}}')
-        print_success "Frontend image verified (Size: ${SIZE})"
-    else
-        print_error "Frontend image verification failed"
-        exit 1
-    fi
+    print_info "Note: Using buildx for multi-architecture builds"
+    print_info "Images are built for linux/amd64 and linux/arm64"
+    print_info "Images are pushed directly to registry (not stored locally)"
+    print_success "Backend image built and pushed: ${BACKEND_IMAGE}"
+    print_success "Frontend image built and pushed: ${FRONTEND_IMAGE}"
 }
 
 ##############################################################################

@@ -24,16 +24,22 @@ This guide covers deploying the EDH Stats Tracker to production using Docker and
    chmod +x deploy.sh
    
    # With token as argument
-   ./deploy.sh 1.0.0 ghcr_xxxxxxxxxxxxx
+   ./deploy.sh v1.0.0 ghcr_xxxxxxxxxxxxx
    
    # Or set as environment variable
    export GHCR_TOKEN=ghcr_xxxxxxxxxxxxx
    export GITHUB_USER=your-github-username
-   ./deploy.sh 1.0.0
+   ./deploy.sh v1.0.0
    
    # Or use interactive mode
-   ./deploy.sh 1.0.0
+   ./deploy.sh v1.0.0
    ```
+   
+   **What the script does:**
+   - Validates Docker and Docker buildx prerequisites
+   - Builds images for **both** `linux/amd64` (AMD64 servers) and `linux/arm64` (Apple Silicon)
+   - Pushes to GHCR automatically (no separate push step needed)
+   - Generates deployment configuration
 
 3. **Review Generated Configuration**
    - Check `docker-compose.prod.deployed.yml`
@@ -351,6 +357,50 @@ curl -s http://localhost/ | head -20
 ```
 
 ## Troubleshooting
+
+### Images Won't Pull / "No Matching Manifest" Error
+
+**Error Example:**
+```
+no matching manifest for linux/amd64 in the manifest list entries
+```
+
+This means the Docker image was built for a different CPU architecture than your server.
+
+**Common Cause:**
+- You built the image on Apple Silicon (ARM64) but your server is AMD64 (x86-64)
+- Or vice versa
+
+**Solution: Rebuild with Multi-Architecture Support**
+
+The updated `deploy.sh` script now automatically builds for both architectures:
+
+```bash
+# Simply run deploy.sh again - it now handles multi-arch builds
+./deploy.sh v1.0.4 $GHCR_TOKEN
+
+# The script will:
+# - Use Docker buildx to build for linux/amd64 and linux/arm64
+# - Push both architectures to GHCR
+# - Your server can then pull the amd64 version
+```
+
+**Manual Fix (if needed):**
+```bash
+# Enable buildx
+docker buildx create --use --name multiarch-builder
+
+# Rebuild backend for both architectures
+docker buildx build \
+  --platform linux/amd64,linux/arm64 \
+  --file ./backend/Dockerfile \
+  --target production \
+  --tag ghcr.io/YOUR_USER/edh-stats-backend:v1.0.4 \
+  --push \
+  ./backend
+```
+
+---
 
 ### Images Won't Pull / "Unauthorized" Error
 

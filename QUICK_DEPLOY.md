@@ -12,7 +12,7 @@ Fast-track guide to deploy EDH Stats Tracker to production in minutes.
 4. Copy token (save it safely!)
 ```
 
-### Step 2: Build & Push Images (Local - 3 min)
+### Step 2: Build & Push Images (Local - 5 min)
 ```bash
 cd edh-stats
 
@@ -20,8 +20,13 @@ cd edh-stats
 export GITHUB_USER=your-username
 export GHCR_TOKEN=ghcr_xxxxx
 
-# Run deployment
+# Run deployment (builds for both amd64 and arm64)
 ./deploy.sh v1.0.0 $GHCR_TOKEN
+
+# Script will:
+# - Enable Docker buildx for multi-architecture builds
+# - Build images for linux/amd64 (your server) and linux/arm64 (your machine)
+# - Push to GHCR automatically
 ```
 
 ### Step 3: Deploy to Server
