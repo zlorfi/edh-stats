@@ -312,9 +312,11 @@ services:
     volumes:
       - sqlite_data:/app/database/data
       - app_logs:/app/logs
-    command: sh -c "mkdir -p /app/database/data /app/logs && chmod 755 /app/database/data /app/logs && echo 'Database directories initialized'"
+    command: sh -c "mkdir -p /app/database/data /app/logs && chmod 777 /app/database/data /app/logs && touch /app/database/data/.initialized && echo 'Database directories initialized'"
     networks:
       - edh-stats-network
+    # Don't restart, it should exit after initialization
+    restart: "no"
 
   frontend:
     image: ${FRONTEND_IMAGE}
