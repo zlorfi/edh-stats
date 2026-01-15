@@ -29,6 +29,14 @@ function app() {
 
       // Load round counter from localStorage
       this.loadRoundCounter()
+
+      // Listen for page visibility changes to refresh stats
+      document.addEventListener('visibilitychange', () => {
+        if (!document.hidden && localStorage.getItem('edh-stats-dirty')) {
+          localStorage.removeItem('edh-stats-dirty')
+          this.loadDashboardData()
+        }
+      })
     },
 
     async checkAuth() {
@@ -115,9 +123,16 @@ function app() {
 
         if (commandersResponse.ok) {
           const commandersData = await commandersResponse.json()
-          // Sort by total_games descending and limit to 5
-          const commanders = commandersData.stats || []
-          this.topCommanders = commanders.slice(0, 5)
+          // Sort by total_games descending and limit to 5, removing duplicates
+          const commanders = Array.isArray(commandersData.stats)
+            ? commandersData.stats
+            : []
+          const uniqueCommanders = [
+            ...new Map(commanders.map((c) => [c.id, c])).values()
+          ]
+          this.topCommanders = uniqueCommanders.slice(0, 5)
+        } else {
+          this.topCommanders = []
         }
       } catch (error) {
         console.error('Failed to load dashboard data:', error)

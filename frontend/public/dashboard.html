@@ -376,6 +376,7 @@
                   <div class="flex space-x-1">
                     <template
                       x-for="color in (typeof commander.colors === 'string' ? (commander.colors.startsWith('[') ? JSON.parse(commander.colors) : commander.colors.split(',').map(c => c.trim())) : (Array.isArray(commander.colors) ? commander.colors : []))"
+                      :key="color"
                     >
                       <div
                         class="w-6 h-6 rounded"

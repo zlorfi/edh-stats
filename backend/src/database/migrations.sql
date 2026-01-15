@@ -53,21 +53,21 @@ CREATE INDEX IF NOT EXISTS idx_games_user_commander ON games(user_id, commander_
 CREATE INDEX IF NOT EXISTS idx_games_user_date ON games(user_id, date);
 
 -- Triggers to update updated_at timestamps
-CREATE TRIGGER IF NOT EXISTS update_users_timestamp 
+CREATE TRIGGER IF NOT EXISTS update_users_timestamp
     AFTER UPDATE ON users
     FOR EACH ROW
     BEGIN
         UPDATE users SET updated_at = CURRENT_TIMESTAMP WHERE id = NEW.id;
     END;
 
-CREATE TRIGGER IF NOT EXISTS update_commanders_timestamp 
+CREATE TRIGGER IF NOT EXISTS update_commanders_timestamp
     AFTER UPDATE ON commanders
     FOR EACH ROW
     BEGIN
         UPDATE commanders SET updated_at = CURRENT_TIMESTAMP WHERE id = NEW.id;
     END;
 
-CREATE TRIGGER IF NOT EXISTS update_games_timestamp 
+CREATE TRIGGER IF NOT EXISTS update_games_timestamp
     AFTER UPDATE ON games
     FOR EACH ROW
     BEGIN
@@ -76,16 +76,16 @@ CREATE TRIGGER IF NOT EXISTS update_games_timestamp
 
 -- Views for common statistics queries
 CREATE VIEW IF NOT EXISTS user_stats AS
-SELECT 
+SELECT
     u.id as user_id,
     u.username,
     COUNT(DISTINCT c.id) as total_commanders,
-    COUNT(g.id) as total_games,
+    COUNT(DISTINCT g.id) as total_games,
     SUM(CASE WHEN g.won = 1 THEN 1 ELSE 0 END) as total_wins,
     ROUND(
-        CASE 
-            WHEN COUNT(g.id) > 0 THEN (SUM(CASE WHEN g.won = 1 THEN 1 ELSE 0 END) * 100.0 / COUNT(g.id))
-            ELSE 0 
+        CASE
+            WHEN COUNT(DISTINCT g.id) > 0 THEN (SUM(CASE WHEN g.won = 1 THEN 1 ELSE 0 END) * 100.0 / COUNT(DISTINCT g.id))
+            ELSE 0
         END, 2
     ) as win_rate,
     AVG(g.rounds) as avg_rounds,
@@ -96,7 +96,7 @@ LEFT JOIN games g ON u.id = g.user_id
 GROUP BY u.id, u.username;
 
 CREATE VIEW IF NOT EXISTS commander_stats AS
-SELECT 
+SELECT
     c.id as commander_id,
     c.name,
     c.colors,
@@ -104,9 +104,9 @@ SELECT
     COUNT(g.id) as total_games,
     SUM(CASE WHEN g.won = 1 THEN 1 ELSE 0 END) as total_wins,
     ROUND(
-        CASE 
+        CASE
             WHEN COUNT(g.id) > 0 THEN (SUM(CASE WHEN g.won = 1 THEN 1 ELSE 0 END) * 100.0 / COUNT(g.id))
-            ELSE 0 
+            ELSE 0
         END, 2
     ) as win_rate,
     AVG(g.rounds) as avg_rounds,

@@ -40,6 +40,24 @@ function gameManager() {
       this.loadPrefilled()
     },
 
+    async reloadStats() {
+      try {
+        const token =
+          localStorage.getItem('edh-stats-token') ||
+          sessionStorage.getItem('edh-stats-token')
+        const response = await fetch('/api/stats/overview', {
+          headers: { Authorization: `Bearer ${token}` }
+        })
+        if (response.ok) {
+          const data = await response.json()
+          // Set a flag for dashboard to refresh when user navigates back
+          localStorage.setItem('edh-stats-dirty', 'true')
+        }
+      } catch (error) {
+        console.error('Failed to reload stats:', error)
+      }
+    },
+
     loadPrefilled() {
       const prefilled = localStorage.getItem('edh-prefill-game')
       if (prefilled) {
@@ -175,6 +193,7 @@ function gameManager() {
           this.games.unshift(data.game)
           this.resetForm()
           this.showLogForm = false
+          await this.reloadStats()
         } else {
           const errorData = await response.json()
           this.serverError = errorData.message || 'Failed to log game'
@@ -224,6 +243,7 @@ function gameManager() {
             this.games[index] = data.game
           }
           this.cancelEdit()
+          await this.reloadStats()
         } else {
           const errorData = await response.json()
           this.serverError = errorData.message || 'Failed to update game'
@@ -289,6 +309,7 @@ function gameManager() {
 
         if (response.ok) {
           this.games = this.games.filter((g) => g.id !== gameId)
+          await this.reloadStats()
         } else {
           alert('Failed to delete game')
         }
