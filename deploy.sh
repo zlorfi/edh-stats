@@ -130,6 +130,24 @@ check_github_token() {
     fi
 }
 
+update_version_file() {
+    print_header "Updating Version File"
+    
+    local version_file="./frontend/VERSION"
+    local current_version=""
+    
+    # Check if version file exists
+    if [ -f "$version_file" ]; then
+        current_version=$(cat "$version_file")
+        print_info "Current version: $current_version"
+    fi
+    
+    # Update version file with new version (strip 'v' prefix if present)
+    local new_version="${VERSION#v}"
+    echo "$new_version" > "$version_file"
+    print_success "Updated version file to: $new_version"
+}
+
 ##############################################################################
 # Build Functions
 ##############################################################################
@@ -350,11 +368,18 @@ print_summary() {
     echo "GitHub User: ${GITHUB_USER}"
     echo "Version: ${VERSION}"
     echo ""
+    echo "Version Management:"
+    echo "  Frontend version file updated: ./frontend/VERSION"
+    echo "  Version displayed in footer: v${VERSION#v}"
+    echo ""
     echo "Next Steps:"
-    echo "  1. Pull images: docker pull ${BACKEND_IMAGE}"
-    echo "  2. Configure production secrets (JWT_SECRET)"
-    echo "  3. Set environment variables (CORS_ORIGIN, ALLOW_REGISTRATION)"
-    echo "  4. Deploy: docker-compose -f docker-compose.prod.deployed.yml up -d"
+    echo "  1. Commit version update:"
+    echo "     git add frontend/VERSION"
+    echo "     git commit -m \"Bump version to ${VERSION#v}\""
+    echo "  2. Pull images: docker pull ${BACKEND_IMAGE}"
+    echo "  3. Configure production secrets (JWT_SECRET)"
+    echo "  4. Set environment variables (CORS_ORIGIN, ALLOW_REGISTRATION)"
+    echo "  5. Deploy: docker-compose -f docker-compose.prod.deployed.yml up -d"
     echo ""
 }
 
@@ -376,6 +401,9 @@ main() {
     
     # Check token
     check_github_token
+    
+    # Update version file
+    update_version_file
     
     # Build images
     build_backend
