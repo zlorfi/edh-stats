@@ -134,6 +134,7 @@ update_version_file() {
     print_header "Updating Version File"
     
     local version_file="./frontend/VERSION"
+    local version_txt_file="./frontend/public/version.txt"
     local current_version=""
     
     # Check if version file exists
@@ -145,6 +146,7 @@ update_version_file() {
     # Update version file with new version (strip 'v' prefix if present)
     local new_version="${VERSION#v}"
     echo "$new_version" > "$version_file"
+    echo "$new_version" > "$version_txt_file"
     print_success "Updated version file to: $new_version"
 }
 

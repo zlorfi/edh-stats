@@ -8,8 +8,8 @@
       name="description"
       content="Live round counter for Magic: The Gathering EDH/Commander games"
     />
-    <link rel="stylesheet" href="/css/styles.css" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+        <script src="https://cdn.tailwindcss.com"></script>
   </head>
   <body class="h-full flex flex-col" x-data="roundCounterApp()">
     <!-- Navigation Header -->
@@ -217,5 +217,39 @@
     ></script>
     <script src="/js/round-counter.js"></script>
     <script src="/js/footer-loader.js"></script>
+
+
+  <!-- Footer -->
+  <footer class="bg-gray-800 text-white py-8 mt-12">
+    <div class="container mx-auto px-4 text-center">
+      <p class="text-gray-400">
+        EDH Stats Tracker - Track your Commander games with style
+      </p>
+      <p class="text-gray-500 text-sm mt-2">
+        Built with Fastify, SQLite, and Alpine.js
+      </p>
+      <p class="text-gray-600 text-xs mt-3" id="version-footer">
+        <!-- Version loaded dynamically -->
+      </p>
+    </div>
+  </footer>
+
+  <script>
+    // Load and display version in footer
+    (async function loadVersion() {
+      try {
+        const response = await fetch('/version.txt');
+        if (response.ok) {
+          const version = await response.text();
+          const versionEl = document.getElementById('version-footer');
+          if (versionEl) {
+            versionEl.textContent = `v${version.trim()}`;
+          }
+        }
+      } catch (error) {
+        console.debug('Version file not available');
+      }
+    })();
+  </script>
   </body>
 </html>
