@@ -79,20 +79,19 @@ CREATE VIEW IF NOT EXISTS user_stats AS
 SELECT
     u.id as user_id,
     u.username,
-    COUNT(DISTINCT c.id) as total_commanders,
-    COUNT(DISTINCT g.id) as total_games,
-    SUM(CASE WHEN g.won = 1 THEN 1 ELSE 0 END) as total_wins,
+    (SELECT COUNT(DISTINCT id) FROM commanders WHERE user_id = u.id) as total_commanders,
+    (SELECT COUNT(*) FROM games WHERE user_id = u.id) as total_games,
+    (SELECT COUNT(*) FROM games WHERE user_id = u.id AND won = 1) as total_wins,
     ROUND(
         CASE
-            WHEN COUNT(DISTINCT g.id) > 0 THEN (SUM(CASE WHEN g.won = 1 THEN 1 ELSE 0 END) * 100.0 / COUNT(DISTINCT g.id))
+            WHEN (SELECT COUNT(*) FROM games WHERE user_id = u.id) > 0
+            THEN ((SELECT COUNT(*) FROM games WHERE user_id = u.id AND won = 1) * 100.0 / (SELECT COUNT(*) FROM games WHERE user_id = u.id))
             ELSE 0
         END, 2
     ) as win_rate,
-    AVG(g.rounds) as avg_rounds,
-    MAX(g.date) as last_game_date
+    (SELECT AVG(rounds) FROM games WHERE user_id = u.id) as avg_rounds,
+    (SELECT MAX(date) FROM games WHERE user_id = u.id) as last_game_date
 FROM users u
-LEFT JOIN commanders c ON u.id = c.user_id
-LEFT JOIN games g ON u.id = g.user_id
 GROUP BY u.id, u.username;
 
 CREATE VIEW IF NOT EXISTS commander_stats AS
@@ -101,18 +100,17 @@ SELECT
     c.name,
     c.colors,
     c.user_id,
-    COUNT(g.id) as total_games,
-    SUM(CASE WHEN g.won = 1 THEN 1 ELSE 0 END) as total_wins,
+    (SELECT COUNT(*) FROM games WHERE commander_id = c.id) as total_games,
+    (SELECT COUNT(*) FROM games WHERE commander_id = c.id AND won = 1) as total_wins,
     ROUND(
         CASE
-            WHEN COUNT(g.id) > 0 THEN (SUM(CASE WHEN g.won = 1 THEN 1 ELSE 0 END) * 100.0 / COUNT(g.id))
+            WHEN (SELECT COUNT(*) FROM games WHERE commander_id = c.id) > 0
+            THEN ((SELECT COUNT(*) FROM games WHERE commander_id = c.id AND won = 1) * 100.0 / (SELECT COUNT(*) FROM games WHERE commander_id = c.id))
             ELSE 0
         END, 2
     ) as win_rate,
-    AVG(g.rounds) as avg_rounds,
-    SUM(CASE WHEN g.starting_player_won = 1 THEN 1 ELSE 0 END) as starting_player_wins,
-    SUM(CASE WHEN g.sol_ring_turn_one_won = 1 THEN 1 ELSE 0 END) as sol_ring_wins,
-    MAX(g.date) as last_played
-FROM commanders c
-LEFT JOIN games g ON c.id = g.commander_id
-GROUP BY c.id, c.name, c.colors, c.user_id;
+    (SELECT AVG(rounds) FROM games WHERE commander_id = c.id) as avg_rounds,
+    (SELECT COUNT(*) FROM games WHERE commander_id = c.id AND starting_player_won = 1) as starting_player_wins,
+    (SELECT COUNT(*) FROM games WHERE commander_id = c.id AND sol_ring_turn_one_won = 1) as sol_ring_wins,
+    (SELECT MAX(date) FROM games WHERE commander_id = c.id) as last_played
+FROM commanders c;

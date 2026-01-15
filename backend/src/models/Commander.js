@@ -182,18 +182,13 @@ class Commander {
           c.id,
           c.name,
           c.colors,
-          COUNT(g.id) as total_games,
-          SUM(CASE WHEN g.won = 1 THEN 1 ELSE 0 END) as total_wins,
-          ROUND((SUM(CASE WHEN g.won = 1 THEN 1 ELSE 0 END) * 100.0) / COUNT(g.id), 2) as win_rate,
-          AVG(g.rounds) as avg_rounds,
-          MAX(g.date) as last_played
+          (SELECT COUNT(*) FROM games WHERE commander_id = c.id) as total_games,
+          (SELECT COUNT(*) FROM games WHERE commander_id = c.id AND won = 1) as total_wins,
+          ROUND((SELECT COUNT(*) FROM games WHERE commander_id = c.id AND won = 1) * 100.0 / NULLIF((SELECT COUNT(*) FROM games WHERE commander_id = c.id), 0), 2) as win_rate,
+          (SELECT AVG(rounds) FROM games WHERE commander_id = c.id) as avg_rounds,
+          (SELECT MAX(date) FROM games WHERE commander_id = c.id) as last_played
         FROM commanders c
-        LEFT JOIN games g ON c.id = g.commander_id
         WHERE c.id = ? AND c.user_id = ?
-        GROUP BY c.id, c.name, c.colors, c.created_at
-        HAVING total_games > 0
-        ORDER BY total_games DESC, c.name ASC
-        LIMIT ?
       `
         )
         .get([id, userId])

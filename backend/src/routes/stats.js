@@ -10,12 +10,10 @@ export default async function statsRoutes(fastify, options) {
           try {
             await request.jwtVerify()
           } catch (err) {
-            reply
-              .code(401)
-              .send({
-                error: 'Unauthorized',
-                message: 'Invalid or expired token'
-              })
+            reply.code(401).send({
+              error: 'Unauthorized',
+              message: 'Invalid or expired token'
+            })
           }
         }
       ]
@@ -24,8 +22,6 @@ export default async function statsRoutes(fastify, options) {
       try {
         const db = await dbManager.initialize()
         const userId = request.user.id
-
-        console.log('Getting stats for userId:', userId)
 
         const stats = db
           .prepare(
@@ -41,8 +37,6 @@ export default async function statsRoutes(fastify, options) {
           )
           .get([userId])
 
-        console.log('Stats from view:', JSON.stringify(stats, null, 2))
-
         // Also query games directly to verify
         const directGameCount = db
           .prepare(
@@ -51,8 +45,6 @@ export default async function statsRoutes(fastify, options) {
       `
           )
           .get([userId])
-
-        console.log('Direct game count from games table:', directGameCount)
 
         reply.send({
           total_games: stats?.total_games || 0,
@@ -79,12 +71,10 @@ export default async function statsRoutes(fastify, options) {
           try {
             await request.jwtVerify()
           } catch (err) {
-            reply
-              .code(401)
-              .send({
-                error: 'Unauthorized',
-                message: 'Invalid or expired token'
-              })
+            reply.code(401).send({
+              error: 'Unauthorized',
+              message: 'Invalid or expired token'
+            })
           }
         }
       ]
