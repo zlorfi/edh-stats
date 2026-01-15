@@ -84,12 +84,12 @@ export default async function statsRoutes(fastify, options) {
          const db = await dbManager.initialize()
          const userId = request.user.id
 
-         // Get detailed commander stats, sorted by total games then win rate
+         // Get detailed commander stats with at least 5 games, sorted by total games then win rate
          const rawStats = db
            .prepare(
              `
          SELECT * FROM commander_stats
-         WHERE user_id = ?
+         WHERE user_id = ? AND total_games >= 5
          ORDER BY total_games DESC, win_rate DESC
        `
            )
