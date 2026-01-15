@@ -200,6 +200,19 @@ sleep 15
 docker-compose ps
 ```
 
+**Note on Ports:**
+The frontend runs on:
+- Port `38080` (HTTP) - Change this if your server uses different ports
+- Port `30443` (HTTPS) - For SSL when configured
+
+Edit docker-compose.yml if you need different ports:
+```yaml
+frontend:
+  ports:
+    - '38080:80'   # HOST_PORT:CONTAINER_PORT
+    - '30443:443'
+```
+
 **Verify Services:**
 ```bash
 # Backend health
@@ -267,8 +280,8 @@ crontab -e
 
 **Test the Application:**
 ```bash
-# From your browser
-https://yourdomain.com
+# From your browser (note: using port 38080)
+http://your-server-ip:38080
 
 # You should see:
 1. Login page loads
@@ -281,8 +294,9 @@ https://yourdomain.com
 
 **Quick Health Check:**
 ```bash
-curl -s https://yourdomain.com/api/health | jq .
+curl http://localhost:38080/ | head -20
 
+curl http://localhost:3000/api/health | jq .
 # Should return: { "status": "ok", ... }
 ```
 

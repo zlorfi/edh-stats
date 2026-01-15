@@ -321,8 +321,8 @@ services:
   frontend:
     image: ${FRONTEND_IMAGE}
     ports:
-      - '80:80'
-      - '443:443'
+      - '38080:80'
+      - '30443:443'
     restart: unless-stopped
     networks:
       - edh-stats-network
