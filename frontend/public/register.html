@@ -12,9 +12,10 @@
     <link rel="stylesheet" href="/css/styles.css" />
   </head>
   <body
-    class="h-full flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8"
+    class="min-h-full flex flex-col py-12 px-4 sm:px-6 lg:px-8"
   >
-    <div class="max-w-md w-full space-y-8" x-data="registerForm()" x-init="init()">
+    <div class="flex items-center justify-center flex-1">
+      <div class="max-w-md w-full space-y-8" x-data="registerForm()" x-init="init()">
       <!-- Header -->
       <div class="text-center">
         <h1 class="text-4xl font-bold font-mtg text-edh-primary mb-2">
@@ -457,6 +458,7 @@
           </p>
         </div>
       </div>
+    </div>
     </div>
 
     <!-- Scripts -->    <script

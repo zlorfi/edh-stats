@@ -4,9 +4,14 @@
     const response = await fetch('/footer.html');
     if (response.ok) {
       const footerHTML = await response.text();
-      const footer = document.createElement('div');
-      footer.innerHTML = footerHTML;
-      document.body.appendChild(footer);
+      // Create a temporary container to parse the HTML
+      const temp = document.createElement('div');
+      temp.innerHTML = footerHTML;
+      // Append the actual footer element (not the temp div)
+      const footerElement = temp.querySelector('footer');
+      if (footerElement) {
+        document.body.appendChild(footerElement);
+      }
       
       // Load and display version in footer after it's been injected
       loadVersion();
