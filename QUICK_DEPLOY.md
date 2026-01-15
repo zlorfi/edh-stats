@@ -33,11 +33,14 @@ scp docker-compose.prod.deployed.yml user@server:~/edh-stats/
 ssh user@server
 cd ~/edh-stats
 
-# Create secret
-openssl rand -base64 32 > jwt_secret.txt
-docker secret create jwt_secret jwt_secret.txt
+# Create .env file with configuration
+cat > .env << EOF
+JWT_SECRET=$(openssl rand -base64 32)
+CORS_ORIGIN=https://yourdomain.com
+ALLOW_REGISTRATION=false
+EOF
 
-# Start
+# Start services
 docker-compose -f docker-compose.prod.deployed.yml up -d
 ```
 
@@ -117,40 +120,25 @@ scp frontend/nginx.prod.conf user@your-server.com:~/edh-stats/
 
 **Create .env File on Server:**
 ```bash
-cat > ~/.env << EOF
-# Required
+cat > .env << EOF
+# Required - Generate secure JWT secret
+JWT_SECRET=$(openssl rand -base64 32)
+
+# Your domain for CORS
 CORS_ORIGIN=https://yourdomain.com
 
-# Optional
+# Optional - Allow user registration (default: false)
 ALLOW_REGISTRATION=false
+
+# Optional - Log level in production
 LOG_LEVEL=warn
 EOF
+
+# Keep this file safe! It contains your JWT_SECRET
+chmod 600 .env
 ```
 
-### 4. Setup Docker Secrets
-
-**Generate JWT Secret:**
-```bash
-# On server
-openssl rand -base64 32 > jwt_secret.txt
-cat jwt_secret.txt
-# Save this somewhere safe for backups!
-```
-
-**Create Docker Secret:**
-```bash
-docker secret create jwt_secret jwt_secret.txt
-
-# Verify
-docker secret ls
-docker secret inspect jwt_secret
-```
-
-**Cleanup:**
-```bash
-# Remove local secret file after import
-rm jwt_secret.txt
-```
+**Note:** The `.env` file is already in `.gitignore` so it won't be committed to git.
 
 ### 5. Start Services
 

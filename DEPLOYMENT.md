@@ -106,18 +106,18 @@ DATABASE_BACKUP_PATH=/data/backups
 EOF
 ```
 
-### 5. Create Docker Secret
+### 5. Generate JWT Secret
+
+The JWT_SECRET is already included in your `.env` file. The secret is generated automatically when you create the `.env` file:
 
 ```bash
-# Generate secure JWT secret
-openssl rand -base64 32 > ~/edh-stats/jwt_secret.txt
+# Already done in step 4, but if you need to regenerate:
+openssl rand -base64 32
 
-# Create Docker secret (one-time setup)
-docker secret create jwt_secret ~/edh-stats/jwt_secret.txt
-
-# Verify
-docker secret ls
+# Copy the output and update JWT_SECRET in .env
 ```
+
+Your JWT secret is stored in the `.env` file which is protected by `.gitignore` (not committed to git).
 
 ## Deployment
 
@@ -351,9 +351,10 @@ docker update --memory 1G --cpus 1.0 edh-stats-backend-1
 ## Security Best Practices
 
 1. **Secrets Management**
-   - Never commit secrets to Git
-   - Use Docker secrets for sensitive data
-   - Rotate JWT_SECRET periodically
+   - Never commit `.env` file to Git (already in .gitignore)
+   - Keep `.env` file secure on your server (chmod 600)
+   - Rotate JWT_SECRET periodically by updating .env and restarting services
+   - Backup `.env` file securely (offsite)
 
 2. **Environment Variables**
    - Set CORS_ORIGIN to your domain

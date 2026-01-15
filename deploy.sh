@@ -167,7 +167,7 @@ EOF
         --file ./frontend/Dockerfile.prod \
         --tag "${FRONTEND_IMAGE}" \
         --tag "${FRONTEND_IMAGE_LATEST}" \
-        ./
+        ./frontend
     
     print_success "Frontend image built successfully"
 }
@@ -255,6 +255,13 @@ generate_deployment_config() {
 # Version: ${VERSION}
 # Generated: $(date -u +'%Y-%m-%dT%H:%M:%SZ')
 # GitHub User: ${GITHUB_USER}
+#
+# IMPORTANT: Create a .env file with these variables:
+#   JWT_SECRET=\$(openssl rand -base64 32)
+#   CORS_ORIGIN=https://yourdomain.com
+#   ALLOW_REGISTRATION=false
+
+version: '3.8'
 
 services:
   backend:
@@ -262,7 +269,7 @@ services:
     environment:
       - NODE_ENV=production
       - DATABASE_PATH=/app/database/data/edh-stats.db
-      - JWT_SECRET_FILE=/run/secrets/jwt_secret
+      - JWT_SECRET=\${JWT_SECRET}
       - CORS_ORIGIN=\${CORS_ORIGIN:-https://yourdomain.com}
       - LOG_LEVEL=warn
       - RATE_LIMIT_WINDOW=15
@@ -271,8 +278,6 @@ services:
     volumes:
       - sqlite_data:/app/database/data
       - app_logs:/app/logs
-    secrets:
-      - jwt_secret
     restart: unless-stopped
     deploy:
       resources:
@@ -306,10 +311,6 @@ volumes:
     driver: local
   app_logs:
     driver: local
-
-secrets:
-  jwt_secret:
-    external: true
 
 networks:
   edh-stats-network:
