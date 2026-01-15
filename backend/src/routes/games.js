@@ -18,6 +18,7 @@ const createGameSchema = z.object({
 
 const updateGameSchema = z.object({
   date: z.string().optional(),
+  commanderId: z.number().int().positive().optional(),
   playerCount: z.number().int().min(2).max(8).optional(),
   won: z.boolean().optional(),
   rounds: z.number().int().min(1).max(50).optional(),
@@ -166,10 +167,10 @@ export default async function gameRoutes(fastify, options) {
           date: validatedData.date,
           player_count: validatedData.playerCount,
           commander_id: validatedData.commanderId,
-          won: validatedData.won,
+          won: validatedData.won ? 1 : 0,
           rounds: validatedData.rounds,
-          starting_player_won: validatedData.startingPlayerWon,
-          sol_ring_turn_one_won: validatedData.solRingTurnOneWon,
+          starting_player_won: validatedData.startingPlayerWon ? 1 : 0,
+          sol_ring_turn_one_won: validatedData.solRingTurnOneWon ? 1 : 0,
           notes: validatedData.notes,
           userId
         }
@@ -222,7 +223,22 @@ export default async function gameRoutes(fastify, options) {
         const userId = request.user.id
         const updateData = updateGameSchema.parse(request.body)
 
-        const updated = await Game.update(id, updateData, userId)
+        // Convert camelCase to snake_case for database
+        const gameData = {}
+        if (updateData.date !== undefined) gameData.date = updateData.date
+        if (updateData.commanderId !== undefined)
+          gameData.commander_id = updateData.commanderId
+        if (updateData.playerCount !== undefined)
+          gameData.player_count = updateData.playerCount
+        if (updateData.won !== undefined) gameData.won = updateData.won
+        if (updateData.rounds !== undefined) gameData.rounds = updateData.rounds
+        if (updateData.startingPlayerWon !== undefined)
+          gameData.starting_player_won = updateData.startingPlayerWon
+        if (updateData.solRingTurnOneWon !== undefined)
+          gameData.sol_ring_turn_one_won = updateData.solRingTurnOneWon
+        if (updateData.notes !== undefined) gameData.notes = updateData.notes
+
+        const updated = await Game.update(id, gameData, userId)
 
         if (!updated) {
           reply.code(400).send({

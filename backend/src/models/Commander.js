@@ -56,16 +56,32 @@ class Commander {
 
     try {
       // Whitelist allowed sort columns to prevent SQL injection
-      const allowedSortColumns = ['created_at', 'updated_at', 'name']
+      const allowedSortColumns = [
+        'created_at',
+        'updated_at',
+        'name',
+        'total_games'
+      ]
       const safeSort = allowedSortColumns.includes(sortBy)
         ? sortBy
         : 'created_at'
       const safeOrder = sortOrder.toUpperCase() === 'ASC' ? 'ASC' : 'DESC'
 
       const query = `
-        SELECT id, name, colors, user_id, created_at, updated_at
-        FROM commanders
-        WHERE user_id = ?
+        SELECT
+          c.id,
+          c.name,
+          c.colors,
+          c.user_id,
+          c.created_at,
+          c.updated_at,
+          (SELECT COUNT(*) FROM games WHERE commander_id = c.id) as total_games,
+          (SELECT COUNT(*) FROM games WHERE commander_id = c.id AND won = 1) as total_wins,
+          (SELECT ROUND(COALESCE(COUNT(CASE WHEN won = 1 THEN 1 END), 0) * 100.0 / NULLIF(COUNT(*), 0), 2) FROM games WHERE commander_id = c.id) as win_rate,
+          (SELECT ROUND(AVG(rounds), 2) FROM games WHERE commander_id = c.id) as avg_rounds,
+          (SELECT MAX(date) FROM games WHERE commander_id = c.id) as last_played
+        FROM commanders c
+        WHERE c.user_id = ?
         ORDER BY ${safeSort} ${safeOrder}
         LIMIT ? OFFSET ?
       `
@@ -75,7 +91,10 @@ class Commander {
       // Parse colors JSON for frontend
       return commanders.map((cmd) => ({
         ...cmd,
-        colors: JSON.parse(cmd.colors || '[]')
+        colors: JSON.parse(cmd.colors || '[]'),
+        total_games: cmd.total_games || 0,
+        win_rate: cmd.win_rate || 0,
+        avg_rounds: cmd.avg_rounds || 0
       }))
     } catch (error) {
       throw new Error('Failed to find commanders by user')
@@ -200,10 +219,21 @@ class Commander {
       const commanders = db
         .prepare(
           `
-        SELECT id, name, colors, user_id, created_at, updated_at
-        FROM commanders
-        WHERE user_id = ? AND name LIKE ?
-        ORDER BY name ASC
+        SELECT
+          c.id,
+          c.name,
+          c.colors,
+          c.user_id,
+          c.created_at,
+          c.updated_at,
+          (SELECT COUNT(*) FROM games WHERE commander_id = c.id) as total_games,
+          (SELECT COUNT(*) FROM games WHERE commander_id = c.id AND won = 1) as total_wins,
+          (SELECT ROUND(COALESCE(COUNT(CASE WHEN won = 1 THEN 1 END), 0) * 100.0 / NULLIF(COUNT(*), 0), 2) FROM games WHERE commander_id = c.id) as win_rate,
+          (SELECT ROUND(AVG(rounds), 2) FROM games WHERE commander_id = c.id) as avg_rounds,
+          (SELECT MAX(date) FROM games WHERE commander_id = c.id) as last_played
+        FROM commanders c
+        WHERE c.user_id = ? AND c.name LIKE ?
+        ORDER BY c.name ASC
         LIMIT ?
       `
         )
@@ -211,7 +241,10 @@ class Commander {
 
       return commanders.map((cmd) => ({
         ...cmd,
-        colors: JSON.parse(cmd.colors || '[]')
+        colors: JSON.parse(cmd.colors || '[]'),
+        total_games: cmd.total_games || 0,
+        win_rate: cmd.win_rate || 0,
+        avg_rounds: cmd.avg_rounds || 0
       }))
     } catch (error) {
       throw new Error('Failed to search commanders')
@@ -229,14 +262,17 @@ class Commander {
           c.id,
           c.name,
           c.colors,
-          COUNT(g.id) as total_games,
-          c.created_at
+          c.user_id,
+          c.created_at,
+          c.updated_at,
+          (SELECT COUNT(*) FROM games WHERE commander_id = c.id) as total_games,
+          (SELECT COUNT(*) FROM games WHERE commander_id = c.id AND won = 1) as total_wins,
+          (SELECT ROUND(COALESCE(COUNT(CASE WHEN won = 1 THEN 1 END), 0) * 100.0 / NULLIF(COUNT(*), 0), 2) FROM games WHERE commander_id = c.id) as win_rate,
+          (SELECT ROUND(AVG(rounds), 2) FROM games WHERE commander_id = c.id) as avg_rounds,
+          (SELECT MAX(date) FROM games WHERE commander_id = c.id) as last_played
         FROM commanders c
-        LEFT JOIN games g ON c.id = g.commander_id
-        WHERE c.user_id = ?
-        GROUP BY c.id, c.name, c.colors, c.created_at
-        HAVING total_games > 0
-        ORDER BY total_games DESC, c.name ASC
+        WHERE c.user_id = ? AND (SELECT COUNT(*) FROM games WHERE commander_id = c.id) > 0
+        ORDER BY (SELECT COUNT(*) FROM games WHERE commander_id = c.id) DESC, c.name ASC
         LIMIT ?
       `
         )
@@ -244,7 +280,10 @@ class Commander {
 
       return commanders.map((cmd) => ({
         ...cmd,
-        colors: JSON.parse(cmd.colors)
+        colors: JSON.parse(cmd.colors || '[]'),
+        total_games: cmd.total_games || 0,
+        win_rate: cmd.win_rate || 0,
+        avg_rounds: cmd.avg_rounds || 0
       }))
     } catch (error) {
       throw new Error('Failed to get popular commanders')

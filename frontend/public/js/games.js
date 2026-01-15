@@ -6,6 +6,8 @@ function gameManager() {
     commanders: [],
     loading: false,
     submitting: false,
+    editSubmitting: false,
+    editingGame: null,
     serverError: '',
 
     // Game form data
@@ -26,6 +28,11 @@ function gameManager() {
       limit: 20,
       total: 0,
       hasMore: false
+    },
+
+    // Computed form data - returns editingGame if editing, otherwise newGame
+    get formData() {
+      return this.editingGame || this.newGame
     },
 
     async init() {
@@ -122,11 +129,19 @@ function gameManager() {
       this.serverError = ''
 
       // Basic validation
-      if (!this.newGame.commanderId) {
+      if (!this.formData.commanderId) {
         this.serverError = 'Please select a commander'
         return
       }
 
+      if (this.editingGame) {
+        await this.handleUpdateGame()
+      } else {
+        await this.handleCreateGame()
+      }
+    },
+
+    async handleCreateGame() {
       this.submitting = true
 
       try {
@@ -160,8 +175,6 @@ function gameManager() {
           this.games.unshift(data.game)
           this.resetForm()
           this.showLogForm = false
-          // Reload stats if we want to update them immediately,
-          // but for now just adding to the list is fine.
         } else {
           const errorData = await response.json()
           this.serverError = errorData.message || 'Failed to log game'
@@ -172,6 +185,93 @@ function gameManager() {
       } finally {
         this.submitting = false
       }
+    },
+
+    async handleUpdateGame() {
+      this.editSubmitting = true
+
+      try {
+        const payload = {
+          date: this.editingGame.date,
+          commanderId: parseInt(this.editingGame.commanderId),
+          playerCount: parseInt(this.editingGame.playerCount),
+          rounds: parseInt(this.editingGame.rounds),
+          won: this.editingGame.won === true || this.editingGame.won === 'true',
+          startingPlayerWon:
+            this.editingGame.startingPlayerWon === true ||
+            this.editingGame.startingPlayerWon === 'true',
+          solRingTurnOneWon:
+            this.editingGame.solRingTurnOneWon === true ||
+            this.editingGame.solRingTurnOneWon === 'true',
+          notes: this.editingGame.notes
+        }
+
+        const response = await fetch(`/api/games/${this.editingGame.id}`, {
+          method: 'PUT',
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem('edh-stats-token') || sessionStorage.getItem('edh-stats-token')}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(payload)
+        })
+
+        if (response.ok) {
+          const data = await response.json()
+          const index = this.games.findIndex(
+            (g) => g.id === this.editingGame.id
+          )
+          if (index !== -1) {
+            this.games[index] = data.game
+          }
+          this.cancelEdit()
+        } else {
+          const errorData = await response.json()
+          this.serverError = errorData.message || 'Failed to update game'
+        }
+      } catch (error) {
+        console.error('Update game error:', error)
+        this.serverError = 'Network error occurred'
+      } finally {
+        this.editSubmitting = false
+      }
+    },
+
+    editGame(gameId) {
+      const game = this.games.find((g) => g.id === gameId)
+      if (game) {
+        // Convert date from MM/DD/YYYY to YYYY-MM-DD format for input type="date"
+        let dateForInput = game.date
+        if (dateForInput && dateForInput.includes('/')) {
+          const [month, day, year] = dateForInput.split('/')
+          dateForInput = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`
+        }
+
+        this.editingGame = {
+          id: game.id,
+          date: dateForInput,
+          commanderId: game.commander_id,
+          playerCount: game.player_count,
+          won: game.won === 1 || game.won === true,
+          rounds: game.rounds,
+          startingPlayerWon:
+            game.starting_player_won === 1 || game.starting_player_won === true,
+          solRingTurnOneWon:
+            game.sol_ring_turn_one_won === 1 ||
+            game.sol_ring_turn_one_won === true,
+          notes: game.notes
+        }
+        this.showLogForm = true
+        this.serverError = ''
+        setTimeout(() => {
+          document.querySelector('form')?.scrollIntoView({ behavior: 'smooth' })
+        }, 100)
+      }
+    },
+
+    cancelEdit() {
+      this.editingGame = null
+      this.resetForm()
+      this.showLogForm = false
     },
 
     async deleteGame(gameId) {
@@ -208,6 +308,7 @@ function gameManager() {
         solRingTurnOneWon: false,
         notes: ''
       }
+      this.editingGame = null
       this.serverError = ''
     },
 

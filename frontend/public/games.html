@@ -46,7 +46,10 @@
         x-transition
         class="mb-8 card border-2 border-edh-primary/20"
       >
-        <h3 class="text-lg font-semibold mb-6">Log Game Details</h3>
+        <h3 class="text-lg font-semibold mb-6">
+          <span x-show="!editingGame">Log Game Details</span>
+          <span x-show="editingGame">Edit Game</span>
+        </h3>
 
         <form @submit.prevent="handleLogGame">
           <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -55,7 +58,7 @@
               <label class="form-label">Date Played</label>
               <input
                 type="date"
-                x-model="newGame.date"
+                x-model="formData.date"
                 class="form-input"
                 required
               />
@@ -65,7 +68,7 @@
             <div>
               <label class="form-label">Commander Played</label>
               <select
-                x-model="newGame.commanderId"
+                x-model="formData.commanderId"
                 class="form-select"
                 required
               >
@@ -93,7 +96,7 @@
               <label class="form-label">Number of Players</label>
               <input
                 type="number"
-                x-model="newGame.playerCount"
+                x-model="formData.playerCount"
                 min="2"
                 max="8"
                 class="form-input"
@@ -106,7 +109,7 @@
               <label class="form-label">Rounds Lasted</label>
               <input
                 type="number"
-                x-model="newGame.rounds"
+                x-model="formData.rounds"
                 min="1"
                 max="50"
                 class="form-input"
@@ -121,7 +124,7 @@
                 <label class="inline-flex items-center">
                   <input
                     type="radio"
-                    x-model="newGame.won"
+                    x-model="formData.won"
                     :value="true"
                     class="form-radio text-edh-primary"
                   />
@@ -132,7 +135,7 @@
                 <label class="inline-flex items-center">
                   <input
                     type="radio"
-                    x-model="newGame.won"
+                    x-model="formData.won"
                     :value="false"
                     class="form-radio text-edh-primary"
                   />
@@ -146,7 +149,7 @@
               <label class="inline-flex items-center w-full cursor-pointer">
                 <input
                   type="checkbox"
-                  x-model="newGame.startingPlayerWon"
+                  x-model="formData.startingPlayerWon"
                   class="form-checkbox text-edh-primary rounded"
                 />
                 <span class="ml-2">Did the starting player win?</span>
@@ -155,7 +158,7 @@
               <label class="inline-flex items-center w-full cursor-pointer">
                 <input
                   type="checkbox"
-                  x-model="newGame.solRingTurnOneWon"
+                  x-model="formData.solRingTurnOneWon"
                   class="form-checkbox text-edh-primary rounded"
                 />
                 <span class="ml-2">Did a Turn 1 Sol Ring player win?</span>
@@ -166,7 +169,7 @@
             <div class="md:col-span-2">
               <label class="form-label">Game Notes</label>
               <textarea
-                x-model="newGame.notes"
+                x-model="formData.notes"
                 rows="3"
                 class="form-textarea"
                 placeholder="Any memorable moments, combos, or reasons for winning/losing..."
@@ -185,18 +188,20 @@
           <div class="mt-6 flex justify-end space-x-3">
             <button
               type="button"
-              @click="showLogForm = false"
+              @click="editingGame ? cancelEdit() : (showLogForm = false)"
               class="btn btn-secondary"
             >
               Cancel
             </button>
             <button
               type="submit"
-              :disabled="submitting"
+              :disabled="editingGame ? editSubmitting : submitting"
               class="btn btn-primary"
             >
-              <span x-show="submitting">Saving...</span>
-              <span x-show="!submitting">Log Game</span>
+              <span x-show="editingGame && editSubmitting">Saving...</span>
+              <span x-show="editingGame && !editSubmitting">Update Game</span>
+              <span x-show="!editingGame && submitting">Saving...</span>
+              <span x-show="!editingGame && !submitting">Log Game</span>
             </button>
           </div>
         </form>
@@ -251,17 +256,53 @@
                   <span x-text="game.rounds"></span> Rounds
                 </p>
               </div>
-              <button
-                @click="deleteGame(game.id)"
-                class="text-gray-400 hover:text-red-500 p-2"
-                title="Delete Game"
-              >
-                <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-                  <path
-                    d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9zM4 7a2 2 0 012-2h8a2 2 0 012 2v12a2 2 0 01-2 2H6a2 2 0 01-2-2V7zm3 3a1 1 0 100 2h6a1 1 0 100-2H7z"
-                  />
-                </svg>
-              </button>
+              <div class="flex space-x-2">
+                <button
+                  @click="editGame(game.id)"
+                  class="text-edh-accent hover:text-edh-primary transition-colors"
+                  title="Edit game"
+                >
+                  <svg
+                    class="w-6 h-6"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    xmlns="http://www.w3.org/2000/svg"
+                  >
+                    <path
+                      fill-rule="evenodd"
+                      clip-rule="evenodd"
+                      d="M12 21C12 20.4477 12.4477 20 13 20H21C21.5523 20 22 20.4477 22 21C22 21.5523 21.5523 22 21 22H13C12.4477 22 12 21.5523 12 21Z"
+                      fill="currentColor"
+                    />
+                    <path
+                      fill-rule="evenodd"
+                      clip-rule="evenodd"
+                      d="M20.7736 8.09994C22.3834 6.48381 22.315 4.36152 21.113 3.06183C20.5268 2.4281 19.6926 2.0233 18.7477 2.00098C17.7993 1.97858 16.8167 2.34127 15.91 3.09985C15.8868 3.11925 15.8645 3.13969 15.8432 3.16111L2.87446 16.1816C2.31443 16.7438 2 17.5051 2 18.2987V19.9922C2 21.0937 2.89197 22 4.00383 22H5.68265C6.48037 22 7.24524 21.6823 7.80819 21.1171L20.7736 8.09994ZM17.2071 5.79295C16.8166 5.40243 16.1834 5.40243 15.7929 5.79295C15.4024 6.18348 15.4024 6.81664 15.7929 7.20717L16.7929 8.20717C17.1834 8.59769 17.8166 8.59769 18.2071 8.20717C18.5976 7.81664 18.5976 7.18348 18.2071 6.79295L17.2071 5.79295Z"
+                      fill="currentColor"
+                    />
+                  </svg>
+                </button>
+                <button
+                  @click="deleteGame(game.id)"
+                  class="text-red-600 hover:text-red-800 transition-colors"
+                  title="Delete game"
+                >
+                  <svg
+                    class="w-6 h-6"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    xmlns="http://www.w3.org/2000/svg"
+                  >
+                    <path
+                      d="M4 6H20M16 6L15.7294 5.18807C15.4671 4.40125 15.3359 4.00784 15.0927 3.71698C14.8779 3.46013 14.6021 3.26132 14.2905 3.13878C13.9376 3 13.523 3 12.6936 3H11.3064C10.477 3 10.0624 3 9.70951 3.13878C9.39792 3.26132 9.12208 3.46013 8.90729 3.71698C8.66405 4.00784 8.53292 4.40125 8.27064 5.18807L8 6M18 6V16.2C18 17.8802 18 18.7202 17.673 19.362C17.3854 19.9265 16.9265 20.3854 16.362 20.673C15.7202 21 14.8802 21 13.2 21H10.8C9.11984 21 8.27976 21 7.63803 20.673C7.07354 20.3854 6.6146 19.9265 6.32698 19.362C6 18.7202 6 17.8802 6 16.2V6M14 10V17M10 10V17"
+                      stroke="currentColor"
+                      stroke-width="2"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                    />
+                  </svg>
+                </button>
+              </div>
             </div>
 
             <div

@@ -147,14 +147,19 @@ class Game {
         values.push(updateData.date)
       }
 
-      if (updateData.playerCount !== undefined) {
+      if (updateData.commander_id !== undefined) {
+        updates.push('commander_id = ?')
+        values.push(updateData.commander_id)
+      }
+
+      if (updateData.player_count !== undefined) {
         updates.push('player_count = ?')
-        values.push(updateData.playerCount)
+        values.push(updateData.player_count)
       }
 
       if (updateData.won !== undefined) {
         updates.push('won = ?')
-        values.push(updateData.won)
+        values.push(updateData.won ? 1 : 0)
       }
 
       if (updateData.rounds !== undefined) {
@@ -162,14 +167,14 @@ class Game {
         values.push(updateData.rounds)
       }
 
-      if (updateData.startingPlayerWon !== undefined) {
+      if (updateData.starting_player_won !== undefined) {
         updates.push('starting_player_won = ?')
-        values.push(updateData.startingPlayerWon)
+        values.push(updateData.starting_player_won ? 1 : 0)
       }
 
-      if (updateData.solRingTurnOneWon !== undefined) {
+      if (updateData.sol_ring_turn_one_won !== undefined) {
         updates.push('sol_ring_turn_one_won = ?')
-        values.push(updateData.solRingTurnOneWon)
+        values.push(updateData.sol_ring_turn_one_won ? 1 : 0)
       }
 
       if (updateData.notes !== undefined) {
