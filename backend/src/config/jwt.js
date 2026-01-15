@@ -38,3 +38,7 @@ export const securityConfig = {
   commanderNameMinLength: 2,
   maxNotesLength: 1000
 }
+
+export const registrationConfig = {
+  allowRegistration: process.env.ALLOW_REGISTRATION !== 'false'
+}
