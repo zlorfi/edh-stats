@@ -50,7 +50,6 @@ export default async function build(opts = {}) {
         status: 'healthy',
         timestamp: new Date().toISOString(),
         uptime: process.uptime(),
-        memory: process.memoryUsage(),
         database: dbHealthy ? 'connected' : 'disconnected'
       }
 
@@ -77,15 +76,6 @@ export default async function build(opts = {}) {
   await app.register(commanderRoutes, { prefix: '/api/commanders' })
   await app.register(gameRoutes, { prefix: '/api/games' })
   await app.register(statsRoutes, { prefix: '/api/stats' })
-
-  // Test endpoint
-  app.route({
-    method: 'GET',
-    url: '/test',
-    handler: async (request, reply) => {
-      return { message: 'Test endpoint works!' }
-    }
-  })
 
   // Root endpoint
   app.get('/', async (request, reply) => {
