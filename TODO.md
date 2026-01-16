@@ -18,5 +18,5 @@
 
 ## backend/routes/commanders.js
 
-[ ] unable to delete commanders
-[ ] unable to update commanders
+[x] unable to delete commanders
+[x] unable to update commanders

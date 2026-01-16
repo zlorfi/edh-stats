@@ -122,7 +122,7 @@ class Commander {
     try {
       // Check if commander exists and belongs to user
       const existing = await this.findById(id)
-      if (!existing || existing.user_id !== userId) {
+      if (!existing || existing.userId !== userId) {
         throw new Error('Commander not found or access denied')
       }
 
@@ -167,7 +167,7 @@ class Commander {
     try {
       // Check if commander exists and belongs to user
       const existing = await this.findById(id)
-      if (!existing || existing.user_id !== userId) {
+      if (!existing || existing.userId !== userId) {
         throw new Error('Commander not found or access denied')
       }
 
