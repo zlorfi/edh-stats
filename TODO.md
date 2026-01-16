@@ -15,3 +15,8 @@
 
 [ ] check the cookie for remembering the login credentials, how many seconds does it work?
 [ ] prolong the cookie to stay loged in, when using the Remember me checkbox
+
+## backend/routes/commanders.js
+
+[ ] unable to delete commanders
+[ ] unable to update commanders
