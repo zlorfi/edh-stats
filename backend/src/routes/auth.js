@@ -19,7 +19,8 @@ const registerSchema = z.object({
 
 const loginSchema = z.object({
   username: z.string().min(1),
-  password: z.string().min(1)
+  password: z.string().min(1),
+  remember: z.boolean().optional().default(false)
 })
 
 const changePasswordSchema = z.object({
@@ -157,7 +158,7 @@ export default async function authRoutes(fastify, options) {
             username: user.username
           },
           {
-            expiresIn: '15m'
+            expiresIn: request.body.remember ? '7d' : '2h'
           }
         )
 

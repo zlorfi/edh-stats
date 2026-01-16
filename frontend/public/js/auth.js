@@ -51,7 +51,8 @@ function loginForm() {
           },
           body: JSON.stringify({
             username: this.formData.username,
-            password: this.formData.password
+            password: this.formData.password,
+            remember: this.formData.remember
           })
         })
 

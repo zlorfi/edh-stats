@@ -6,15 +6,15 @@
 
 ## frontend/public/round-counter.html
 
-[ ] check if every function in round-counter.js is being used
-[ ] instead of Stop Game -> Pause game and do not reset the time counter
-[ ] End Game & Log Results -> reset the counter
-[ ] Rest button -> has issues to display on mobile
+[x] check if every function in round-counter.js is being used
+[x] instead of Stop Game -> Pause game and do not reset the time counter
+[x] End Game & Log Results -> reset the counter
+[x] Rest button -> has issues to display on mobile
 
 ## frontend/public/login.html
 
-[ ] check the cookie for remembering the login credentials, how many seconds does it work?
-[ ] prolong the cookie to stay loged in, when using the Remember me checkbox
+[x] check the cookie for remembering the login credentials, how many seconds does it work?
+[x] prolong the cookie to stay loged in, when using the Remember me checkbox
 
 ## backend/routes/commanders.js
 
