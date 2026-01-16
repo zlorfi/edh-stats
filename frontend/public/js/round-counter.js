@@ -46,7 +46,18 @@ function roundCounterApp() {
     },
 
     resetCounter() {
-      this.resetConfirm.show = true
+      this.counterActive = false
+      this.currentRound = 1
+      this.startTime = null
+      this.elapsedTime = '00:00:00'
+      this.avgTimePerRound = '00:00'
+      this.clearTimer()
+      this.stopErrorChecking()
+      this.saveCounter()
+    },
+
+    stopErrorChecking() {
+      // Prevent infinite error checking
     },
 
     confirmReset() {
@@ -109,14 +120,13 @@ function roundCounterApp() {
     },
 
     saveCounter() {
+      this.stopErrorChecking()
       localStorage.setItem(
         'edh-round-counter-state',
         JSON.stringify({
           counterActive: this.counterActive,
           currentRound: this.currentRound,
-          startTime: this.startTime
-            ? new Date(this.startTime).toISOString()
-            : null,
+          startTime: this.startTime,
           elapsedTime: this.elapsedTime,
           avgTimePerRound: this.avgTimePerRound
         })
@@ -124,29 +134,17 @@ function roundCounterApp() {
     },
 
     loadCounter() {
+      this.stopErrorChecking()
       const saved = localStorage.getItem('edh-round-counter-state')
       if (saved) {
         try {
           const data = JSON.parse(saved)
+          this.counterActive = data.counterActive || false
           this.currentRound = data.currentRound || 1
+          this.startTime = data.startTime ? new Date(data.startTime) : null
           this.elapsedTime = data.elapsedTime || '00:00:00'
           this.avgTimePerRound = data.avgTimePerRound || '00:00'
-
-          // Check if game is older than 24 hours
-          if (data.startTime) {
-            const savedStart = new Date(data.startTime)
-            const now = new Date()
-            const ageInMs = now - savedStart
-            const ageInHours = ageInMs / (1000 * 60 * 60)
-
-            if (ageInHours > 24) {
-              // Reset if older than 24 hours
-              this.resetCounter()
-            } else {
-              this.counterActive = data.counterActive || false
-              this.startTime = data.startTime ? new Date(data.startTime) : null
-            }
-          }
+          this.startTimer()
         } catch (error) {
           console.error('Error loading counter:', error)
           this.resetCounter()
