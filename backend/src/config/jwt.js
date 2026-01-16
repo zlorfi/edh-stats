@@ -10,12 +10,7 @@ const rootDir = resolve(__dirname, '../../..')
 config({ path: resolve(rootDir, '.env') })
 
 export const jwtConfig = {
-  secret: process.env.JWT_SECRET || 'fallback-secret-for-development',
-  algorithm: 'HS512',
-  expiresIn: '24h',
-  refreshExpiresIn: '7d',
-  issuer: 'edh-stats',
-  audience: 'edh-stats-users'
+  secret: process.env.JWT_SECRET || 'fallback-secret-for-development'
 }
 
 export const corsConfig = {

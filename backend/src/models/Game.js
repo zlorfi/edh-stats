@@ -94,25 +94,35 @@ class Game {
         ORDER BY g.date DESC
       `
 
+      const params = [userId]
+      if (filters.commander) {
+        params.push(`%${filters.commander}%`)
+      }
+
       if (filters.playerCount) {
         query += ` AND g.player_count = ?`
+        params.push(filters.playerCount)
       }
 
       if (filters.commanderId) {
         query += ` AND g.commander_id = ?`
+        params.push(filters.commanderId)
       }
 
       if (filters.dateFrom) {
         query += ` AND g.date >= ?`
+        params.push(filters.dateFrom)
       }
 
       if (filters.dateTo) {
         query += ` AND g.date <= ?`
+        params.push(filters.dateTo)
       }
 
       query += ` LIMIT ? OFFSET ?`
+      params.push(limit, offset)
 
-      const games = db.prepare(query).all([userId, limit, offset])
+      const games = db.prepare(query).all(params)
 
       // Parse dates for frontend and transform to camelCase
       return games.map((game) => ({
@@ -132,6 +142,81 @@ class Game {
       }))
     } catch (error) {
       throw new Error('Failed to find games by user')
+    }
+  }
+
+  static async exportByUserId(userId, filters = {}) {
+    const db = await dbManager.initialize()
+
+    try {
+      let query = `
+        SELECT
+          g.id,
+          g.date,
+          g.player_count,
+          g.commander_id,
+          g.won,
+          g.rounds,
+          g.starting_player_won,
+          g.sol_ring_turn_one_won,
+          g.notes,
+          cmdr.name as commander_name,
+          cmdr.colors as commander_colors,
+          g.created_at,
+          g.updated_at
+        FROM games g
+        LEFT JOIN commanders cmdr ON g.commander_id = cmdr.id
+        WHERE g.user_id = ?
+        ${filters.commander ? `AND cmdr.name LIKE ?` : ''}
+      `
+
+      const params = [userId]
+      if (filters.commander) {
+        params.push(`%${filters.commander}%`)
+      }
+
+      if (filters.playerCount) {
+        query += ` AND g.player_count = ?`
+        params.push(filters.playerCount)
+      }
+
+      if (filters.commanderId) {
+        query += ` AND g.commander_id = ?`
+        params.push(filters.commanderId)
+      }
+
+      if (filters.dateFrom) {
+        query += ` AND g.date >= ?`
+        params.push(filters.dateFrom)
+      }
+
+      if (filters.dateTo) {
+        query += ` AND g.date <= ?`
+        params.push(filters.dateTo)
+      }
+
+      query += ` ORDER BY g.date DESC`
+
+      const games = db.prepare(query).all(params)
+
+      // Return data for export (minimal transformation)
+      return games.map(game => ({
+        id: game.id,
+        date: game.date,
+        playerCount: game.player_count,
+        commanderId: game.commander_id,
+        commanderName: game.commander_name,
+        commanderColors: JSON.parse(game.commander_colors || '[]'),
+        won: Boolean(game.won),
+        rounds: game.rounds || 0,
+        startingPlayerWon: Boolean(game.starting_player_won),
+        solRingTurnOneWon: Boolean(game.sol_ring_turn_one_won),
+        notes: game.notes,
+        createdAt: game.created_at,
+        updatedAt: game.updated_at
+      }))
+    } catch (error) {
+      throw new Error('Failed to export games')
     }
   }
 

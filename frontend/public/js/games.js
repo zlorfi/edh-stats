@@ -377,6 +377,44 @@ function gameManager() {
         day: 'numeric',
         year: 'numeric'
       })
+    },
+
+    async exportGames() {
+      try {
+        const token = localStorage.getItem('edh-stats-token') || sessionStorage.getItem('edh-stats-token')
+        const response = await fetch('/api/games/export', {
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        })
+        
+        if (!response.ok) {
+          throw new Error('Export failed')
+        }
+        
+        // Generate filename with current date
+        const today = new Date().toLocaleDateString('en-US').replace(/\//g, '_')
+        const filename = `edh_games_${today}.json`
+        
+        // Create blob and download
+        const blob = await response.blob()
+        const url = window.URL.createObjectURL(blob)
+        const a = document.createElement('a')
+        a.style.display = 'none'
+        a.href = url
+        a.download = filename
+        document.body.appendChild(a)
+        a.click()
+        window.URL.revokeObjectURL(url)
+        document.body.removeChild(a)
+      } catch (error) {
+        console.error('Export failed:', error)
+        // Show error message to user
+        this.serverError = 'Failed to export games. Please try again.'
+        setTimeout(() => {
+          this.serverError = ''
+        }, 5000)
+      }
     }
   }
 }

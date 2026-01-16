@@ -35,10 +35,15 @@
       <!-- Header & Action -->
       <div class="mb-8 flex justify-between items-center">
         <h2 class="text-2xl font-semibold text-gray-900">Recent Games</h2>
-        <button @click="showLogForm = !showLogForm" class="btn btn-primary">
-          <span x-show="!showLogForm">Log New Game</span>
-          <span x-show="showLogForm">Cancel</span>
-        </button>
+        <div class="flex space-x-4">
+          <button @click="exportGames()" class="btn btn-secondary">
+            Export JSON
+          </button>
+          <button @click="showLogForm = !showLogForm" class="btn btn-primary">
+            <span x-show="!showLogForm">Log New Game</span>
+            <span x-show="showLogForm">Cancel</span>
+          </button>
+        </div>
       </div>
 
       <!-- Log Game Form -->

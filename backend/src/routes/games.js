@@ -347,6 +347,66 @@ export default async function gameRoutes(fastify, options) {
         reply.code(500).send({
           error: 'Failed to delete game'
         })
+        }
+      }
+  )
+
+  // Export games as JSON
+  fastify.get(
+    '/export',
+    {
+      config: { rateLimit: { max: 5, timeWindow: '1 minute' } },
+      preHandler: [
+        async (request, reply) => {
+          try {
+            await request.jwtVerify()
+          } catch (err) {
+            reply.code(401).send({
+              error: 'Unauthorized',
+              message: 'Invalid or expired token'
+            })
+          }
+        }
+      ]
+    },
+    async (request, reply) => {
+      try {
+        const userId = request.user.id
+        const filters = {}
+        
+        // Parse optional query filters
+        if (request.query.commander) filters.commander = request.query.commander
+        if (request.query.playerCount) filters.playerCount = parseInt(request.query.playerCount)
+        if (request.query.commanderId) filters.commanderId = parseInt(request.query.commanderId)
+        if (request.query.dateFrom) filters.dateFrom = request.query.dateFrom
+        if (request.query.dateTo) filters.dateTo = request.query.dateTo
+
+        const games = await Game.exportByUserId(userId, filters)
+        
+        // Generate filename with current date
+        const today = new Date().toLocaleDateString('en-US').replace(/\//g, '_')
+        const filename = `edh_games_${today}.json`
+        
+        // Set appropriate headers for file download
+        reply.header('Content-Type', 'application/json')
+        reply.header('Content-Disposition', `attachment; filename="${filename}"`)
+        
+        const exportData = {
+          metadata: {
+            exportDate: new Date().toISOString(),
+            totalGames: games.length,
+            userId: userId
+          },
+          games: games
+        }
+        
+        reply.send(exportData)
+      } catch (error) {
+        fastify.log.error('Export games error:', error)
+        reply.code(500).send({
+          error: 'Internal Server Error',
+          message: 'Failed to export games'
+        })
       }
     }
   )

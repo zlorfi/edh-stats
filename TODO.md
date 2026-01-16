@@ -2,7 +2,7 @@
 
 ## frontend/public/games.html
 
-[ ] export logs to JSON via a button in the top right corner, the file should have the current date in the name i.e: edh_games_16_01_2026.json
+[x] export logs to JSON via a button in the top right corner, the file should have the current date in the name i.e: edh_games_16_01_2026.json
 
 ## frontend/public/round-counter.html
 
