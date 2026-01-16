@@ -51,7 +51,7 @@ function roundCounterApp() {
 
     confirmReset() {
       this.resetConfirm.resetting = true
-      
+
       // Small delay to simulate work and show loading state
       setTimeout(() => {
         this.counterActive = false
@@ -76,11 +76,6 @@ function roundCounterApp() {
         this.currentRound--
         this.saveCounter()
       }
-    },
-
-    jumpToRound(round) {
-      this.currentRound = round
-      this.saveCounter()
     },
 
     startTimer() {
@@ -155,18 +150,6 @@ function roundCounterApp() {
         } catch (error) {
           console.error('Error loading counter:', error)
           this.resetCounter()
-        }
-      }
-    },
-
-    toggleFullscreen() {
-      if (!document.fullscreenElement) {
-        document.documentElement.requestFullscreen().catch((err) => {
-          console.log(`Error attempting to enable fullscreen: ${err.message}`)
-        })
-      } else {
-        if (document.exitFullscreen) {
-          document.exitFullscreen()
         }
       }
     },

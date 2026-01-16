@@ -321,6 +321,14 @@ services:
       - '38080:80'
       - '30443:443'
     restart: unless-stopped
+    healthcheck:
+      test:
+        - CMD
+        - wget
+        - http://localhost:80/health
+      interval: 10s
+      timeout: 5s
+      retries: 5
     networks:
       - edh-stats-network
 

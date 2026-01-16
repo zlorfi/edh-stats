@@ -1,4 +1,5 @@
 import fastify from 'fastify'
+import rateLimit from '@fastify/rate-limit'
 import cors from '@fastify/cors'
 import jwt from '@fastify/jwt'
 import closeWithGrace from 'close-with-grace'
@@ -21,6 +22,10 @@ export default async function build(opts = {}) {
 
   await app.register(jwt, {
     secret: jwtConfig.secret
+  })
+
+  await app.register(rateLimit, {
+    global: false
   })
 
   // Authentication decorator
