@@ -7,6 +7,8 @@ function roundCounterApp() {
     elapsedTime: '00:00:00',
     avgTimePerRound: '00:00',
     timerInterval: null,
+    hasPausedGame: false,
+    pausedElapsedTime: 0, // Track elapsed time when paused
 
     // Reset confirmation modal
     resetConfirm: {
@@ -34,23 +36,37 @@ function roundCounterApp() {
 
     startCounter() {
       this.counterActive = true
-      this.startTime = new Date()
+      this.hasPausedGame = false
+      // Only set new start time if this isn't a resumed game
+      if (!this.startTime) {
+        this.startTime = new Date()
+      } else {
+        // Resuming: adjust start time to account for paused duration
+        this.startTime = new Date(Date.now() - this.pausedElapsedTime * 1000)
+      }
       this.saveCounter()
       this.startTimer()
     },
 
     stopCounter() {
       this.counterActive = false
+      this.hasPausedGame = true
+      // Store the current elapsed time when pausing
+      if (this.startTime) {
+        this.pausedElapsedTime = Math.floor((Date.now() - new Date(this.startTime)) / 1000)
+      }
       this.clearTimer()
       this.saveCounter()
     },
 
     resetCounter() {
       this.counterActive = false
+      this.hasPausedGame = false
       this.currentRound = 1
       this.startTime = null
       this.elapsedTime = '00:00:00'
       this.avgTimePerRound = '00:00'
+      this.pausedElapsedTime = 0
       this.clearTimer()
       this.stopErrorChecking()
       this.saveCounter()
@@ -66,10 +82,12 @@ function roundCounterApp() {
       // Small delay to simulate work and show loading state
       setTimeout(() => {
         this.counterActive = false
+        this.hasPausedGame = false
         this.currentRound = 1
         this.startTime = null
         this.elapsedTime = '00:00:00'
         this.avgTimePerRound = '00:00'
+        this.pausedElapsedTime = 0
         this.clearTimer()
         this.saveCounter()
         this.resetConfirm.show = false
@@ -90,6 +108,9 @@ function roundCounterApp() {
     },
 
     startTimer() {
+      // Clear existing timer if any
+      this.clearTimer()
+      
       this.timerInterval = setInterval(() => {
         if (this.counterActive && this.startTime) {
           const now = new Date()
@@ -128,7 +149,9 @@ function roundCounterApp() {
           currentRound: this.currentRound,
           startTime: this.startTime,
           elapsedTime: this.elapsedTime,
-          avgTimePerRound: this.avgTimePerRound
+          avgTimePerRound: this.avgTimePerRound,
+          hasPausedGame: this.hasPausedGame,
+          pausedElapsedTime: this.pausedElapsedTime
         })
       )
     },
@@ -144,6 +167,8 @@ function roundCounterApp() {
           this.startTime = data.startTime ? new Date(data.startTime) : null
           this.elapsedTime = data.elapsedTime || '00:00:00'
           this.avgTimePerRound = data.avgTimePerRound || '00:00'
+          this.hasPausedGame = data.hasPausedGame || false
+          this.pausedElapsedTime = data.pausedElapsedTime || 0
           this.startTimer()
         } catch (error) {
           console.error('Error loading counter:', error)
