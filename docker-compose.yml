@@ -31,7 +31,6 @@ services:
       - '-c'
       - 'listen_addresses=*'
 
-   # Database migration service - runs once on startup
   # Database migration service - runs once on startup
   db-migrate:
     build:

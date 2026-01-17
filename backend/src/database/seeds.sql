@@ -2,10 +2,10 @@
 -- This file contains sample users, commanders, and games
 
 -- Insert sample users (passwords are 'password123' hashed with bcrypt)
--- Using DEFAULT for id to auto-increment, or specify id with ON CONFLICT handling
+-- Credentials for testing: testuser / password123, magictg / password123
 INSERT INTO users (id, username, password_hash, email) VALUES
-(1, 'testuser', '$2a$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LewdBPjRrhSpXqzOa', 'test@example.com'),
-(2, 'magictg', '$2a$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LewdBPjRrhSpXqzOa', 'magic@example.com')
+(1, 'testuser', '$2a$12$TbMEXlrucxJW4cMmkvJHeuLdehtWFBUbKJwL0KgYpeRcoG7ZCTo16', 'test@example.com'),
+(2, 'magictg', '$2a$12$TbMEXlrucxJW4cMmkvJHeuLdehtWFBUbKJwL0KgYpeRcoG7ZCTo16', 'magic@example.com')
 ON CONFLICT DO NOTHING;
 
 -- Reset sequence for users
