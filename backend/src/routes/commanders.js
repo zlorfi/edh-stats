@@ -1,6 +1,6 @@
 // Commander management routes
 import { z } from 'zod'
-import Commander from '../models/Commander.js'
+import CommanderRepository from '../repositories/CommanderRepository.js'
 
 // Validation schemas
 const createCommanderSchema = z.object({
@@ -26,6 +26,9 @@ const commanderQuerySchema = z.object({
 })
 
 export default async function commanderRoutes(fastify, options) {
+  // Initialize repository
+  const commanderRepo = new CommanderRepository()
+
   // Get all commanders for the authenticated user
   fastify.get(
     '/',
@@ -45,15 +48,15 @@ export default async function commanderRoutes(fastify, options) {
     },
     async (request, reply) => {
       try {
-        const { q, limit } = commanderQuerySchema.parse(request.query)
-        const userId = request.user.id
+         const { q, limit } = commanderQuerySchema.parse(request.query)
+         const userId = request.user.id
 
-        let commanders
-        if (q) {
-          commanders = await Commander.search(userId, q, limit)
-        } else {
-          commanders = await Commander.findByUserId(userId, limit)
-        }
+         let commanders
+         if (q) {
+           commanders = await commanderRepo.searchCommandersByName(userId, q, limit)
+         } else {
+           commanders = await commanderRepo.getCommandersByUserId(userId, limit)
+         }
 
         reply.send({
           commanders,
@@ -87,19 +90,19 @@ export default async function commanderRoutes(fastify, options) {
       ]
     },
     async (request, reply) => {
-      try {
-        const { id } = request.params
-        const userId = request.user.id
+       try {
+         const { id } = request.params
+         const userId = request.user.id
 
-        const commander = await Commander.findById(id)
+         const commander = await commanderRepo.findById(id)
 
-        if (!commander || commander.userId !== userId) {
-          reply.code(404).send({
-            error: 'Not Found',
-            message: 'Commander not found'
-          })
-          return
-        }
+         if (!commander || commander.user_id !== userId) {
+           reply.code(404).send({
+             error: 'Not Found',
+             message: 'Commander not found'
+           })
+           return
+         }
 
          reply.send({
            commander: {
@@ -136,15 +139,18 @@ export default async function commanderRoutes(fastify, options) {
       ]
     },
     async (request, reply) => {
-      try {
-        // Manually parse since fastify.decorate request.user is set by jwtVerify
-        const userId = request.user.id
-        const validatedData = createCommanderSchema.parse(request.body)
+       try {
+         // Manually parse since fastify.decorate request.user is set by jwtVerify
+         const userId = request.user.id
+         const validatedData = createCommanderSchema.parse(request.body)
 
-        const commander = await Commander.create({
-          ...validatedData,
-          userId
-        })
+         // Convert colors array to JSON string for storage
+         const colorsJson = JSON.stringify(validatedData.colors)
+         const commander = await commanderRepo.createCommander(
+           userId,
+           validatedData.name,
+           colorsJson
+         )
 
          reply.code(201).send({
            message: 'Commander created successfully',
@@ -190,22 +196,28 @@ export default async function commanderRoutes(fastify, options) {
       ]
     },
     async (request, reply) => {
-      try {
-        const { id } = request.params
-        const userId = request.user.id
-        const updateData = updateCommanderSchema.parse(request.body)
+       try {
+         const { id } = request.params
+         const userId = request.user.id
+         const updateData = updateCommanderSchema.parse(request.body)
 
-        const updated = await Commander.update(id, updateData, userId)
+         // Convert colors array to JSON if provided
+         const updatePayload = { ...updateData }
+         if (updatePayload.colors) {
+           updatePayload.colors = JSON.stringify(updatePayload.colors)
+         }
 
-        if (!updated) {
-          reply.code(400).send({
-            error: 'Update Failed',
-            message: 'No valid fields to update or commander not found'
-          })
-          return
-        }
+         const updated = await commanderRepo.updateCommander(id, userId, updatePayload)
 
-        const commander = await Commander.findById(id)
+         if (!updated) {
+           reply.code(400).send({
+             error: 'Update Failed',
+             message: 'No valid fields to update or commander not found'
+           })
+           return
+         }
+
+         const commander = await commanderRepo.findById(id)
 
          reply.send({
            message: 'Commander updated successfully',
@@ -251,19 +263,19 @@ export default async function commanderRoutes(fastify, options) {
       ]
     },
     async (request, reply) => {
-      try {
-        const { id } = request.params
-        const userId = request.user.id
+       try {
+         const { id } = request.params
+         const userId = request.user.id
 
-        const deleted = await Commander.delete(id, userId)
+         const deleted = await commanderRepo.deleteCommander(id, userId)
 
-        if (!deleted) {
-          reply.code(404).send({
-            error: 'Not Found',
-            message: 'Commander not found'
-          })
-          return
-        }
+         if (!deleted) {
+           reply.code(404).send({
+             error: 'Not Found',
+             message: 'Commander not found'
+           })
+           return
+         }
 
         reply.send({
           message: 'Commander deleted successfully'
@@ -296,19 +308,19 @@ export default async function commanderRoutes(fastify, options) {
       ]
     },
     async (request, reply) => {
-      try {
-        const { id } = request.params
-        const userId = request.user.id
+       try {
+         const { id } = request.params
+         const userId = request.user.id
 
-        const stats = await Commander.getStats(id, userId)
+         const stats = await commanderRepo.getCommanderStats(id, userId)
 
-        reply.send({
-          stats: {
-            ...stats,
-            win_rate: Math.round(stats.winRate || 0),
-            avg_rounds: Math.round(stats.avgRounds || 0)
-          }
-        })
+         reply.send({
+           stats: {
+             ...stats,
+             win_rate: Math.round(stats.win_rate || 0),
+             avg_rounds: Math.round(stats.avg_rounds || 0)
+           }
+         })
       } catch (error) {
         fastify.log.error('Get commander stats error:', error)
         reply.code(500).send({
@@ -337,13 +349,13 @@ export default async function commanderRoutes(fastify, options) {
       ]
     },
     async (request, reply) => {
-      try {
-        const userId = request.user.id
-        const commanders = await Commander.getPopular(userId)
+       try {
+         const userId = request.user.id
+         const commanders = await commanderRepo.getPopularCommandersByUserId(userId)
 
-        reply.send({
-          commanders
-        })
+         reply.send({
+           commanders
+         })
       } catch (error) {
         fastify.log.error('Get popular commanders error:', error)
         reply.code(500).send({

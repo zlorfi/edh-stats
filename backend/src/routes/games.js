@@ -1,6 +1,6 @@
 // Game management routes
 import { z } from 'zod'
-import Game from '../models/Game.js'
+import GameRepository from '../repositories/GameRepository.js'
 
 // Validation schemas
 const createGameSchema = z.object({
@@ -34,6 +34,9 @@ const gameQuerySchema = z.object({
 })
 
 export default async function gameRoutes(fastify, options) {
+  // Initialize repository
+  const gameRepo = new GameRepository()
+
   // Get all games for authenticated user with pagination and filtering
   fastify.get(
     '/',
@@ -54,15 +57,15 @@ export default async function gameRoutes(fastify, options) {
     },
     async (request, reply) => {
       try {
-        const { q, limit, offset } = gameQuerySchema.parse(request.query)
-        const userId = request.user.id
+         const { q, limit, offset } = gameQuerySchema.parse(request.query)
+         const userId = request.user.id
 
-        const filters = {}
-        if (q) {
-          filters.commander = `%${q}%`
-        }
+         const filters = {}
+         if (q) {
+           filters.commander = q
+         }
 
-        let games = await Game.findByUserId(userId, limit, offset, filters)
+         let games = await gameRepo.getGamesByUserId(userId, limit, offset, filters)
 
         reply.send({
           games,
@@ -101,13 +104,13 @@ export default async function gameRoutes(fastify, options) {
       ]
     },
     async (request, reply) => {
-      try {
-        const { id } = request.params
-        const userId = request.user.id
+       try {
+         const { id } = request.params
+         const userId = request.user.id
 
-        const game = await Game.findById(id)
+         const game = await gameRepo.getGameById(id, userId)
 
-        if (!game || game.user_id !== userId) {
+         if (!game) {
           reply.code(404).send({
             error: 'Not Found',
             message: 'Game not found'
@@ -162,24 +165,24 @@ export default async function gameRoutes(fastify, options) {
       ]
     },
     async (request, reply) => {
-      try {
-        const validatedData = createGameSchema.parse(request.body)
-        const userId = request.user.id
+       try {
+         const validatedData = createGameSchema.parse(request.body)
+         const userId = request.user.id
 
-        // Convert camelCase to snake_case for database
-         const gameData = {
-           date: validatedData.date,
-           player_count: validatedData.playerCount,
-           commander_id: validatedData.commanderId,
-           won: validatedData.won,
-           rounds: validatedData.rounds,
-           starting_player_won: validatedData.startingPlayerWon,
-           sol_ring_turn_one_won: validatedData.solRingTurnOneWon,
-           notes: validatedData.notes,
-           userId
-         }
+         // Convert camelCase to snake_case for database
+          const gameData = {
+            date: validatedData.date,
+            player_count: validatedData.playerCount,
+            commander_id: validatedData.commanderId,
+            won: validatedData.won,
+            rounds: validatedData.rounds,
+            starting_player_won: validatedData.startingPlayerWon,
+            sol_ring_turn_one_won: validatedData.solRingTurnOneWon,
+            notes: validatedData.notes,
+            user_id: userId
+          }
 
-         const game = await Game.create(gameData)
+          const game = await gameRepo.createGame(gameData)
 
           reply.code(201).send({
             message: 'Game logged successfully',
@@ -242,22 +245,22 @@ export default async function gameRoutes(fastify, options) {
         const userId = request.user.id
         const updateData = updateGameSchema.parse(request.body)
 
-        // Convert camelCase to snake_case for database
-        const gameData = {}
-        if (updateData.date !== undefined) gameData.date = updateData.date
-        if (updateData.commanderId !== undefined)
-          gameData.commander_id = updateData.commanderId
-        if (updateData.playerCount !== undefined)
-          gameData.player_count = updateData.playerCount
-        if (updateData.won !== undefined) gameData.won = updateData.won
-        if (updateData.rounds !== undefined) gameData.rounds = updateData.rounds
-        if (updateData.startingPlayerWon !== undefined)
-          gameData.starting_player_won = updateData.startingPlayerWon
-        if (updateData.solRingTurnOneWon !== undefined)
-          gameData.sol_ring_turn_one_won = updateData.solRingTurnOneWon
-        if (updateData.notes !== undefined) gameData.notes = updateData.notes
+         // Convert camelCase to snake_case for database
+         const gameData = {}
+         if (updateData.date !== undefined) gameData.date = updateData.date
+         if (updateData.commanderId !== undefined)
+           gameData.commander_id = updateData.commanderId
+         if (updateData.playerCount !== undefined)
+           gameData.player_count = updateData.playerCount
+         if (updateData.won !== undefined) gameData.won = updateData.won
+         if (updateData.rounds !== undefined) gameData.rounds = updateData.rounds
+         if (updateData.startingPlayerWon !== undefined)
+           gameData.starting_player_won = updateData.startingPlayerWon
+         if (updateData.solRingTurnOneWon !== undefined)
+           gameData.sol_ring_turn_one_won = updateData.solRingTurnOneWon
+         if (updateData.notes !== undefined) gameData.notes = updateData.notes
 
-        const updated = await Game.update(id, gameData, userId)
+         const updated = await gameRepo.updateGame(id, userId, gameData)
 
         if (!updated) {
           reply.code(400).send({
@@ -267,10 +270,10 @@ export default async function gameRoutes(fastify, options) {
           return
         }
 
-         const game = await Game.findById(id)
+         const game = await gameRepo.getGameById(id, userId)
 
-          reply.send({
-            message: 'Game updated successfully',
+           reply.send({
+             message: 'Game updated successfully',
             game: {
               id: game.id,
               date: new Date(game.date).toLocaleDateString('en-US'),
@@ -325,13 +328,13 @@ export default async function gameRoutes(fastify, options) {
       ]
     },
     async (request, reply) => {
-      try {
-        const { id } = request.params
-        const userId = request.user.id
+       try {
+         const { id } = request.params
+         const userId = request.user.id
 
-        const deleted = await Game.delete(id, userId)
+         const deleted = await gameRepo.deleteGame(id, userId)
 
-        if (!deleted) {
+         if (!deleted) {
           reply.code(404).send({
             error: 'Not Found',
             message: 'Game not found'
@@ -381,9 +384,9 @@ export default async function gameRoutes(fastify, options) {
         if (request.query.dateFrom) filters.dateFrom = request.query.dateFrom
         if (request.query.dateTo) filters.dateTo = request.query.dateTo
 
-        const games = await Game.exportByUserId(userId, filters)
-        
-        // Generate filename with current date
+         const games = await gameRepo.exportGamesByUserId(userId, filters)
+         
+         // Generate filename with current date
         const today = new Date().toLocaleDateString('en-US').replace(/\//g, '_')
         const filename = `edh_games_${today}.json`
         
