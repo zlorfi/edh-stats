@@ -91,18 +91,20 @@ jobs:
           version: '3.8'
           
           services:
-            postgres:
-              image: postgres:16-alpine
-              environment:
-                - POSTGRES_USER=${DB_USER:-edh_user}
-                - POSTGRES_PASSWORD=${DB_PASSWORD:-change-this-in-production}
-                - POSTGRES_DB=${DB_NAME:-edh_stats}
-              volumes:
-                - postgres_data:/var/lib/postgresql/data
-              healthcheck:
-                test:
-                  - CMD-SHELL
-                  - 'pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}'
+             postgres:
+               image: postgres:16-alpine
+               environment:
+                 - POSTGRES_USER=${DB_USER:-postgres}
+                 - POSTGRES_PASSWORD=${DB_PASSWORD:-edh_password}
+                 - POSTGRES_DB=${DB_NAME:-edh_stats}
+               ports:
+                 - '${DB_PORT:-5432}:5432'
+               volumes:
+                 - postgres_data:/var/lib/postgresql/data
+               healthcheck:
+                 test:
+                   - CMD-SHELL
+                   - 'PGPASSWORD=${DB_PASSWORD:-edh_password} pg_isready -U ${DB_USER:-postgres} -h localhost'
                 interval: 10s
                 timeout: 5s
                 retries: 5
@@ -110,39 +112,40 @@ jobs:
                 - edh-stats-network
               restart: unless-stopped
             
-            db-migrate:
-              image: ${{ steps.version.outputs.BACKEND_IMAGE }}
-              depends_on:
-                postgres:
-                  condition: service_healthy
-              environment:
-                - NODE_ENV=production
-                - DB_HOST=postgres
-                - DB_PORT=5432
-                - DB_NAME=${DB_NAME:-edh_stats}
-                - DB_USER=${DB_USER:-edh_user}
-                - DB_PASSWORD=${DB_PASSWORD:-change-this-in-production}
-              command: node src/database/migrate.js migrate
+             db-migrate:
+               image: ${{ steps.version.outputs.BACKEND_IMAGE }}
+               depends_on:
+                 postgres:
+                   condition: service_healthy
+               environment:
+                 - NODE_ENV=production
+                 - DB_HOST=${DB_HOST:-postgres}
+                 - DB_PORT=${DB_PORT:-5432}
+                 - DB_NAME=${DB_NAME:-edh_stats}
+                 - DB_USER=${DB_USER:-postgres}
+                 - DB_PASSWORD=${DB_PASSWORD:-edh_password}
+                 - DB_SEED=${DB_SEED:-false}
+               command: node src/database/migrate.js migrate
               networks:
                 - edh-stats-network
               restart: 'no'
             
-            backend:
-              image: ${{ steps.version.outputs.BACKEND_IMAGE }}
-              depends_on:
-                db-migrate:
-                  condition: service_completed_successfully
-              environment:
-                - NODE_ENV=production
-                - DB_HOST=postgres
-                - DB_PORT=5432
-                - DB_NAME=${DB_NAME:-edh_stats}
-                - DB_USER=${DB_USER:-edh_user}
-                - DB_PASSWORD=${DB_PASSWORD:-change-this-in-production}
-                - JWT_SECRET=${JWT_SECRET:-change-this-in-production}
-                - CORS_ORIGIN=${CORS_ORIGIN:-https://yourdomain.com}
-                - LOG_LEVEL=warn
-                - ALLOW_REGISTRATION=${ALLOW_REGISTRATION:-false}
+             backend:
+               image: ${{ steps.version.outputs.BACKEND_IMAGE }}
+               depends_on:
+                 db-migrate:
+                   condition: service_completed_successfully
+               environment:
+                 - NODE_ENV=production
+                 - DB_HOST=${DB_HOST:-postgres}
+                 - DB_PORT=${DB_PORT:-5432}
+                 - DB_NAME=${DB_NAME:-edh_stats}
+                 - DB_USER=${DB_USER:-postgres}
+                 - DB_PASSWORD=${DB_PASSWORD:-edh_password}
+                 - JWT_SECRET=${JWT_SECRET}
+                 - CORS_ORIGIN=${CORS_ORIGIN:-https://yourdomain.com}
+                 - LOG_LEVEL=${LOG_LEVEL:-warn}
+                 - ALLOW_REGISTRATION=${ALLOW_REGISTRATION:-false}
               restart: unless-stopped
               healthcheck:
                 test:
