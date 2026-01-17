@@ -256,7 +256,6 @@ generate_deployment_config() {
 # GitHub User: ${GITHUB_USER}
 #
      # IMPORTANT: Create a .env file with these variables:
-     #   DB_PORT=5432
      #   DB_NAME=edh_stats
      #   DB_USER=postgres
      #   DB_PASSWORD=\$(openssl rand -base64 32)
@@ -312,8 +311,8 @@ services:
         environment:
           - NODE_ENV=production
           - DB_HOST=\${DB_HOST:-postgres}
-          - DB_PORT=\${DB_PORT:-5432}
           - DB_NAME=\${DB_NAME}
+          - DB_USER=\${DB_USER:-postgres}
           - DB_PASSWORD=\${DB_PASSWORD}
        command: node src/database/migrate.js migrate
        networks:
@@ -330,8 +329,8 @@ services:
       environment:
         - NODE_ENV=production
         - DB_HOST=\${DB_HOST:-postgres}
-        - DB_PORT=\${DB_PORT:-5432}
         - DB_NAME=\${DB_NAME}
+        - DB_USER=\${DB_USER:-postgres}
         - DB_PASSWORD=\${DB_PASSWORD}
         - JWT_SECRET=\${JWT_SECRET}
         - CORS_ORIGIN=\${CORS_ORIGIN:-https://yourdomain.com}
