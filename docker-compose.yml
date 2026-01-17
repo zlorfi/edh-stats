@@ -8,8 +8,6 @@ services:
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=${DB_PASSWORD:-edh_password}
       - POSTGRES_DB=${DB_NAME:-edh_stats}
-    ports:
-      - '${DB_PORT:-5432}:5432'
     volumes:
       - ./postgres_data:/var/lib/postgresql/data
       - ./backend/init-db:/docker-entrypoint-initdb.d
