@@ -276,7 +276,7 @@ services:
     postgres:
       image: postgres:16-alpine
       environment:
-        - POSTGRES_USER=postgres
+        - POSTGRES_USER=\${DB_USER:-postgres}
         - POSTGRES_PASSWORD=\${DB_PASSWORD}
         - POSTGRES_DB=\${DB_NAME}
       volumes:
@@ -289,10 +289,6 @@ services:
      networks:
        - edh-stats-network
      restart: unless-stopped
-     command:
-       - "postgres"
-       - "-c"
-       - "listen_addresses=*"
      deploy:
        resources:
          limits:
@@ -362,7 +358,10 @@ services:
        - '30443:443'
      restart: unless-stopped
      healthcheck:
-       test: ['CMD', 'wget', '--no-verbose', '--tries=1', '--spider', 'http://localhost:80/']
+       test:
+         - CMD
+         - curl
+         - http://localhost:80/health
        interval: 10s
        timeout: 5s
        retries: 5
