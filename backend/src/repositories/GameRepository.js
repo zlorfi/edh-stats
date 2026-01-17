@@ -282,6 +282,25 @@ export class GameRepository extends Repository {
   }
 
   /**
+   * Find game by date and commander (for duplicate checking)
+   */
+  async findGameByDateAndCommander(userId, date, commanderId) {
+    try {
+      const result = await dbManager.query(
+        `
+        SELECT * FROM ${this.tableName}
+        WHERE user_id = $1 AND date = $2 AND commander_id = $3
+        LIMIT 1
+      `,
+        [userId, date, commanderId]
+      )
+      return result.rows[0] || null
+    } catch (error) {
+      throw new Error('Failed to find game')
+    }
+  }
+
+  /**
    * Get game statistics for a commander
    */
   async getCommanderGameStats(commanderId, userId) {

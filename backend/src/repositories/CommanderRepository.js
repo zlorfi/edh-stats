@@ -190,6 +190,21 @@ export class CommanderRepository extends Repository {
   }
 
   /**
+   * Find commander by name and user
+   */
+  async findByNameAndUserId(name, userId) {
+    try {
+      const result = await dbManager.query(
+        `SELECT * FROM ${this.tableName} WHERE LOWER(name) = LOWER($1) AND user_id = $2`,
+        [name, userId]
+      )
+      return result.rows[0] || null
+    } catch (error) {
+      throw new Error('Failed to find commander')
+    }
+  }
+
+  /**
    * Delete a commander
    */
   async deleteCommander(commanderId, userId) {

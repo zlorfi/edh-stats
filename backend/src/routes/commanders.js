@@ -1,29 +1,94 @@
 // Commander management routes
 import { z } from 'zod'
 import CommanderRepository from '../repositories/CommanderRepository.js'
+import {
+  hasNoDuplicateColors,
+  formatValidationErrors
+} from '../utils/validators.js'
 
-// Validation schemas
+// Validation schemas with enhanced validation
 const createCommanderSchema = z.object({
-  name: z.string().min(2).max(100),
+  name: z
+    .string('Commander name must be a string')
+    .min(2, 'Commander name must be at least 2 characters')
+    .max(100, 'Commander name must be less than 100 characters')
+    .transform((val) => val.trim())
+    .refine((val) => /^[a-zA-Z0-9\s,.\'-]+$/.test(val), {
+      message: 'Commander name contains invalid characters'
+    }),
+  
   colors: z
-    .array(z.enum(['W', 'U', 'B', 'R', 'G']))
-    .min(1)
-    .max(5)
+    .array(
+      z.enum(['W', 'U', 'B', 'R', 'G'], {
+        errorMap: () => ({ message: 'Invalid color (must be W, U, B, R, or G)' })
+      }),
+      {
+        errorMap: () => ({ message: 'Colors must be an array' })
+      }
+    )
+    .min(1, 'Select at least one color')
+    .max(5, 'Maximum 5 colors allowed')
+    .refine((colors) => hasNoDuplicateColors(colors), {
+      message: 'Duplicate colors are not allowed'
+    })
 })
 
 const updateCommanderSchema = z.object({
-  name: z.string().min(2).max(100).optional(),
+  name: z
+    .string('Commander name must be a string')
+    .min(2, 'Commander name must be at least 2 characters')
+    .max(100, 'Commander name must be less than 100 characters')
+    .transform((val) => val.trim())
+    .refine((val) => /^[a-zA-Z0-9\s,.\'-]+$/.test(val), {
+      message: 'Commander name contains invalid characters'
+    })
+    .optional(),
+  
   colors: z
-    .array(z.enum(['W', 'U', 'B', 'R', 'G']))
-    .min(1)
-    .max(5)
+    .array(
+      z.enum(['W', 'U', 'B', 'R', 'G'], {
+        errorMap: () => ({ message: 'Invalid color (must be W, U, B, R, or G)' })
+      })
+    )
+    .min(1, 'Select at least one color')
+    .max(5, 'Maximum 5 colors allowed')
+    .refine((colors) => hasNoDuplicateColors(colors), {
+      message: 'Duplicate colors are not allowed'
+    })
     .optional()
 })
 
 const commanderQuerySchema = z.object({
-  q: z.string().min(1).max(50).optional(),
-  limit: z.coerce.number().min(1).max(50).default(20)
+  q: z
+    .string('Search query must be a string')
+    .min(1, 'Search query cannot be empty')
+    .max(50, 'Search query limited to 50 characters')
+    .optional(),
+  limit: z
+    .coerce
+    .number('Limit must be a number')
+    .int('Limit must be a whole number')
+    .min(1, 'Minimum 1 commander per page')
+    .max(50, 'Maximum 50 commanders per page')
+    .default(20)
 })
+
+// Helper function to transform commander from DB format to API format
+function transformCommander(cmd) {
+  return {
+    id: cmd.id,
+    name: cmd.name,
+    colors: cmd.colors || [],
+    userId: cmd.user_id,
+    totalGames: parseInt(cmd.total_games) || 0,
+    totalWins: parseInt(cmd.total_wins) || 0,
+    winRate: cmd.win_rate ? parseFloat(cmd.win_rate) : 0,
+    avgRounds: cmd.avg_rounds ? parseFloat(cmd.avg_rounds) : 0,
+    lastPlayed: cmd.last_played,
+    createdAt: cmd.created_at,
+    updatedAt: cmd.updated_at
+  }
+}
 
 export default async function commanderRoutes(fastify, options) {
   // Initialize repository
@@ -59,7 +124,7 @@ export default async function commanderRoutes(fastify, options) {
          }
 
         reply.send({
-          commanders,
+          commanders: commanders.map(transformCommander),
           total: commanders.length
         })
       } catch (error) {
@@ -139,32 +204,45 @@ export default async function commanderRoutes(fastify, options) {
       ]
     },
     async (request, reply) => {
-       try {
-         // Manually parse since fastify.decorate request.user is set by jwtVerify
-         const userId = request.user.id
-         const validatedData = createCommanderSchema.parse(request.body)
+      try {
+        const userId = request.user.id
+        
+        // LAYER 1: Schema validation
+        const validatedData = createCommanderSchema.parse(request.body)
 
-         // Convert colors array to JSON string for storage
-         const colorsJson = JSON.stringify(validatedData.colors)
-         const commander = await commanderRepo.createCommander(
-           userId,
-           validatedData.name,
-           colorsJson
-         )
+        // LAYER 2: Business logic validation
+        // Check for duplicate commander name (case-insensitive)
+        const existing = await commanderRepo.findByNameAndUserId(
+          validatedData.name.toLowerCase(),
+          userId
+        )
+        
+        if (existing) {
+          return reply.code(409).send({
+            error: 'Conflict',
+            message: 'Commander already exists',
+            details: [`You already have a commander named "${validatedData.name}"`]
+          })
+        }
+
+        // Convert colors array to JSON string for storage
+        const colorsJson = JSON.stringify(validatedData.colors)
+        const commander = await commanderRepo.createCommander(
+          userId,
+          validatedData.name,
+          colorsJson
+        )
 
          reply.code(201).send({
            message: 'Commander created successfully',
-           commander: {
-             ...commander,
-             colors: commander.colors || []
-           }
+           commander: transformCommander(commander)
          })
       } catch (error) {
         if (error instanceof z.ZodError) {
-          reply.code(400).send({
+          return reply.code(400).send({
             error: 'Validation Error',
             message: 'Invalid input data',
-            details: error.errors.map((e) => e.message)
+            details: formatValidationErrors(error)
           })
         } else {
           fastify.log.error('Create commander error:', error)
@@ -219,13 +297,10 @@ export default async function commanderRoutes(fastify, options) {
 
          const commander = await commanderRepo.findById(id)
 
-         reply.send({
-           message: 'Commander updated successfully',
-           commander: {
-             ...commander,
-             colors: commander.colors || []
-           }
-         })
+          reply.send({
+            message: 'Commander updated successfully',
+            commander: transformCommander(commander)
+          })
       } catch (error) {
         if (error instanceof z.ZodError) {
           reply.code(400).send({
@@ -354,7 +429,7 @@ export default async function commanderRoutes(fastify, options) {
          const commanders = await commanderRepo.getPopularCommandersByUserId(userId)
 
          reply.send({
-           commanders
+           commanders: commanders.map(transformCommander)
          })
       } catch (error) {
         fastify.log.error('Get popular commanders error:', error)

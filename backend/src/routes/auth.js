@@ -2,44 +2,109 @@
 import { z } from 'zod'
 import UserRepository from '../repositories/UserRepository.js'
 import { registrationConfig } from '../config/jwt.js'
+import {
+  validatePasswordStrength,
+  isNotReservedUsername,
+  isNotDisposableEmail,
+  formatValidationErrors,
+  createErrorResponse
+} from '../utils/validators.js'
 
-// Validation schemas
+// Validation schemas with enhanced validation
 const registerSchema = z.object({
   username: z
-    .string()
-    .min(3)
-    .max(50)
+    .string('Username must be a string')
+    .min(3, 'Username must be at least 3 characters')
+    .max(50, 'Username must be less than 50 characters')
     .regex(/^[a-zA-Z0-9_-]+$/, {
       message:
         'Username can only contain letters, numbers, underscores, and hyphens'
+    })
+    .transform((val) => val.toLowerCase().trim())
+    .refine((val) => isNotReservedUsername(val), {
+      message: 'This username is reserved and cannot be used'
     }),
-  password: z.string().min(8).max(100),
-  email: z.string().email().optional()
+  
+  password: z
+    .string('Password must be a string')
+    .min(8, 'Password must be at least 8 characters')
+    .max(100, 'Password must be less than 100 characters')
+    .refine((val) => /(?=.*[a-z])/.test(val), {
+      message: 'Password must contain at least one lowercase letter'
+    })
+    .refine((val) => /(?=.*[A-Z])/.test(val), {
+      message: 'Password must contain at least one uppercase letter'
+    })
+    .refine((val) => /(?=.*\d)/.test(val), {
+      message: 'Password must contain at least one number'
+    }),
+  
+  email: z
+    .string('Email must be a string')
+    .email('Invalid email format')
+    .toLowerCase()
+    .refine((val) => isNotDisposableEmail(val), {
+      message: 'Disposable email addresses are not allowed'
+    })
+    .optional()
 })
 
 const loginSchema = z.object({
-  username: z.string().min(1),
-  password: z.string().min(1),
-  remember: z.boolean().optional().default(false)
+  username: z
+    .string('Username is required')
+    .min(1, 'Username is required')
+    .transform((val) => val.toLowerCase().trim()),
+  
+  password: z
+    .string('Password is required')
+    .min(1, 'Password is required'),
+  
+  remember: z.boolean('Remember must be true or false').optional().default(false)
 })
 
 const changePasswordSchema = z.object({
-  currentPassword: z.string().min(1),
-  newPassword: z.string().min(8).max(100)
+  currentPassword: z
+    .string('Current password is required')
+    .min(1, 'Current password is required'),
+  
+  newPassword: z
+    .string('New password must be a string')
+    .min(8, 'New password must be at least 8 characters')
+    .max(100, 'New password must be less than 100 characters')
+    .refine((val) => /(?=.*[a-z])/.test(val), {
+      message: 'Password must contain at least one lowercase letter'
+    })
+    .refine((val) => /(?=.*[A-Z])/.test(val), {
+      message: 'Password must contain at least one uppercase letter'
+    })
+    .refine((val) => /(?=.*\d)/.test(val), {
+      message: 'Password must contain at least one number'
+    })
 })
 
 const updateProfileSchema = z.object({
-  email: z.string().email().optional()
+  email: z
+    .string('Email must be a string')
+    .email('Invalid email format')
+    .toLowerCase()
+    .refine((val) => isNotDisposableEmail(val), {
+      message: 'Disposable email addresses are not allowed'
+    })
+    .optional()
 })
 
 const updateUsernameSchema = z.object({
   newUsername: z
-    .string()
-    .min(3)
-    .max(50)
+    .string('Username must be a string')
+    .min(3, 'Username must be at least 3 characters')
+    .max(50, 'Username must be less than 50 characters')
     .regex(/^[a-zA-Z0-9_-]+$/, {
       message:
         'Username can only contain letters, numbers, underscores, and hyphens'
+    })
+    .transform((val) => val.toLowerCase().trim())
+    .refine((val) => isNotReservedUsername(val), {
+      message: 'This username is reserved and cannot be used'
     })
 })
 
@@ -64,22 +129,44 @@ export default async function authRoutes(fastify, options) {
       try {
         // Check if registration is allowed
         if (!registrationConfig.allowRegistration) {
-          reply.code(403).send({
+          return reply.code(403).send({
             error: 'Registration Disabled',
             message: 'User registration is currently disabled'
           })
-          return
         }
 
-        // Validate input
-         const validatedData = registerSchema.parse(request.body)
+        // LAYER 1: Schema validation
+        const validatedData = registerSchema.parse(request.body)
 
-         // Create user
-         const user = await userRepo.createUser(
-           validatedData.username,
-           validatedData.password,
-           validatedData.email
-         )
+        // LAYER 2: Business logic validation
+        // Check username uniqueness
+        const existingUser = await userRepo.findByUsername(validatedData.username)
+        if (existingUser) {
+          return reply.code(409).send({
+            error: 'Conflict',
+            message: 'Username already taken',
+            details: ['This username is already in use. Please choose another.']
+          })
+        }
+
+        // Check email uniqueness (if provided)
+        if (validatedData.email) {
+          const existingEmail = await userRepo.findByEmail(validatedData.email)
+          if (existingEmail) {
+            return reply.code(409).send({
+              error: 'Conflict',
+              message: 'Email already registered',
+              details: ['This email is already in use. Please use a different email.']
+            })
+          }
+        }
+
+        // Create user
+        const user = await userRepo.createUser(
+          validatedData.username,
+          validatedData.password,
+          validatedData.email
+        )
 
         // Generate JWT token
         const token = await reply.jwtSign(
@@ -104,14 +191,14 @@ export default async function authRoutes(fastify, options) {
         })
       } catch (error) {
         if (error instanceof z.ZodError) {
-          reply.code(400).send({
+          return reply.code(400).send({
             error: 'Validation Error',
             message: 'Invalid input data',
-            details: error.errors.map((e) => e.message)
+            details: formatValidationErrors(error)
           })
         } else if (error.message.includes('already exists')) {
-          reply.code(400).send({
-            error: 'Registration Failed',
+          return reply.code(409).send({
+            error: 'Conflict',
             message: error.message
           })
         } else {
@@ -133,29 +220,30 @@ export default async function authRoutes(fastify, options) {
     },
     async (request, reply) => {
       try {
-         const { username, password } = loginSchema.parse(request.body)
+        // LAYER 1: Schema validation
+        const { username, password } = loginSchema.parse(request.body)
 
-         // Find user
-         const user = await userRepo.findByUsername(username)
-         if (!user) {
-           reply.code(401).send({
-             error: 'Authentication Failed',
-             message: 'Invalid username or password'
-           })
-           return
-         }
-
-         // Verify password
-         const isValidPassword = await userRepo.verifyPassword(
-           password,
-           user.password_hash
-         )
-        if (!isValidPassword) {
-          reply.code(401).send({
+        // LAYER 2: Find user (also serves as authorization check)
+        const user = await userRepo.findByUsername(username)
+        if (!user) {
+          // Generic error message to prevent username enumeration
+          return reply.code(401).send({
             error: 'Authentication Failed',
             message: 'Invalid username or password'
           })
-          return
+        }
+
+        // Verify password
+        const isValidPassword = await userRepo.verifyPassword(
+          password,
+          user.password_hash
+        )
+        if (!isValidPassword) {
+          // Generic error message to prevent username enumeration
+          return reply.code(401).send({
+            error: 'Authentication Failed',
+            message: 'Invalid username or password'
+          })
         }
 
         // Generate JWT token

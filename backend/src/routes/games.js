@@ -1,41 +1,129 @@
 // Game management routes
 import { z } from 'zod'
 import GameRepository from '../repositories/GameRepository.js'
+import CommanderRepository from '../repositories/CommanderRepository.js'
+import {
+  validateDateRange,
+  isNotSpam,
+  formatValidationErrors
+} from '../utils/validators.js'
 
-// Validation schemas
+// Validation schemas with comprehensive validation
 const createGameSchema = z.object({
-  date: z.string().refine((date) => !isNaN(Date.parse(date)), {
-    message: 'Invalid date format'
-  }),
-  playerCount: z.number().int().min(2).max(8),
-  commanderId: z.number().int().positive(),
-  won: z.boolean(),
-  rounds: z.number().int().min(1).max(50),
-  startingPlayerWon: z.boolean(),
-  solRingTurnOneWon: z.boolean(),
-  notes: z.string().max(1000).optional()
+  date: z
+    .string('Date must be a string')
+    .refine((date) => !isNaN(Date.parse(date)), {
+      message: 'Invalid date format (use YYYY-MM-DD)'
+    })
+    .refine((date) => validateDateRange(date), {
+      message: 'Game date must be within the last year and not in the future'
+    }),
+  
+  playerCount: z
+    .number('Player count must be a number')
+    .int('Player count must be a whole number')
+    .min(2, 'Minimum 2 players required')
+    .max(8, 'Maximum 8 players allowed'),
+  
+  commanderId: z
+    .number('Commander ID must be a number')
+    .int('Commander ID must be a whole number')
+    .positive('Commander ID must be positive')
+    .max(2147483647, 'Invalid commander ID'),
+  
+  won: z.boolean('Won must be true or false'),
+  
+  rounds: z
+    .number('Rounds must be a number')
+    .int('Rounds must be a whole number')
+    .min(1, 'Minimum 1 round')
+    .max(50, 'Maximum 50 rounds'),
+  
+  startingPlayerWon: z.boolean('Starting player won must be true or false'),
+  solRingTurnOneWon: z.boolean('Sol ring turn one won must be true or false'),
+  
+  notes: z
+    .string('Notes must be a string')
+    .max(1000, 'Notes limited to 1000 characters')
+    .optional()
+    .transform((val) => val?.trim() || null)
+    .refine((notes) => isNotSpam(notes), {
+      message: 'Notes appear to be spam'
+    })
 })
 
 const updateGameSchema = z.object({
-  date: z.string().optional(),
-  commanderId: z.number().int().positive().optional(),
-  playerCount: z.number().int().min(2).max(8).optional(),
-  won: z.boolean().optional(),
-  rounds: z.number().int().min(1).max(50).optional(),
-  startingPlayerWon: z.boolean().optional(),
-  solRingTurnOneWon: z.boolean().optional(),
-  notes: z.string().max(1000).optional().nullable()
+  date: z
+    .string('Date must be a string')
+    .refine((date) => !isNaN(Date.parse(date)), {
+      message: 'Invalid date format (use YYYY-MM-DD)'
+    })
+    .refine((date) => validateDateRange(date), {
+      message: 'Game date must be within the last year and not in the future'
+    })
+    .optional(),
+  
+  commanderId: z
+    .number('Commander ID must be a number')
+    .int('Commander ID must be a whole number')
+    .positive('Commander ID must be positive')
+    .optional(),
+  
+  playerCount: z
+    .number('Player count must be a number')
+    .int('Player count must be a whole number')
+    .min(2, 'Minimum 2 players required')
+    .max(8, 'Maximum 8 players allowed')
+    .optional(),
+  
+  won: z.boolean('Won must be true or false').optional(),
+  
+  rounds: z
+    .number('Rounds must be a number')
+    .int('Rounds must be a whole number')
+    .min(1, 'Minimum 1 round')
+    .max(50, 'Maximum 50 rounds')
+    .optional(),
+  
+  startingPlayerWon: z.boolean('Starting player won must be true or false').optional(),
+  solRingTurnOneWon: z.boolean('Sol ring turn one won must be true or false').optional(),
+  
+  notes: z
+    .string('Notes must be a string')
+    .max(1000, 'Notes limited to 1000 characters')
+    .optional()
+    .transform((val) => val?.trim() || null)
+    .refine((notes) => isNotSpam(notes), {
+      message: 'Notes appear to be spam'
+    })
+    .nullable()
 })
 
 const gameQuerySchema = z.object({
-  q: z.string().min(1).max(50).optional(),
-  limit: z.coerce.number().min(1).default(50),
-  offset: z.coerce.number().default(0)
+  q: z
+    .string('Search query must be a string')
+    .min(1, 'Search query cannot be empty')
+    .max(50, 'Search query limited to 50 characters')
+    .optional(),
+  limit: z
+    .coerce
+    .number('Limit must be a number')
+    .int('Limit must be a whole number')
+    .min(1, 'Minimum 1 game per page')
+    .max(100, 'Maximum 100 games per page')
+    .default(50),
+  offset: z
+    .coerce
+    .number('Offset must be a number')
+    .int('Offset must be a whole number')
+    .min(0, 'Offset cannot be negative')
+    .default(0)
 })
 
 export default async function gameRoutes(fastify, options) {
-  // Initialize repository
+  // Initialize repositories
   const gameRepo = new GameRepository()
+  const commanderRepo = new CommanderRepository()
 
   // Get all games for authenticated user with pagination and filtering
   fastify.get(
@@ -182,52 +270,83 @@ export default async function gameRoutes(fastify, options) {
       ]
     },
     async (request, reply) => {
-       try {
-         const validatedData = createGameSchema.parse(request.body)
-         const userId = request.user.id
+      try {
+        const userId = request.user.id
+        
+        // LAYER 1: Schema validation
+        const validatedData = createGameSchema.parse(request.body)
 
-         // Convert camelCase to snake_case for database
-          const gameData = {
-            date: validatedData.date,
-            player_count: validatedData.playerCount,
-            commander_id: validatedData.commanderId,
-            won: validatedData.won,
-            rounds: validatedData.rounds,
-            starting_player_won: validatedData.startingPlayerWon,
-            sol_ring_turn_one_won: validatedData.solRingTurnOneWon,
-            notes: validatedData.notes,
-            user_id: userId
+        // LAYER 2: Business logic validation
+        // Check commander exists and belongs to user
+        const commander = await commanderRepo.findById(validatedData.commanderId)
+        
+        if (!commander || commander.user_id !== userId) {
+          return reply.code(400).send({
+            error: 'Bad Request',
+            message: 'Invalid commander ID or commander not found',
+            details: ['Commander does not exist or does not belong to you']
+          })
+        }
+
+        // Check for duplicate games (same commander on same date)
+        const existingGame = await gameRepo.findGameByDateAndCommander(
+          userId,
+          validatedData.date,
+          validatedData.commanderId
+        )
+        
+        if (existingGame) {
+          return reply.code(409).send({
+            error: 'Conflict',
+            message: 'Duplicate game detected',
+            details: [
+              `You already logged a game with ${commander.name} on ${validatedData.date}`
+            ]
+          })
+        }
+
+        // Convert camelCase to snake_case for database
+        const gameData = {
+          date: validatedData.date,
+          player_count: validatedData.playerCount,
+          commander_id: validatedData.commanderId,
+          won: validatedData.won,
+          rounds: validatedData.rounds,
+          starting_player_won: validatedData.startingPlayerWon,
+          sol_ring_turn_one_won: validatedData.solRingTurnOneWon,
+          notes: validatedData.notes,
+          user_id: userId
+        }
+
+        const game = await gameRepo.createGame(gameData)
+        
+        // Fetch the game with commander details
+        const gameWithCommander = await gameRepo.getGameById(game.id, userId)
+
+        reply.code(201).send({
+          message: 'Game logged successfully',
+          game: {
+            id: gameWithCommander.id,
+            date: new Date(gameWithCommander.date).toLocaleDateString('en-US'),
+            playerCount: gameWithCommander.player_count,
+            commanderId: gameWithCommander.commander_id,
+            won: gameWithCommander.won,
+            rounds: gameWithCommander.rounds,
+            startingPlayerWon: gameWithCommander.starting_player_won,
+            solRingTurnOneWon: gameWithCommander.sol_ring_turn_one_won,
+            notes: gameWithCommander.notes || null,
+            commanderName: gameWithCommander.commander_name,
+            commanderColors: gameWithCommander.commander_colors || [],
+            createdAt: gameWithCommander.created_at,
+            updatedAt: gameWithCommander.updated_at
           }
-
-           const game = await gameRepo.createGame(gameData)
-           
-           // Fetch the game with commander details
-           const gameWithCommander = await gameRepo.getGameById(game.id, userId)
-
-           reply.code(201).send({
-             message: 'Game logged successfully',
-             game: {
-               id: gameWithCommander.id,
-               date: new Date(gameWithCommander.date).toLocaleDateString('en-US'),
-               playerCount: gameWithCommander.player_count,
-               commanderId: gameWithCommander.commander_id,
-               won: gameWithCommander.won,
-               rounds: gameWithCommander.rounds,
-               startingPlayerWon: gameWithCommander.starting_player_won,
-               solRingTurnOneWon: gameWithCommander.sol_ring_turn_one_won,
-               notes: gameWithCommander.notes || null,
-               commanderName: gameWithCommander.commander_name,
-               commanderColors: gameWithCommander.commander_colors || [],
-               createdAt: gameWithCommander.created_at,
-               updatedAt: gameWithCommander.updated_at
-             }
-           })
+        })
       } catch (error) {
         if (error instanceof z.ZodError) {
-          reply.code(400).send({
+          return reply.code(400).send({
             error: 'Validation Error',
             message: 'Invalid input data',
-            details: error.errors.map((e) => e.message)
+            details: formatValidationErrors(error)
           })
         } else {
           fastify.log.error('Create game error:', error)
