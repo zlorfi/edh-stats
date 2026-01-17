@@ -1,6 +1,6 @@
 # EDH/Commander Stats Tracker
 
-A lightweight, responsive web application for tracking Magic: The Gathering EDH/Commander games with comprehensive statistics and analytics. Built with Fastify (Node.js), SQLite, and Alpine.js for optimal performance and simplicity.
+A lightweight, responsive web application for tracking Magic: The Gathering EDH/Commander games with comprehensive statistics and analytics. Built with Fastify (Node.js), PostgreSQL, and Alpine.js for optimal performance and scalability.
 
 ## Features
 
@@ -71,8 +71,10 @@ A lightweight, responsive web application for tracking Magic: The Gathering EDH/
 #### Infrastructure & Deployment
 - **Docker Support**: Complete Docker and Docker Compose setup.
 - **Development Environment**: Pre-configured with hot-reload and logging.
-- **Database**: SQLite with WAL mode for optimal performance.
+- **Database**: PostgreSQL 16 with connection pooling and automated migrations.
 - **Automated Migrations**: Database schema management on startup.
+- **Rate Limiting**: Configurable global rate limiting with per-endpoint overrides.
+- **Request Logging**: Comprehensive request/response logging for debugging.
 
 ### 🚧 Pending / Roadmap
 
@@ -100,12 +102,13 @@ A lightweight, responsive web application for tracking Magic: The Gathering EDH/
 ## Technology Stack
 
 - **Backend**: Fastify (Node.js v20+)
-- **Database**: SQLite (better-sqlite3) with WAL mode
+- **Database**: PostgreSQL 16 with connection pooling (pg library)
 - **Frontend**: Alpine.js, Tailwind CSS (CDN)
 - **Visualization**: Chart.js
 - **Containerization**: Docker & Docker Compose
 - **Authentication**: JWT with HS512 hashing
 - **Password Security**: bcryptjs with 12-round hashing
+- **Rate Limiting**: @fastify/rate-limit plugin with configurable limits
 
 ## Quick Start
 
@@ -128,34 +131,72 @@ docker-compose up -d
 # Backend API: http://localhost:3002
 ```
 
-> **Note:** Default ports are `8081` (Frontend) and `3002` (Backend) to avoid conflicts.
+> **Note:** Default ports are `8081` (Frontend) and `3002` (Backend) to avoid conflicts. PostgreSQL runs on `5432`.
 
-#### Environment Variables
+#### Custom Environment Variables
+
+You can customize the database and other settings by creating or editing `.env`:
+
+```bash
+# Copy the example to create your own
+cp .env.example .env
+
+# Edit .env with your preferred settings
+nano .env
+
+# Start with custom environment
+docker-compose up -d
+```
+
+Common customizations:
+
+```env
+# Change PostgreSQL password
+DB_PASSWORD=your_secure_password
+
+# Enable debug logging
+LOG_LEVEL=debug
+
+# Tighten rate limiting
+RATE_LIMIT_WINDOW=5
+RATE_LIMIT_MAX=50
+
+# Disable user registration
+ALLOW_REGISTRATION=false
+```
+
+#### Environment Variables Reference
 
 Key environment variables you can configure in `.env`:
 
 ```env
-# Application
+# PostgreSQL Database Configuration
+DB_HOST=localhost
+DB_PORT=5432
+DB_NAME=edh_stats
+DB_USER=postgres
+DB_PASSWORD=edh_password
+
+# Application Configuration
 NODE_ENV=development
-PORT=3000
-HOST=0.0.0.0
+LOG_LEVEL=info
 
 # Security
-JWT_SECRET=your-secure-secret-key
-SESSION_SECRET=your-session-secret
+JWT_SECRET=your-super-secure-jwt-secret-key-change-this-in-production
 
-# User Registration - Set to 'true' to enable signup, 'false' to disable
-ALLOW_REGISTRATION=false
-
-# Database
-DATABASE_PATH=/app/database/data/edh-stats.db
-DATABASE_BACKUP_PATH=/app/database/data/backups
-
-# CORS
+# CORS Configuration
 CORS_ORIGIN=http://localhost:80
 
-# Logging
-LOG_LEVEL=info
+# User Registration - Set to 'true' to enable signup, 'false' to disable
+ALLOW_REGISTRATION=true
+
+# Rate Limiting (optional - default: 100 requests per 15 minutes)
+# RATE_LIMIT_WINDOW=15     # Time window in MINUTES
+# RATE_LIMIT_MAX=100       # Max requests in that window
+
+# Database Connection Pooling (Advanced - optional)
+# DB_POOL_MIN=2
+# DB_POOL_MAX=10
 ```
 
 ### Local Development
@@ -289,15 +330,55 @@ edh-stats/
 
 ## Development Notes
 
-### Database
-- Location: `./database/data/edh-stats.db` (or specified via `DATABASE_PATH`)
-- Mode: SQLite with WAL (Write-Ahead Logging) for performance
-- Migrations: Automatically run on server startup (unless in test mode)
-- Foreign Keys: Enabled for data integrity
-- Auto-migrations: Uses `src/database/migrations.sql`
-- Views: 
-  - `user_stats`: Aggregates user-level statistics
-  - `commander_stats`: Aggregates per-commander statistics (commanders with 5+ games shown in dashboard)
+### PostgreSQL Database Setup
+
+#### Connection Details
+- **Database**: PostgreSQL 16 (containerized in Docker)
+- **Connection Library**: Node.js `pg` library (async/await)
+- **Host**: postgres (configurable via `DB_HOST`)
+- **Port**: 5432 (configurable via `DB_PORT`)
+- **Name**: edh_stats (configurable via `DB_NAME`)
+- **User**: postgres (configured via `DB_USER`)
+- **Connection Pool**: Automatic pooling (configurable via `DB_POOL_MIN`/`DB_POOL_MAX`)
+
+#### Migrations & Schema
+- **Auto-migrations**: Database schema automatically created on server startup
+- **Migration File**: `src/database/migrations.sql`
+- **Seed Data**: Optional test data can be seeded via `DB_SEED=true`
+- **Foreign Keys**: Enabled for data integrity
+
+#### Database Objects
+- **Tables**: users, commanders, games, user_stats (summary)
+- **Views**: 
+  - `user_stats`: Aggregates user-level statistics (total games, win rate, etc.)
+  - `commander_stats`: Aggregates per-commander statistics (shown for commanders with 5+ games)
+- **JSONB Fields**:
+  - `commanders.colors`: Color identity array stored as JSONB
+  - Automatically parsed by pg driver - no JSON.parse() needed in code
+
+#### Tips & Common Operations
+
+**Reset Database**
+```bash
+# Remove PostgreSQL volume to reset all data
+docker compose down -v
+docker compose up -d
+```
+
+**View Database Directly**
+```bash
+# Connect to PostgreSQL container
+docker compose exec postgres psql -U postgres -d edh_stats
+
+# List tables
+\dt
+
+# Exit
+\q
+```
+
+**Check Connection Pool Status**
+The application logs connection pool info at startup. To debug connection issues, set `LOG_LEVEL=debug` to see detailed connection logging.
 
 ### Frontend State Management
 - Alpine.js components handle all state management
@@ -327,7 +408,29 @@ edh-stats/
 
 ## Recent Changes & Fixes
 
-### Latest Updates (Session 2)
+### Latest Updates (Session 3 - PostgreSQL Migration)
+
+#### Major: SQLite → PostgreSQL Migration ✅
+- **Database**: Migrated from SQLite (better-sqlite3) to PostgreSQL 16
+- **Async/Await**: Converted all database operations to async/await pattern
+- **Connection Pooling**: Uses pg library with automatic connection pooling
+- **JSONB Support**: Color arrays now stored as PostgreSQL JSONB type (auto-parsed by pg driver)
+- **No Breaking Changes**: Fully backward compatible with existing frontend
+
+#### Rate Limiting & Logging
+- **Global Rate Limiting**: Configurable via `RATE_LIMIT_WINDOW` (minutes) and `RATE_LIMIT_MAX` (requests)
+- **Default**: 100 requests per 15 minutes (per IP address)
+- **Per-Endpoint Limits**: Individual endpoints have their own stricter limits
+- **Request Logging**: Comprehensive request/response logging at debug level
+- **Logs Include**: Method, URL, IP, status code, response time
+
+#### Environment Variables
+- **All configuration**: Centralized in `.env` file
+- **PostgreSQL Connection**: `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, `DB_PASSWORD`
+- **Rate Limiting**: `RATE_LIMIT_WINDOW`, `RATE_LIMIT_MAX` (optional)
+- **Logging**: `LOG_LEVEL` (debug, info, warn, error)
+
+### Previous Updates (Session 2)
 - **Top Commanders Display**: Fixed filtering to show all commanders with 5+ games, sorted by most-played first
 - **Game Notes UI**: Expanded textarea width to full width with improved sizing (5 rows)
 - **Data Consistency**: Fixed camelCase/snake_case field naming throughout API and frontend

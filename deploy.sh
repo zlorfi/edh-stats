@@ -256,7 +256,6 @@ generate_deployment_config() {
 # GitHub User: ${GITHUB_USER}
 #
      # IMPORTANT: Create a .env file with these variables:
-     #   DB_HOST=postgres
      #   DB_PORT=5432
      #   DB_NAME=edh_stats
      #   DB_USER=postgres
@@ -317,10 +316,7 @@ services:
           - DB_HOST=\${DB_HOST:-postgres}
           - DB_PORT=\${DB_PORT:-5432}
           - DB_NAME=\${DB_NAME}
-          - DB_USER=\${DB_USER:-postgres}
           - DB_PASSWORD=\${DB_PASSWORD}
-          # Set DB_SEED=true to automatically seed database with sample data after migrations
-          - DB_SEED=\${DB_SEED:-false}
        command: node src/database/migrate.js migrate
        networks:
          - edh-stats-network
@@ -338,7 +334,6 @@ services:
         - DB_HOST=\${DB_HOST:-postgres}
         - DB_PORT=\${DB_PORT:-5432}
         - DB_NAME=\${DB_NAME}
-        - DB_USER=\${DB_USER:-postgres}
         - DB_PASSWORD=\${DB_PASSWORD}
         - JWT_SECRET=\${JWT_SECRET}
         - CORS_ORIGIN=\${CORS_ORIGIN:-https://yourdomain.com}
