@@ -54,53 +54,40 @@ class DatabaseManager {
     }
   }
 
-  async runMigrations() {
-    const client = await this.pool.connect()
-    try {
-      const migrationPath = join(__dirname, '../database/migrations.sql')
-      const migrationSQL = readFileSync(migrationPath, 'utf8')
+   async runMigrations() {
+     const client = await this.pool.connect()
+     try {
+       const migrationPath = join(__dirname, '../database/migrations.sql')
+       const migrationSQL = readFileSync(migrationPath, 'utf8')
 
-      // Split migrations by semicolon and execute each one
-      const statements = migrationSQL
-        .split(';')
-        .map(s => s.trim())
-        .filter(s => s.length > 0 && !s.startsWith('--'))
+       // Execute the entire migration file as a single query
+       // This is safer for complex SQL with functions and views
+       await client.query(migrationSQL)
+       console.log('Database migrations completed')
+     } catch (error) {
+       console.error('Failed to run migrations:', error)
+       throw error
+     } finally {
+       client.release()
+     }
+   }
 
-      for (const statement of statements) {
-        await client.query(statement)
-      }
-      console.log('Database migrations completed')
-    } catch (error) {
-      console.error('Failed to run migrations:', error)
-      throw error
-    } finally {
-      client.release()
-    }
-  }
+   async seedData() {
+     const client = await this.pool.connect()
+     try {
+       const seedPath = join(__dirname, '../database/seeds.sql')
+       const seedSQL = readFileSync(seedPath, 'utf8')
 
-  async seedData() {
-    const client = await this.pool.connect()
-    try {
-      const seedPath = join(__dirname, '../database/seeds.sql')
-      const seedSQL = readFileSync(seedPath, 'utf8')
-
-      // Split seeds by semicolon and execute each one
-      const statements = seedSQL
-        .split(';')
-        .map(s => s.trim())
-        .filter(s => s.length > 0 && !s.startsWith('--'))
-
-      for (const statement of statements) {
-        await client.query(statement)
-      }
-      console.log('Database seeding completed')
-    } catch (error) {
-      console.error('Failed to seed database:', error)
-      throw error
-    } finally {
-      client.release()
-    }
-  }
+       // Execute the entire seed file as a single query
+       await client.query(seedSQL)
+       console.log('Database seeding completed')
+     } catch (error) {
+       console.error('Failed to seed database:', error)
+       throw error
+     } finally {
+       client.release()
+     }
+   }
 
   async close() {
     if (this.pool) {

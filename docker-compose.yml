@@ -5,8 +5,7 @@ services:
     image: postgres:16-alpine
     container_name: edh-stats-postgres
     environment:
-      # Note: POSTGRES_USER defaults to 'postgres' if not specified
-      # POSTGRES_PASSWORD sets the password for the default 'postgres' user
+      - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=edh_password
       - POSTGRES_DB=edh_stats
     ports:
@@ -15,13 +14,18 @@ services:
       - postgres_data:/var/lib/postgresql/data
       - ./backend/init-db:/docker-entrypoint-initdb.d
     healthcheck:
-      test: ['CMD-SHELL', 'pg_isready -U postgres -h localhost']
+      test: ['CMD-SHELL', 'PGPASSWORD=edh_password pg_isready -U postgres -h localhost']
       interval: 10s
       timeout: 5s
       retries: 5
     networks:
       - edh-stats-network
     restart: unless-stopped
+    # Allow connections from the Docker network
+    command: 
+      - "postgres"
+      - "-c"
+      - "listen_addresses=*"
 
   # Database migration service - runs once on startup
   db-migrate:
