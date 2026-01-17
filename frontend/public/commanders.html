@@ -9,7 +9,7 @@
       content="Manage your Magic: The Gathering EDH/Commander decks"
     />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-        <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="/css/styles.css" />
   </head>
   <body class="h-full" x-data="commanderManager()">
@@ -322,11 +322,11 @@
                 <p class="text-sm text-gray-600">Avg Rounds</p>
               </div>
               <div class="text-center">
+                <p class="text-xs text-gray-500">Added</p>
                 <p
                   class="text-sm text-gray-400"
                   x-text="formatDate(commander.createdAt)"
                 ></p>
-                <p class="text-xs text-gray-500">Added</p>
               </div>
             </div>
           </div>
@@ -505,13 +505,14 @@
       </div>
     </main>
 
-     <!-- Scripts -->    <script
-       defer
-       src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"
-     ></script>
-     <script src="/js/auth-guard.js"></script>
-     <script src="/js/app.js"></script>
-     <script src="/js/commanders.js"></script>
-     <script src="/js/footer-loader.js"></script>
+    <!-- Scripts -->
+    <script
+      defer
+      src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"
+    ></script>
+    <script src="/js/auth-guard.js"></script>
+    <script src="/js/app.js"></script>
+    <script src="/js/commanders.js"></script>
+    <script src="/js/footer-loader.js"></script>
   </body>
 </html>
