@@ -255,7 +255,9 @@ generate_deployment_config() {
 # Generated: $(date -u +'%Y-%m-%dT%H:%M:%SZ')
 # GitHub User: ${GITHUB_USER}
 #
-# IMPORTANT: Create a .env file with these variables:
+# IMPORTANT: Prerequisites
+#   - Traefik must be running with 'traefik-network' created
+#   - Create a .env file with these variables:
 #   DB_NAME=edh_stats
 #   DB_USER=postgres
 #   DB_PASSWORD=\$(openssl rand -base64 32)
@@ -266,10 +268,12 @@ generate_deployment_config() {
 #   DB_SEED=false
 #
 # FIRST TIME SETUP:
-# 1. Create .env file with above variables
-# 2. Run: docker-compose -f docker-compose.prod.deployed.yml up -d
-# 3. Database migrations will run automatically via db-migrate service
-# 4. Monitor logs: docker-compose logs -f db-migrate
+# 1. Ensure Traefik is running and traefik-network exists
+# 2. Update frontend domain in labels (edh.example.com -> yourdomain.com)
+# 3. Create .env file with above variables
+# 4. Run: docker-compose -f docker-compose.prod.deployed.yml up -d
+# 5. Database migrations will run automatically via db-migrate service
+# 6. Monitor logs: docker-compose logs -f db-migrate
 
 services:
   # PostgreSQL database service
@@ -280,7 +284,7 @@ services:
       - POSTGRES_PASSWORD=\${DB_PASSWORD}
       - POSTGRES_DB=\${DB_NAME}
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - ./postgres_data:/var/lib/postgresql/data
     healthcheck:
       test: ['CMD-SHELL', 'PGPASSWORD=\${DB_PASSWORD} pg_isready -U postgres -h localhost']
       interval: 10s
@@ -353,9 +357,6 @@ services:
 
   frontend:
     image: ${FRONTEND_IMAGE}
-    ports:
-      - '38080:80'
-      - '30443:443'
     restart: unless-stopped
     healthcheck:
       test:
@@ -367,8 +368,23 @@ services:
       retries: 5
     networks:
       - edh-stats-network
+      - traefik-network
     depends_on:
       - backend
+    labels:
+      # Enable Traefik discovery for this service
+      - traefik.enable=true
+      # Routing rule - change edh.example.com to your domain
+      - traefik.http.routers.edh-stats-frontend.rule=Host(\`edh.zlor.fi\`)
+      # Entry points: web (HTTP) and websecure (HTTPS)
+      - traefik.http.routers.edh-stats-frontend.entrypoints=web,websecure
+      # Service configuration
+      - traefik.http.routers.edh-stats-frontend.service=edh-stats-frontend
+      # Backend port (nginx internal port)
+      - traefik.http.services.edh-stats-frontend.loadbalancer.server.port=80
+      # Enable TLS with Let's Encrypt
+      - traefik.http.routers.edh-stats-frontend.tls=true
+      - traefik.http.routers.edh-stats-frontend.tls.certresolver=letsencrypt
     deploy:
       resources:
         limits:
@@ -385,6 +401,10 @@ volumes:
 networks:
   edh-stats-network:
     driver: bridge
+
+  traefik-network:
+    external: true
+    name: traefik-network
 
 x-dockge:
   urls:

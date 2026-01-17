@@ -11,6 +11,8 @@ services:
     volumes:
       - ./postgres_data:/var/lib/postgresql/data
       - ./backend/init-db:/docker-entrypoint-initdb.d
+      - ./scripts:/scripts:ro
+      - ./backups:/backups
     healthcheck:
       test:
         [
