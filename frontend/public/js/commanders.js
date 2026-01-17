@@ -193,18 +193,26 @@ function commanderManager() {
           }
         )
 
-        if (response.ok) {
-          const data = await response.json()
-          const index = this.commanders.findIndex(
-            (c) => c.id === this.editingCommander.id
-          )
-          if (index !== -1) {
-            this.commanders[index] = data.commander
-          }
-          this.cancelEdit()
-        } else {
-          this.serverError = 'Failed to update commander'
-        }
+         if (response.ok) {
+           const data = await response.json()
+           const index = this.commanders.findIndex(
+             (c) => c.id === this.editingCommander.id
+           )
+           if (index !== -1) {
+             this.commanders[index] = data.commander
+           }
+           this.cancelEdit()
+         } else {
+           const errorData = await response.json()
+           // Format validation errors if they exist
+           if (errorData.details && Array.isArray(errorData.details)) {
+             this.serverError = errorData.details
+               .map((err) => err.message || err)
+               .join(', ')
+           } else {
+             this.serverError = errorData.message || 'Failed to update commander'
+           }
+         }
       } catch (error) {
         console.error('Update commander error:', error)
         this.serverError = 'Network error occurred'

@@ -477,32 +477,58 @@
                 </div>
               </div>
 
-              <!-- Form Actions -->
-              <div class="flex justify-end space-x-4">
-                <button
-                  type="button"
-                  @click="cancelEdit()"
-                  class="btn btn-secondary"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  :disabled="editSubmitting"
-                  class="btn btn-primary"
-                >
-                  <span x-show="!editSubmitting">Update Commander</span>
-                  <span
-                    x-show="editSubmitting"
-                    class="loading-spinner w-5 h-5 mr-2 inline-block align-middle"
-                  ></span>
-                  <span x-show="editSubmitting">Updating...</span>
-                </button>
-              </div>
-            </form>
-          </div>
-        </template>
-      </div>
+               <!-- Form Actions -->
+               <div class="flex justify-end space-x-4">
+                 <button
+                   type="button"
+                   @click="cancelEdit()"
+                   class="btn btn-secondary"
+                 >
+                   Cancel
+                 </button>
+                 <button
+                   type="submit"
+                   :disabled="editSubmitting"
+                   class="btn btn-primary"
+                 >
+                   <span x-show="!editSubmitting">Update Commander</span>
+                   <span
+                     x-show="editSubmitting"
+                     class="loading-spinner w-5 h-5 mr-2 inline-block align-middle"
+                   ></span>
+                   <span x-show="editSubmitting">Updating...</span>
+                 </button>
+               </div>
+
+               <!-- Error Message -->
+               <div
+                 x-show="serverError"
+                 x-transition
+                 class="rounded-md bg-red-50 p-4 mt-4"
+               >
+                 <div class="flex">
+                   <div class="flex-shrink-0">
+                     <svg
+                       class="h-5 w-5 text-red-400"
+                       viewBox="0 0 20 20"
+                       fill="currentColor"
+                     >
+                       <path
+                         fill-rule="evenodd"
+                         d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+                         clip-rule="evenodd"
+                       />
+                     </svg>
+                   </div>
+                   <div class="ml-3">
+                     <p class="text-sm text-red-800" x-text="serverError"></p>
+                   </div>
+                 </div>
+               </div>
+             </form>
+           </div>
+         </template>
+       </div>
     </main>
 
     <!-- Scripts -->
