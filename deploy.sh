@@ -259,12 +259,13 @@ generate_deployment_config() {
      #   DB_HOST=postgres
      #   DB_PORT=5432
      #   DB_NAME=edh_stats
+     #   DB_USER=postgres
      #   DB_PASSWORD=\$(openssl rand -base64 32)
      #   JWT_SECRET=\$(openssl rand -base64 32)
      #   CORS_ORIGIN=https://yourdomain.com
+     #   LOG_LEVEL=warn
      #   ALLOW_REGISTRATION=false
-     #
-     # Note: DB_USER defaults to 'postgres' (PostgreSQL superuser)
+     #   DB_SEED=false
 #
 # FIRST TIME SETUP:
 # 1. Create .env file with above variables
@@ -273,17 +274,19 @@ generate_deployment_config() {
 # 4. Monitor logs: docker-compose logs -f db-migrate
 
 services:
-   # PostgreSQL database service
-   postgres:
-     image: postgres:16-alpine
-     environment:
-       - POSTGRES_USER=postgres
-       - POSTGRES_PASSWORD=\${DB_PASSWORD}
-       - POSTGRES_DB=\${DB_NAME}
-     volumes:
-       - postgres_data:/var/lib/postgresql/data
-     healthcheck:
-       test: ['CMD-SHELL', 'PGPASSWORD=\${DB_PASSWORD} pg_isready -U postgres -h localhost']
+    # PostgreSQL database service
+    postgres:
+      image: postgres:16-alpine
+      environment:
+        - POSTGRES_USER=postgres
+        - POSTGRES_PASSWORD=\${DB_PASSWORD}
+        - POSTGRES_DB=\${DB_NAME}
+      ports:
+        - '\${DB_PORT:-5432}:5432'
+      volumes:
+        - postgres_data:/var/lib/postgresql/data
+      healthcheck:
+        test: ['CMD-SHELL', 'PGPASSWORD=\${DB_PASSWORD} pg_isready -U postgres -h localhost']
        interval: 10s
        timeout: 5s
        retries: 5
@@ -303,46 +306,44 @@ services:
            memory: 256M
            cpus: '0.25'
 
-     # Database migration service - runs once on startup
-     db-migrate:
-       image: ${BACKEND_IMAGE}
-       depends_on:
-         postgres:
-           condition: service_healthy
-       environment:
-         - NODE_ENV=production
-         - DB_HOST=postgres
-         - DB_PORT=5432
-         - DB_NAME=\${DB_NAME}
-         - DB_USER=postgres
-         - DB_PASSWORD=\${DB_PASSWORD}
-         # Set DB_SEED=true to automatically seed database with sample data after migrations
-         - DB_SEED=\${DB_SEED:-false}
+      # Database migration service - runs once on startup
+      db-migrate:
+        image: ${BACKEND_IMAGE}
+        depends_on:
+          postgres:
+            condition: service_healthy
+        environment:
+          - NODE_ENV=production
+          - DB_HOST=\${DB_HOST:-postgres}
+          - DB_PORT=\${DB_PORT:-5432}
+          - DB_NAME=\${DB_NAME}
+          - DB_USER=\${DB_USER:-postgres}
+          - DB_PASSWORD=\${DB_PASSWORD}
+          # Set DB_SEED=true to automatically seed database with sample data after migrations
+          - DB_SEED=\${DB_SEED:-false}
        command: node src/database/migrate.js migrate
        networks:
          - edh-stats-network
        restart: 'no'
 
-   backend:
-     image: ${BACKEND_IMAGE}
-     ports:
-       - '3002:3000'
-     depends_on:
-       db-migrate:
-         condition: service_completed_successfully
-     environment:
-       - NODE_ENV=production
-       - DB_HOST=postgres
-       - DB_PORT=5432
-       - DB_NAME=\${DB_NAME}
-       - DB_USER=postgres
-       - DB_PASSWORD=\${DB_PASSWORD}
-       - JWT_SECRET=\${JWT_SECRET}
-       - CORS_ORIGIN=\${CORS_ORIGIN:-https://yourdomain.com}
-       - LOG_LEVEL=warn
-       - RATE_LIMIT_WINDOW=15
-       - RATE_LIMIT_MAX=100
-       - ALLOW_REGISTRATION=\${ALLOW_REGISTRATION:-false}
+    backend:
+      image: ${BACKEND_IMAGE}
+      ports:
+        - '3002:3000'
+      depends_on:
+        db-migrate:
+          condition: service_completed_successfully
+      environment:
+        - NODE_ENV=production
+        - DB_HOST=\${DB_HOST:-postgres}
+        - DB_PORT=\${DB_PORT:-5432}
+        - DB_NAME=\${DB_NAME}
+        - DB_USER=\${DB_USER:-postgres}
+        - DB_PASSWORD=\${DB_PASSWORD}
+        - JWT_SECRET=\${JWT_SECRET}
+        - CORS_ORIGIN=\${CORS_ORIGIN:-https://yourdomain.com}
+        - LOG_LEVEL=\${LOG_LEVEL:-warn}
+        - ALLOW_REGISTRATION=\${ALLOW_REGISTRATION:-false}
     restart: unless-stopped
     deploy:
       resources:
