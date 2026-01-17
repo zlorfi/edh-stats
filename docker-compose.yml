@@ -17,7 +17,7 @@ services:
       test:
         [
           'CMD-SHELL',
-          'PGPASSWORD=edh_password pg_isready -U postgres -h localhost'
+          'PGPASSWORD=${DB_PASSWORD:-edh_password} pg_isready -U postgres -h localhost'
         ]
       interval: 10s
       timeout: 5s
