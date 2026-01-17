@@ -121,7 +121,7 @@
                       x-text="stat.name"
                     ></div>
                     <div class="flex space-x-1 mt-1">
-                      <template x-for="color in JSON.parse(stat.colors)">
+                      <template x-for="color in stat.colors">
                         <div
                           class="w-3 h-3 rounded-sm"
                           :class="'color-' + color.toLowerCase()"

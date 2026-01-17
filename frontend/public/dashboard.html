@@ -276,7 +276,7 @@
                 <div class="flex items-center space-x-4">
                   <div class="flex space-x-1">
                     <template
-                      x-for="color in (typeof commander.colors === 'string' ? (commander.colors.startsWith('[') ? JSON.parse(commander.colors) : commander.colors.split(',').map(c => c.trim())) : (Array.isArray(commander.colors) ? commander.colors : []))"
+                      x-for="color in commander.colors"
                       :key="color"
                     >
                       <div
