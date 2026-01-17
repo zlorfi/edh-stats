@@ -55,35 +55,53 @@ export default async function gameRoutes(fastify, options) {
         }
       ]
     },
-    async (request, reply) => {
-      try {
-         const { q, limit, offset } = gameQuerySchema.parse(request.query)
-         const userId = request.user.id
+     async (request, reply) => {
+       try {
+          const { q, limit, offset } = gameQuerySchema.parse(request.query)
+          const userId = request.user.id
 
-         const filters = {}
-         if (q) {
-           filters.commander = q
-         }
-
-         let games = await gameRepo.getGamesByUserId(userId, limit, offset, filters)
-
-        reply.send({
-          games,
-          pagination: {
-            total: games.length,
-            page: Math.floor(limit / 20) + 1,
-            limit,
-            offset
+          const filters = {}
+          if (q) {
+            filters.commander = q
           }
-        })
-      } catch (error) {
-        fastify.log.error('Get games error:', error)
-        reply.code(500).send({
-          error: 'Internal Server Error',
-          message: 'Failed to fetch games'
-        })
-      }
-    }
+
+          let games = await gameRepo.getGamesByUserId(userId, limit, offset, filters)
+
+          // Transform database results to camelCase with commander info
+          const transformedGames = games.map((game) => ({
+            id: game.id,
+            date: new Date(game.date).toLocaleDateString('en-US'),
+            playerCount: game.player_count,
+            commanderId: game.commander_id,
+            won: game.won,
+            rounds: game.rounds,
+            startingPlayerWon: game.starting_player_won,
+            solRingTurnOneWon: game.sol_ring_turn_one_won,
+            notes: game.notes || null,
+            commanderName: game.name,
+            commanderColors: game.colors || [],
+            userId: game.user_id,
+            createdAt: game.created_at,
+            updatedAt: game.updated_at
+          }))
+
+         reply.send({
+           games: transformedGames,
+           pagination: {
+             total: transformedGames.length,
+             page: Math.floor(limit / 20) + 1,
+             limit,
+             offset
+           }
+         })
+       } catch (error) {
+         fastify.log.error('Get games error:', error)
+         reply.code(500).send({
+           error: 'Internal Server Error',
+           message: 'Failed to fetch games'
+         })
+       }
+     }
   )
 
   // Get specific game
@@ -118,24 +136,23 @@ export default async function gameRoutes(fastify, options) {
           return
         }
 
-        reply.send({
-            game: {
-              id: game.id,
-              date: new Date(game.date).toLocaleDateString('en-US'),
-              playerCount: game.player_count,
-              commanderId: game.commander_id,
-              won: game.won,
-              rounds: game.rounds,
-              startingPlayerWon: game.starting_player_won,
-              solRingTurnOneWon: game.sol_ring_turn_one_won,
-              notes: game.notes || null,
-              commanderName: game.commander_name,
-              commanderColors: game.commander_colors || [],
-              userId: game.user_id,
-              createdAt: game.created_at,
-              updatedAt: game.updated_at
-            }
-          })
+         reply.send({
+             game: {
+               id: game.id,
+               date: new Date(game.date).toLocaleDateString('en-US'),
+               playerCount: game.player_count,
+               commanderId: game.commander_id,
+               won: game.won,
+               rounds: game.rounds,
+               startingPlayerWon: game.starting_player_won,
+               solRingTurnOneWon: game.sol_ring_turn_one_won,
+               notes: game.notes || null,
+               commanderName: game.commander_name,
+               commanderColors: game.commander_colors || [],
+               createdAt: game.created_at,
+               updatedAt: game.updated_at
+             }
+           })
       } catch (error) {
         fastify.log.error('Get game error:', error)
         reply.code(500).send({
@@ -182,27 +199,29 @@ export default async function gameRoutes(fastify, options) {
             user_id: userId
           }
 
-          const game = await gameRepo.createGame(gameData)
+           const game = await gameRepo.createGame(gameData)
+           
+           // Fetch the game with commander details
+           const gameWithCommander = await gameRepo.getGameById(game.id, userId)
 
-          reply.code(201).send({
-            message: 'Game logged successfully',
-            game: {
-              id: game.id,
-              date: new Date(game.date).toLocaleDateString('en-US'),
-              playerCount: game.player_count,
-              commanderId: game.commander_id,
-              won: game.won,
-              rounds: game.rounds,
-              startingPlayerWon: game.starting_player_won,
-              solRingTurnOneWon: game.sol_ring_turn_one_won,
-              notes: game.notes || null,
-              commanderName: game.commander_name,
-              commanderColors: game.commander_colors || [],
-              userId: game.user_id,
-              createdAt: game.created_at,
-              updatedAt: game.updated_at
-            }
-          })
+           reply.code(201).send({
+             message: 'Game logged successfully',
+             game: {
+               id: gameWithCommander.id,
+               date: new Date(gameWithCommander.date).toLocaleDateString('en-US'),
+               playerCount: gameWithCommander.player_count,
+               commanderId: gameWithCommander.commander_id,
+               won: gameWithCommander.won,
+               rounds: gameWithCommander.rounds,
+               startingPlayerWon: gameWithCommander.starting_player_won,
+               solRingTurnOneWon: gameWithCommander.sol_ring_turn_one_won,
+               notes: gameWithCommander.notes || null,
+               commanderName: gameWithCommander.commander_name,
+               commanderColors: gameWithCommander.commander_colors || [],
+               createdAt: gameWithCommander.created_at,
+               updatedAt: gameWithCommander.updated_at
+             }
+           })
       } catch (error) {
         if (error instanceof z.ZodError) {
           reply.code(400).send({
@@ -272,25 +291,24 @@ export default async function gameRoutes(fastify, options) {
 
          const game = await gameRepo.getGameById(id, userId)
 
-           reply.send({
-             message: 'Game updated successfully',
-            game: {
-              id: game.id,
-              date: new Date(game.date).toLocaleDateString('en-US'),
-              playerCount: game.player_count,
-              commanderId: game.commander_id,
-              won: game.won,
-              rounds: game.rounds,
-              startingPlayerWon: game.starting_player_won,
-              solRingTurnOneWon: game.sol_ring_turn_one_won,
-              notes: game.notes || null,
-              commanderName: game.commander_name,
-              commanderColors: game.commander_colors || [],
-              userId: game.user_id,
-              createdAt: game.created_at,
-              updatedAt: game.updated_at
-            }
-          })
+            reply.send({
+              message: 'Game updated successfully',
+             game: {
+               id: game.id,
+               date: new Date(game.date).toLocaleDateString('en-US'),
+               playerCount: game.player_count,
+               commanderId: game.commander_id,
+               won: game.won,
+               rounds: game.rounds,
+               startingPlayerWon: game.starting_player_won,
+               solRingTurnOneWon: game.sol_ring_turn_one_won,
+               notes: game.notes || null,
+               commanderName: game.commander_name,
+               commanderColors: game.commander_colors || [],
+               createdAt: game.created_at,
+               updatedAt: game.updated_at
+             }
+           })
       } catch (error) {
         if (error instanceof z.ZodError) {
           reply.code(400).send({
