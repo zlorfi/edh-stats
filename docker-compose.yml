@@ -5,15 +5,16 @@ services:
     image: postgres:16-alpine
     container_name: edh-stats-postgres
     environment:
-      - POSTGRES_USER=edh_user
-      - POSTGRES_PASSWORD=edh_password
-      - POSTGRES_DB=edh_stats
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_INITDB_ARGS=-U postgres
     ports:
       - '5432:5432'
     volumes:
       - postgres_data:/var/lib/postgresql/data
+      - ./backend/init-db:/docker-entrypoint-initdb.d
     healthcheck:
-      test: ['CMD-SHELL', 'pg_isready -U edh_user -d edh_stats']
+      test: ['CMD-SHELL', 'pg_isready -U postgres -h localhost']
       interval: 10s
       timeout: 5s
       retries: 5
@@ -36,8 +37,8 @@ services:
       - DB_HOST=postgres
       - DB_PORT=5432
       - DB_NAME=edh_stats
-      - DB_USER=edh_user
-      - DB_PASSWORD=edh_password
+      - DB_USER=postgres
+      - DB_PASSWORD=postgres
     command: node src/database/migrate.js migrate
     networks:
       - edh-stats-network
@@ -60,8 +61,8 @@ services:
       - DB_HOST=postgres
       - DB_PORT=5432
       - DB_NAME=edh_stats
-      - DB_USER=edh_user
-      - DB_PASSWORD=edh_password
+      - DB_USER=postgres
+      - DB_PASSWORD=postgres
       - JWT_SECRET=dev-jwt-secret-key-change-in-production
       - CORS_ORIGIN=http://localhost
       - LOG_LEVEL=info
