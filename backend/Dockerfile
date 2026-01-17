@@ -10,7 +10,7 @@ WORKDIR /app
 
 # Copy dependency files first for better layer caching
 COPY package*.json ./
-RUN npm ci --only=production && npm cache clean --force
+RUN npm ci --omit=dev && npm cache clean --force
 
 # Copy source code
 COPY . .
