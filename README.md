@@ -171,15 +171,15 @@ Key environment variables you can configure in `.env`:
 
 ```env
 # PostgreSQL Database Configuration
-DB_HOST=localhost
-DB_PORT=5432
-DB_NAME=edh_stats
-DB_USER=postgres
-DB_PASSWORD=edh_password
+DB_HOST=localhost                    # Database server hostname/IP
+DB_NAME=edh_stats                    # Database name
+DB_USER=postgres                     # Database user (must be superuser for migrations)
+DB_PASSWORD=edh_password             # Database password (MUST be changed in production)
+# PostgreSQL always uses standard port 5432 (not configurable)
 
 # Application Configuration
-NODE_ENV=development
-LOG_LEVEL=info
+NODE_ENV=development                 # Set to 'production' in production
+LOG_LEVEL=info                       # Log level: debug, info, warn, error
 
 # Security
 JWT_SECRET=your-super-secure-jwt-secret-key-change-this-in-production
@@ -191,8 +191,11 @@ CORS_ORIGIN=http://localhost:80
 ALLOW_REGISTRATION=true
 
 # Rate Limiting (optional - default: 100 requests per 15 minutes)
-# RATE_LIMIT_WINDOW=15     # Time window in MINUTES
-# RATE_LIMIT_MAX=100       # Max requests in that window
+RATE_LIMIT_WINDOW=15                 # Time window in MINUTES
+RATE_LIMIT_MAX=100                   # Max requests per window
+
+# Database Seeding (optional - for development only)
+DB_SEED=false                        # Set to 'true' to auto-seed sample data on startup
 
 # Database Connection Pooling (Advanced - optional)
 # DB_POOL_MIN=2
@@ -248,12 +251,12 @@ edh-stats/
 │   ├── tailwind.config.js  # Tailwind configuration
 │   ├── package.json        # Node.js dependencies
 │   └── Dockerfile
-├── database/               # Persisted SQLite data
+├── postgres_data/          # Persisted PostgreSQL data (Docker volume)
 ├── docs/                   # Documentation
 ├── FIXES.md                # Detailed list of fixes applied
 ├── FEATURES.md             # Feature documentation
 ├── docker-compose.yml      # Development orchestration
-├── docker-compose.prod.yml # Production orchestration
+├── deploy.sh               # Production deployment script
 └── README.md
 ```
 
@@ -336,7 +339,7 @@ edh-stats/
 - **Database**: PostgreSQL 16 (containerized in Docker)
 - **Connection Library**: Node.js `pg` library (async/await)
 - **Host**: postgres (configurable via `DB_HOST`)
-- **Port**: 5432 (configurable via `DB_PORT`)
+- **Port**: 5432 (PostgreSQL standard port, not configurable)
 - **Name**: edh_stats (configurable via `DB_NAME`)
 - **User**: postgres (configured via `DB_USER`)
 - **Connection Pool**: Automatic pooling (configurable via `DB_POOL_MIN`/`DB_POOL_MAX`)
@@ -408,7 +411,7 @@ The application logs connection pool info at startup. To debug connection issues
 
 ## Recent Changes & Fixes
 
-### Latest Updates (Session 3 - PostgreSQL Migration)
+### Latest Updates (Session 3 - PostgreSQL Migration & Refinements)
 
 #### Major: SQLite → PostgreSQL Migration ✅
 - **Database**: Migrated from SQLite (better-sqlite3) to PostgreSQL 16
@@ -417,6 +420,12 @@ The application logs connection pool info at startup. To debug connection issues
 - **JSONB Support**: Color arrays now stored as PostgreSQL JSONB type (auto-parsed by pg driver)
 - **No Breaking Changes**: Fully backward compatible with existing frontend
 
+#### Configuration Simplification
+- **Removed DB_PORT**: Now uses PostgreSQL standard port 5432 (not configurable)
+- **Cleaner Environment**: Only essential variables need configuration
+- **Security**: PostgreSQL port no longer exposed to host network
+- **Simplified Docs**: Better clarity on what settings are configurable vs. standard
+
 #### Rate Limiting & Logging
 - **Global Rate Limiting**: Configurable via `RATE_LIMIT_WINDOW` (minutes) and `RATE_LIMIT_MAX` (requests)
 - **Default**: 100 requests per 15 minutes (per IP address)
@@ -424,11 +433,12 @@ The application logs connection pool info at startup. To debug connection issues
 - **Request Logging**: Comprehensive request/response logging at debug level
 - **Logs Include**: Method, URL, IP, status code, response time
 
-#### Environment Variables
+#### Environment Variables (Simplified)
 - **All configuration**: Centralized in `.env` file
-- **PostgreSQL Connection**: `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, `DB_PASSWORD`
+- **PostgreSQL Connection**: `DB_HOST`, `DB_NAME`, `DB_USER`, `DB_PASSWORD` (port is standard 5432)
 - **Rate Limiting**: `RATE_LIMIT_WINDOW`, `RATE_LIMIT_MAX` (optional)
 - **Logging**: `LOG_LEVEL` (debug, info, warn, error)
+- **Database Seeding**: `DB_SEED` (optional, for development)
 
 ### Previous Updates (Session 2)
 - **Top Commanders Display**: Fixed filtering to show all commanders with 5+ games, sorted by most-played first
