@@ -15,6 +15,7 @@ yarn-error.log*
 *.sqlite
 *.sqlite3
 database/data/*
+postgres_data
 
 # Logs
 logs

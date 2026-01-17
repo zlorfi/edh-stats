@@ -1,49 +1,117 @@
 // Authentication routes
 import { z } from 'zod'
-import User from '../models/User.js'
+import UserRepository from '../repositories/UserRepository.js'
 import { registrationConfig } from '../config/jwt.js'
+import {
+  validatePasswordStrength,
+  isNotReservedUsername,
+  isNotDisposableEmail,
+  formatValidationErrors,
+  createErrorResponse
+} from '../utils/validators.js'
 
-// Validation schemas
+// Validation schemas with enhanced validation
 const registerSchema = z.object({
   username: z
-    .string()
-    .min(3)
-    .max(50)
-    .regex(/^[a-zA-Z0-9_-]+$/, {
-      message:
-        'Username can only contain letters, numbers, underscores, and hyphens'
-    }),
-  password: z.string().min(8).max(100),
-  email: z.string().email().optional()
-})
-
-const loginSchema = z.object({
-  username: z.string().min(1),
-  password: z.string().min(1),
-  remember: z.boolean().optional().default(false)
-})
-
-const changePasswordSchema = z.object({
-  currentPassword: z.string().min(1),
-  newPassword: z.string().min(8).max(100)
-})
-
-const updateProfileSchema = z.object({
-  email: z.string().email().optional()
-})
-
-const updateUsernameSchema = z.object({
-  newUsername: z
-    .string()
-    .min(3)
-    .max(50)
+    .string('Username must be a string')
+    .min(3, 'Username must be at least 3 characters')
+    .max(50, 'Username must be less than 50 characters')
     .regex(/^[a-zA-Z0-9_-]+$/, {
       message:
         'Username can only contain letters, numbers, underscores, and hyphens'
     })
+    .transform((val) => val.toLowerCase().trim())
+    .refine((val) => isNotReservedUsername(val), {
+      message: 'This username is reserved and cannot be used'
+    }),
+  
+  password: z
+    .string('Password must be a string')
+    .min(8, 'Password must be at least 8 characters')
+    .max(100, 'Password must be less than 100 characters')
+    .refine((val) => /(?=.*[a-z])/.test(val), {
+      message: 'Password must contain at least one lowercase letter'
+    })
+    .refine((val) => /(?=.*[A-Z])/.test(val), {
+      message: 'Password must contain at least one uppercase letter'
+    })
+    .refine((val) => /(?=.*\d)/.test(val), {
+      message: 'Password must contain at least one number'
+    }),
+  
+  email: z
+    .string('Email must be a string')
+    .email('Invalid email format')
+    .toLowerCase()
+    .refine((val) => isNotDisposableEmail(val), {
+      message: 'Disposable email addresses are not allowed'
+    })
+    .optional()
+})
+
+const loginSchema = z.object({
+  username: z
+    .string('Username is required')
+    .min(1, 'Username is required')
+    .transform((val) => val.toLowerCase().trim()),
+  
+  password: z
+    .string('Password is required')
+    .min(1, 'Password is required'),
+  
+  remember: z.boolean('Remember must be true or false').optional().default(false)
+})
+
+const changePasswordSchema = z.object({
+  currentPassword: z
+    .string('Current password is required')
+    .min(1, 'Current password is required'),
+  
+  newPassword: z
+    .string('New password must be a string')
+    .min(8, 'New password must be at least 8 characters')
+    .max(100, 'New password must be less than 100 characters')
+    .refine((val) => /(?=.*[a-z])/.test(val), {
+      message: 'Password must contain at least one lowercase letter'
+    })
+    .refine((val) => /(?=.*[A-Z])/.test(val), {
+      message: 'Password must contain at least one uppercase letter'
+    })
+    .refine((val) => /(?=.*\d)/.test(val), {
+      message: 'Password must contain at least one number'
+    })
+})
+
+const updateProfileSchema = z.object({
+  email: z
+    .string('Email must be a string')
+    .email('Invalid email format')
+    .toLowerCase()
+    .refine((val) => isNotDisposableEmail(val), {
+      message: 'Disposable email addresses are not allowed'
+    })
+    .optional()
+})
+
+const updateUsernameSchema = z.object({
+  newUsername: z
+    .string('Username must be a string')
+    .min(3, 'Username must be at least 3 characters')
+    .max(50, 'Username must be less than 50 characters')
+    .regex(/^[a-zA-Z0-9_-]+$/, {
+      message:
+        'Username can only contain letters, numbers, underscores, and hyphens'
+    })
+    .transform((val) => val.toLowerCase().trim())
+    .refine((val) => isNotReservedUsername(val), {
+      message: 'This username is reserved and cannot be used'
+    })
 })
 
 export default async function authRoutes(fastify, options) {
+  // Initialize repository
+  const userRepo = new UserRepository()
+
   // Public endpoint to check if registration is allowed
   fastify.get('/config', async (request, reply) => {
     return {
@@ -61,18 +129,44 @@ export default async function authRoutes(fastify, options) {
       try {
         // Check if registration is allowed
         if (!registrationConfig.allowRegistration) {
-          reply.code(403).send({
+          return reply.code(403).send({
             error: 'Registration Disabled',
             message: 'User registration is currently disabled'
           })
-          return
         }
 
-        // Validate input
+        // LAYER 1: Schema validation
         const validatedData = registerSchema.parse(request.body)
 
+        // LAYER 2: Business logic validation
+        // Check username uniqueness
+        const existingUser = await userRepo.findByUsername(validatedData.username)
+        if (existingUser) {
+          return reply.code(409).send({
+            error: 'Conflict',
+            message: 'Username already taken',
+            details: ['This username is already in use. Please choose another.']
+          })
+        }
+
+        // Check email uniqueness (if provided)
+        if (validatedData.email) {
+          const existingEmail = await userRepo.findByEmail(validatedData.email)
+          if (existingEmail) {
+            return reply.code(409).send({
+              error: 'Conflict',
+              message: 'Email already registered',
+              details: ['This email is already in use. Please use a different email.']
+            })
+          }
+        }
+
         // Create user
-        const user = await User.create(validatedData)
+        const user = await userRepo.createUser(
+          validatedData.username,
+          validatedData.password,
+          validatedData.email
+        )
 
         // Generate JWT token
         const token = await reply.jwtSign(
@@ -97,14 +191,14 @@ export default async function authRoutes(fastify, options) {
         })
       } catch (error) {
         if (error instanceof z.ZodError) {
-          reply.code(400).send({
+          return reply.code(400).send({
             error: 'Validation Error',
             message: 'Invalid input data',
-            details: error.errors.map((e) => e.message)
+            details: formatValidationErrors(error)
           })
         } else if (error.message.includes('already exists')) {
-          reply.code(400).send({
-            error: 'Registration Failed',
+          return reply.code(409).send({
+            error: 'Conflict',
             message: error.message
           })
         } else {
@@ -126,29 +220,30 @@ export default async function authRoutes(fastify, options) {
     },
     async (request, reply) => {
       try {
+        // LAYER 1: Schema validation
         const { username, password } = loginSchema.parse(request.body)
 
-        // Find user
-        const user = await User.findByUsername(username)
+        // LAYER 2: Find user (also serves as authorization check)
+        const user = await userRepo.findByUsername(username)
         if (!user) {
-          reply.code(401).send({
+          // Generic error message to prevent username enumeration
+          return reply.code(401).send({
             error: 'Authentication Failed',
             message: 'Invalid username or password'
           })
-          return
         }
 
         // Verify password
-        const isValidPassword = await User.verifyPassword(
+        const isValidPassword = await userRepo.verifyPassword(
           password,
           user.password_hash
         )
         if (!isValidPassword) {
-          reply.code(401).send({
+          // Generic error message to prevent username enumeration
+          return reply.code(401).send({
             error: 'Authentication Failed',
             message: 'Invalid username or password'
           })
-          return
         }
 
         // Generate JWT token
@@ -198,17 +293,17 @@ export default async function authRoutes(fastify, options) {
       }
     },
     async (request, reply) => {
-      try {
-        await request.jwtVerify()
+       try {
+         await request.jwtVerify()
 
-        const user = await User.findById(request.user.id)
-        if (!user) {
-          reply.code(401).send({
-            error: 'Authentication Failed',
-            message: 'User not found'
-          })
-          return
-        }
+         const user = await userRepo.findById(request.user.id)
+         if (!user) {
+           reply.code(401).send({
+             error: 'Authentication Failed',
+             message: 'User not found'
+           })
+           return
+         }
 
         // Generate new token
         const token = await reply.jwtSign(
@@ -252,24 +347,24 @@ export default async function authRoutes(fastify, options) {
       ]
     },
     async (request, reply) => {
-      try {
-        const user = await User.findById(request.user.id)
-        if (!user) {
-          reply.code(404).send({
-            error: 'Not Found',
-            message: 'User not found'
-          })
-          return
-        }
+       try {
+         const user = await userRepo.findById(request.user.id)
+         if (!user) {
+           reply.code(404).send({
+             error: 'Not Found',
+             message: 'User not found'
+           })
+           return
+         }
 
-        reply.send({
-          user: {
-            id: user.id,
-            username: user.username,
-            email: user.email,
-            createdAt: user.created_at
-          }
-        })
+         reply.send({
+           user: {
+             id: user.id,
+             username: user.username,
+             email: user.email,
+             createdAt: user.created_at
+           }
+         })
       } catch (error) {
         fastify.log.error('Get profile error:', error)
         reply.code(500).send({
@@ -298,20 +393,20 @@ export default async function authRoutes(fastify, options) {
       ]
     },
     async (request, reply) => {
-      try {
-        const validatedData = updateProfileSchema.parse(request.body)
+       try {
+         const validatedData = updateProfileSchema.parse(request.body)
 
-        const updated = await User.updateProfile(request.user.id, validatedData)
+         const updated = await userRepo.updateProfile(request.user.id, validatedData)
 
-        if (!updated) {
-          reply.code(400).send({
-            error: 'Update Failed',
-            message: 'No valid fields to update'
-          })
-          return
-        }
+         if (!updated) {
+           reply.code(400).send({
+             error: 'Update Failed',
+             message: 'No valid fields to update'
+           })
+           return
+         }
 
-        const user = await User.findById(request.user.id)
+         const user = await userRepo.findById(request.user.id)
 
         reply.send({
           message: 'Profile updated successfully',
@@ -364,31 +459,31 @@ export default async function authRoutes(fastify, options) {
       config: { rateLimit: { max: 5, timeWindow: '1 hour' } }
     },
     async (request, reply) => {
-      try {
-        const { newUsername } = updateUsernameSchema.parse(request.body)
+       try {
+         const { newUsername } = updateUsernameSchema.parse(request.body)
 
-        // Check if username is already taken
-        const existingUser = await User.findByUsername(newUsername)
-        if (existingUser && existingUser.id !== request.user.id) {
-          reply.code(400).send({
-            error: 'Username Taken',
-            message: 'Username is already taken'
-          })
-          return
-        }
+         // Check if username is already taken
+         const existingUser = await userRepo.findByUsername(newUsername)
+         if (existingUser && existingUser.id !== request.user.id) {
+           reply.code(400).send({
+             error: 'Username Taken',
+             message: 'Username is already taken'
+           })
+           return
+         }
 
-        // Update username using User model method
-        const updated = await User.updateUsername(request.user.id, newUsername)
+         // Update username using repository method
+         const updated = await userRepo.updateUsername(request.user.id, newUsername)
 
-        if (!updated) {
-          reply.code(500).send({
-            error: 'Internal Server Error',
-            message: 'Failed to update username'
-          })
-          return
-        }
+         if (!updated) {
+           reply.code(500).send({
+             error: 'Internal Server Error',
+             message: 'Failed to update username'
+           })
+           return
+         }
 
-        const user = await User.findById(request.user.id)
+         const user = await userRepo.findById(request.user.id)
 
         reply.send({
           message: 'Username updated successfully',
@@ -416,54 +511,54 @@ export default async function authRoutes(fastify, options) {
     }
   )
 
-  // Change password (POST - keep for backward compatibility)
-  fastify.post(
-    '/change-password',
-    {
-      preHandler: [
-        async (request, reply) => {
-          try {
-            await request.jwtVerify()
-          } catch (err) {
-            reply.code(401).send({
-              error: 'Unauthorized',
-              message: 'Invalid or expired token'
-            })
-          }
-        }
-      ],
-      config: { rateLimit: { max: 3, timeWindow: '1 hour' } }
-    },
-    async (request, reply) => {
-      try {
-        const { currentPassword, newPassword } = changePasswordSchema.parse(
-          request.body
-        )
+   // Change password (POST - keep for backward compatibility)
+   fastify.post(
+     '/change-password',
+     {
+       preHandler: [
+         async (request, reply) => {
+           try {
+             await request.jwtVerify()
+           } catch (err) {
+             reply.code(401).send({
+               error: 'Unauthorized',
+               message: 'Invalid or expired token'
+             })
+           }
+         }
+       ],
+       config: { rateLimit: { max: 3, timeWindow: '1 hour' } }
+     },
+     async (request, reply) => {
+       try {
+         const { currentPassword, newPassword } = changePasswordSchema.parse(
+           request.body
+         )
 
-        // Verify current password
-        const user = await User.findByUsername(request.user.username)
-        if (!user) {
-          reply.code(404).send({
-            error: 'Not Found',
-            message: 'User not found'
-          })
-          return
-        }
+         // Verify current password
+         const user = await userRepo.findByUsername(request.user.username)
+         if (!user) {
+           reply.code(404).send({
+             error: 'Not Found',
+             message: 'User not found'
+           })
+           return
+         }
 
-        const isValidPassword = await User.verifyPassword(
-          currentPassword,
-          user.password_hash
-        )
-        if (!isValidPassword) {
-          reply.code(401).send({
-            error: 'Authentication Failed',
-            message: 'Current password is incorrect'
-          })
-          return
-        }
+         const isValidPassword = await userRepo.verifyPassword(
+           currentPassword,
+           user.password_hash
+         )
+         if (!isValidPassword) {
+           reply.code(401).send({
+             error: 'Authentication Failed',
+             message: 'Current password is incorrect'
+           })
+           return
+         }
 
-        // Update password
-        const updated = await User.updatePassword(request.user.id, newPassword)
+         // Update password
+         const updated = await userRepo.updatePassword(request.user.id, newPassword)
 
         if (!updated) {
           reply.code(500).send({
@@ -494,54 +589,54 @@ export default async function authRoutes(fastify, options) {
     }
   )
 
-  // Change password (PUT)
-  fastify.put(
-    '/change-password',
-    {
-      preHandler: [
-        async (request, reply) => {
-          try {
-            await request.jwtVerify()
-          } catch (err) {
-            reply.code(401).send({
-              error: 'Unauthorized',
-              message: 'Invalid or expired token'
-            })
-          }
-        }
-      ],
-      config: { rateLimit: { max: 3, timeWindow: '1 hour' } }
-    },
-    async (request, reply) => {
-      try {
-        const { currentPassword, newPassword } = changePasswordSchema.parse(
-          request.body
-        )
+   // Change password (PUT)
+   fastify.put(
+     '/change-password',
+     {
+       preHandler: [
+         async (request, reply) => {
+           try {
+             await request.jwtVerify()
+           } catch (err) {
+             reply.code(401).send({
+               error: 'Unauthorized',
+               message: 'Invalid or expired token'
+             })
+           }
+         }
+       ],
+       config: { rateLimit: { max: 3, timeWindow: '1 hour' } }
+     },
+     async (request, reply) => {
+       try {
+         const { currentPassword, newPassword } = changePasswordSchema.parse(
+           request.body
+         )
 
-        // Verify current password
-        const user = await User.findByUsername(request.user.username)
-        if (!user) {
-          reply.code(404).send({
-            error: 'Not Found',
-            message: 'User not found'
-          })
-          return
-        }
+         // Verify current password
+         const user = await userRepo.findByUsername(request.user.username)
+         if (!user) {
+           reply.code(404).send({
+             error: 'Not Found',
+             message: 'User not found'
+           })
+           return
+         }
 
-        const isValidPassword = await User.verifyPassword(
-          currentPassword,
-          user.password_hash
-        )
-        if (!isValidPassword) {
-          reply.code(401).send({
-            error: 'Authentication Failed',
-            message: 'Current password is incorrect'
-          })
-          return
-        }
+         const isValidPassword = await userRepo.verifyPassword(
+           currentPassword,
+           user.password_hash
+         )
+         if (!isValidPassword) {
+           reply.code(401).send({
+             error: 'Authentication Failed',
+             message: 'Current password is incorrect'
+           })
+           return
+         }
 
-        // Update password
-        const updated = await User.updatePassword(request.user.id, newPassword)
+         // Update password
+         const updated = await userRepo.updatePassword(request.user.id, newPassword)
 
         if (!updated) {
           reply.code(500).send({

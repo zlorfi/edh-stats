@@ -5,7 +5,7 @@ import jwt from '@fastify/jwt'
 import closeWithGrace from 'close-with-grace'
 
 // Import configurations
-import { jwtConfig, corsConfig, serverConfig } from './config/jwt.js'
+import { jwtConfig, corsConfig, serverConfig, rateLimitConfig } from './config/jwt.js'
 import dbManager from './config/database.js'
 
 // Import routes
@@ -20,12 +20,36 @@ export default async function build(opts = {}) {
   // Register plugins
   await app.register(cors, corsConfig)
 
+  // Add request logging hook
+  app.addHook('onRequest', async (request, reply) => {
+    request.startTime = Date.now()
+    app.log.debug({
+      method: request.method,
+      url: request.url,
+      ip: request.ip
+    }, 'Incoming request')
+  })
+
+  // Add response logging hook
+  app.addHook('onResponse', async (request, reply) => {
+    const duration = Date.now() - (request.startTime || Date.now())
+    app.log.debug({
+      method: request.method,
+      url: request.url,
+      statusCode: reply.statusCode,
+      durationMs: duration
+    }, 'Request completed')
+  })
+
   await app.register(jwt, {
     secret: jwtConfig.secret
   })
 
+  // Register global rate limiting if configured
   await app.register(rateLimit, {
-    global: false
+    global: true,
+    max: rateLimitConfig.max,
+    timeWindow: rateLimitConfig.window
   })
 
   // Authentication decorator

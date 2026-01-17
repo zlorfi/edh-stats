@@ -19,31 +19,28 @@ export default async function statsRoutes(fastify, options) {
     },
     async (request, reply) => {
       try {
-        const db = await dbManager.initialize()
         const userId = request.user.id
 
-        const stats = db
-          .prepare(
-            `
+        const stats = await dbManager.get(
+          `
         SELECT
           total_games,
           win_rate,
           total_commanders,
           avg_rounds
         FROM user_stats
-        WHERE user_id = ?
-      `
-          )
-          .get([userId])
+        WHERE user_id = $1
+      `,
+          [userId]
+        )
 
         // Also query games directly to verify
-        const directGameCount = db
-          .prepare(
-            `
-        SELECT COUNT(*) as count FROM games WHERE user_id = ?
-      `
-          )
-          .get([userId])
+        const directGameCount = await dbManager.get(
+          `
+        SELECT COUNT(*) as count FROM games WHERE user_id = $1
+      `,
+          [userId]
+        )
 
         reply.send({
           totalGames: stats?.total_games || 0,
@@ -80,19 +77,17 @@ export default async function statsRoutes(fastify, options) {
     },
     async (request, reply) => {
       try {
-        const db = await dbManager.initialize()
         const userId = request.user.id
 
         // Get detailed commander stats with at least 5 games, sorted by total games then win rate
-        const rawStats = db
-          .prepare(
-            `
-         SELECT * FROM commander_stats
-         WHERE user_id = ? AND total_games >= 5
-         ORDER BY total_games DESC, win_rate DESC
-       `
-          )
-          .all([userId])
+        const rawStats = await dbManager.all(
+          `
+          SELECT * FROM commander_stats
+          WHERE user_id = $1 AND total_games >= 5
+          ORDER BY total_games DESC, win_rate DESC
+        `,
+          [userId]
+        )
 
         // Convert snake_case to camelCase
         const stats = rawStats.map((stat) => ({
@@ -110,37 +105,35 @@ export default async function statsRoutes(fastify, options) {
         }))
 
         // Calculate chart data: Win Rate by Player Count
-        const playerCountStats = db
-          .prepare(
-            `
-        SELECT
-          player_count,
-          COUNT(*) as total,
-          SUM(CASE WHEN won = 1 THEN 1 ELSE 0 END) as wins
-        FROM games
-        WHERE user_id = ?
-        GROUP BY player_count
-        ORDER BY player_count
-      `
-          )
-          .all([userId])
+        const playerCountStats = await dbManager.all(
+          `
+         SELECT
+           player_count,
+           COUNT(*) as total,
+           SUM(CASE WHEN won = TRUE THEN 1 ELSE 0 END) as wins
+         FROM games
+         WHERE user_id = $1
+         GROUP BY player_count
+         ORDER BY player_count
+       `,
+          [userId]
+        )
 
         // Calculate chart data: Win Rate by Color (simple single color approximation for now)
         // Note: Real multi-color handling is complex in SQL, this matches exact color identity strings
-        const colorStats = db
-          .prepare(
-            `
-        SELECT
-          c.colors,
-          COUNT(g.id) as total,
-          SUM(CASE WHEN g.won = 1 THEN 1 ELSE 0 END) as wins
-        FROM games g
-        JOIN commanders c ON g.commander_id = c.id
-        WHERE g.user_id = ?
-        GROUP BY c.colors
-      `
-          )
-          .all([userId])
+        const colorStats = await dbManager.all(
+          `
+         SELECT
+           c.colors,
+           COUNT(g.id) as total,
+           SUM(CASE WHEN g.won = TRUE THEN 1 ELSE 0 END) as wins
+         FROM games g
+         JOIN commanders c ON g.commander_id = c.id
+         WHERE g.user_id = $1
+         GROUP BY c.colors
+       `,
+          [userId]
+        )
 
         reply.send({
           stats,
@@ -151,10 +144,10 @@ export default async function statsRoutes(fastify, options) {
                 Math.round((s.wins / s.total) * 100)
               )
             },
-            colors: {
-              labels: colorStats.map((s) => JSON.parse(s.colors).join('')),
-              data: colorStats.map((s) => Math.round((s.wins / s.total) * 100))
-            }
+             colors: {
+               labels: colorStats.map((s) => (Array.isArray(s.colors) ? s.colors.join('') : '')),
+               data: colorStats.map((s) => Math.round((s.wins / s.total) * 100))
+             }
           }
         })
       } catch (error) {

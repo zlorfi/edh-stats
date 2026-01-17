@@ -28,7 +28,7 @@
               <a
                 href="/games.html"
                 class="text-white hover:text-edh-accent transition-colors"
-                >Log Game</a
+                >Game Log</a
               >
               <a
                 href="/stats.html"
@@ -209,9 +209,7 @@
                   <div>
                     <p class="font-medium" x-text="game.commanderName"></p>
                     <div class="flex space-x-1">
-                      <template
-                        x-for="color in (game.commanderColors && Array.isArray(game.commanderColors) ? game.commanderColors : (typeof game.commanderColors === 'string' ? game.commanderColors.split(',').map(c => c.trim()) : []))"
-                      >
+                      <template x-for="color in game.commanderColors || []">
                         <div
                           class="w-4 h-4 rounded"
                           :class="'color-' + color.toLowerCase()"
@@ -275,10 +273,7 @@
               >
                 <div class="flex items-center space-x-4">
                   <div class="flex space-x-1">
-                    <template
-                      x-for="color in (typeof commander.colors === 'string' ? (commander.colors.startsWith('[') ? JSON.parse(commander.colors) : commander.colors.split(',').map(c => c.trim())) : (Array.isArray(commander.colors) ? commander.colors : []))"
-                      :key="color"
-                    >
+                    <template x-for="color in commander.colors" :key="color">
                       <div
                         class="w-6 h-6 rounded"
                         :class="'color-' + color.toLowerCase()"

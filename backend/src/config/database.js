@@ -1,5 +1,5 @@
-import Database from 'better-sqlite3'
-import { readFileSync, existsSync, mkdirSync } from 'fs'
+import pg from 'pg'
+import { readFileSync } from 'fs'
 import { fileURLToPath } from 'url'
 import { dirname, join } from 'path'
 
@@ -8,31 +8,37 @@ const __dirname = dirname(__filename)
 
 class DatabaseManager {
   constructor() {
-    this.db = null
+    this.pool = null
     this.isInitialized = false
     this.currentUserId = null
   }
 
   async initialize() {
     if (this.isInitialized) {
-      return this.db
+      return this.pool
     }
 
-    const dbPath =
-      process.env.DATABASE_PATH ||
-      join(__dirname, '../../../database/data/edh-stats.db')
-
     try {
-      // Create database directory if it doesn't exist
-      const dbDir = dirname(dbPath)
-      if (!existsSync(dbDir)) {
-        mkdirSync(dbDir, { recursive: true })
+      // Get database configuration from environment variables
+      const dbConfig = {
+        host: process.env.DB_HOST || 'localhost',
+        port: 5432, // PostgreSQL standard port, not configurable
+        database: process.env.DB_NAME || 'edh_stats',
+        user: process.env.DB_USER || 'postgres',
+        password: process.env.DB_PASSWORD || 'edh_password'
       }
 
-      this.db = new Database(dbPath)
-      this.db.pragma('journal_mode = WAL')
-      this.db.pragma('foreign_keys = ON')
-      this.db.pragma('query_only = false')
+      // Create connection pool
+      this.pool = new pg.Pool(dbConfig)
+
+      // Test the connection
+      const client = await this.pool.connect()
+      try {
+        const result = await client.query('SELECT 1 as test')
+        console.log('Database connected successfully')
+      } finally {
+        client.release()
+      }
 
       // Run migrations
       if (process.env.NODE_ENV !== 'test') {
@@ -41,53 +47,62 @@ class DatabaseManager {
 
       this.isInitialized = true
       console.log('Database initialized successfully')
-      return this.db
+      return this.pool
     } catch (error) {
       console.error('Failed to initialize database:', error)
       throw error
     }
   }
 
-  async runMigrations() {
-    try {
-      const migrationPath = join(__dirname, '../database/migrations.sql')
-      const migrationSQL = readFileSync(migrationPath, 'utf8')
+   async runMigrations() {
+     const client = await this.pool.connect()
+     try {
+       const migrationPath = join(__dirname, '../database/migrations.sql')
+       const migrationSQL = readFileSync(migrationPath, 'utf8')
 
-      this.db.exec(migrationSQL)
-      console.log('Database migrations completed')
-    } catch (error) {
-      console.error('Failed to run migrations:', error)
-      throw error
-    }
-  }
+       // Execute the entire migration file as a single query
+       // This is safer for complex SQL with functions and views
+       await client.query(migrationSQL)
+       console.log('Database migrations completed')
+     } catch (error) {
+       console.error('Failed to run migrations:', error)
+       throw error
+     } finally {
+       client.release()
+     }
+   }
 
-  async seedData() {
-    try {
-      const seedPath = join(__dirname, '../database/seeds.sql')
-      const seedSQL = readFileSync(seedPath, 'utf8')
+   async seedData() {
+     const client = await this.pool.connect()
+     try {
+       const seedPath = join(__dirname, '../database/seeds.sql')
+       const seedSQL = readFileSync(seedPath, 'utf8')
 
-      this.db.exec(seedSQL)
-      console.log('Database seeding completed')
-    } catch (error) {
-      console.error('Failed to seed database:', error)
-      throw error
-    }
-  }
+       // Execute the entire seed file as a single query
+       await client.query(seedSQL)
+       console.log('Database seeding completed')
+     } catch (error) {
+       console.error('Failed to seed database:', error)
+       throw error
+     } finally {
+       client.release()
+     }
+   }
 
   async close() {
-    if (this.db) {
-      this.db.close()
-      this.db = null
+    if (this.pool) {
+      await this.pool.end()
+      this.pool = null
       this.isInitialized = false
       console.log('Database connection closed')
     }
   }
 
-  getDatabase() {
+  getPool() {
     if (!this.isInitialized) {
       throw new Error('Database not initialized. Call initialize() first.')
     }
-    return this.db
+    return this.pool
   }
 
   setCurrentUser(userId) {
@@ -99,35 +114,49 @@ class DatabaseManager {
   }
 
   // Helper methods for common operations
-  prepare(query) {
-    return this.getDatabase().prepare(query)
+  async query(query, params = []) {
+    const client = await this.pool.connect()
+    try {
+      return await client.query(query, params)
+    } finally {
+      client.release()
+    }
   }
 
-  exec(query) {
-    return this.getDatabase().exec(query)
+  async run(query, params = []) {
+    return this.query(query, params)
   }
 
-  run(query, params = []) {
-    return this.getDatabase().prepare(query).run(params)
+  async get(query, params = []) {
+    const result = await this.query(query, params)
+    return result.rows[0]
   }
 
-  get(query, params = []) {
-    return this.getDatabase().prepare(query).get(params)
-  }
-
-  all(query, params = []) {
-    return this.getDatabase().prepare(query).all(params)
+  async all(query, params = []) {
+    const result = await this.query(query, params)
+    return result.rows
   }
 
   // Transaction support
-  transaction(fn) {
-    return this.getDatabase().transaction(fn)
+  async transaction(fn) {
+    const client = await this.pool.connect()
+    try {
+      await client.query('BEGIN')
+      const result = await fn(client)
+      await client.query('COMMIT')
+      return result
+    } catch (error) {
+      await client.query('ROLLBACK')
+      throw error
+    } finally {
+      client.release()
+    }
   }
 
   // Health check method
   async healthCheck() {
     try {
-      const result = this.get('SELECT 1 as test')
+      const result = await this.get('SELECT 1 as test')
       return result?.test === 1
     } catch (error) {
       console.error('Database health check failed:', error)
@@ -143,9 +172,9 @@ export default dbManager
 
 // Helper for async database operations
 export const withDatabase = async (callback) => {
-  const db = await dbManager.initialize()
+  const pool = await dbManager.initialize()
   try {
-    return await callback(db)
+    return await callback(pool)
   } finally {
     // Don't close here, let the manager handle connection lifecycle
   }

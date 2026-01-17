@@ -29,3 +29,14 @@ export const serverConfig = {
 export const registrationConfig = {
   allowRegistration: process.env.ALLOW_REGISTRATION !== 'false'
 }
+
+export const rateLimitConfig = {
+  // Global rate limit - applies to all endpoints unless overridden
+  // Window is in milliseconds, convert from environment variable (default in minutes)
+  window: process.env.RATE_LIMIT_WINDOW 
+    ? parseInt(process.env.RATE_LIMIT_WINDOW) * 60 * 1000 
+    : 15 * 60 * 1000, // 15 minutes default
+  max: process.env.RATE_LIMIT_MAX 
+    ? parseInt(process.env.RATE_LIMIT_MAX) 
+    : 100 // requests per window
+}
