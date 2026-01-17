@@ -237,21 +237,23 @@ export default async function commanderRoutes(fastify, options) {
            message: 'Commander created successfully',
            commander: transformCommander(commander)
          })
-      } catch (error) {
-        if (error instanceof z.ZodError) {
-          return reply.code(400).send({
-            error: 'Validation Error',
-            message: 'Invalid input data',
-            details: formatValidationErrors(error)
-          })
-        } else {
-          fastify.log.error('Create commander error:', error)
-          reply.code(500).send({
-            error: 'Internal Server Error',
-            message: 'Failed to create commander'
-          })
-        }
-      }
+       } catch (error) {
+         if (error instanceof z.ZodError) {
+           const formattedErrors = formatValidationErrors(error)
+           const firstError = formattedErrors[0]?.message || 'Invalid input data'
+           return reply.code(400).send({
+             error: 'Validation Error',
+             message: firstError,
+             details: formattedErrors
+           })
+         } else {
+           fastify.log.error('Create commander error:', error)
+           reply.code(500).send({
+             error: 'Internal Server Error',
+             message: 'Failed to create commander'
+           })
+         }
+       }
     }
   )
 
@@ -301,21 +303,23 @@ export default async function commanderRoutes(fastify, options) {
             message: 'Commander updated successfully',
             commander: transformCommander(commander)
           })
-      } catch (error) {
-        if (error instanceof z.ZodError) {
-          reply.code(400).send({
-            error: 'Validation Error',
-            message: 'Invalid input data',
-            details: error.errors.map((e) => e.message)
-          })
-        } else {
-          fastify.log.error('Update commander error:', error.message || error)
-          reply.code(500).send({
-            error: 'Internal Server Error',
-            message: 'Failed to update commander'
-          })
-        }
-      }
+       } catch (error) {
+         if (error instanceof z.ZodError) {
+           const formattedErrors = formatValidationErrors(error)
+           const firstError = formattedErrors[0]?.message || 'Invalid input data'
+           reply.code(400).send({
+             error: 'Validation Error',
+             message: firstError,
+             details: formattedErrors
+           })
+         } else {
+           fastify.log.error('Update commander error:', error.message || error)
+           reply.code(500).send({
+             error: 'Internal Server Error',
+             message: 'Failed to update commander'
+           })
+         }
+       }
     }
   )
 

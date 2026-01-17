@@ -153,10 +153,19 @@ function commanderManager() {
           const data = await response.json()
           this.commanders.unshift(data.commander)
           this.resetAddForm()
-        } else {
-          const errorData = await response.json()
-          this.serverError = errorData.message || 'Failed to create commander'
-        }
+         } else {
+           const errorData = await response.json()
+           // Use message if available, otherwise extract from details array
+           if (errorData.message) {
+             this.serverError = errorData.message
+           } else if (errorData.details && Array.isArray(errorData.details)) {
+             this.serverError = errorData.details
+               .map((err) => err.message || err)
+               .join(', ')
+           } else {
+             this.serverError = 'Failed to create commander'
+           }
+         }
       } catch (error) {
         console.error('Add commander error:', error)
         this.serverError = 'Network error occurred'
