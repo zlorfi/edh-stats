@@ -133,8 +133,7 @@ check_github_token() {
 update_version_file() {
     print_header "Updating Version File"
 
-    local version_file="./frontend/VERSION"
-    local version_txt_file="./frontend/public/version.txt"
+    local version_file="./frontend/public/version.txt"
     local current_version=""
 
     # Check if version file exists
@@ -146,7 +145,6 @@ update_version_file() {
     # Update version file with new version (strip 'v' prefix if present)
     local new_version="${VERSION#v}"
     echo "$new_version" > "$version_file"
-    echo "$new_version" > "$version_txt_file"
     print_success "Updated version file to: $new_version"
 }
 
@@ -379,13 +377,13 @@ print_summary() {
     echo "Version: ${VERSION}"
     echo ""
     echo "Version Management:"
-    echo "  Frontend version file updated: ./frontend/VERSION"
+    echo "  Frontend version file updated: ./frontend/public/version.txt"
     echo "  Version displayed in footer: v${VERSION#v}"
     echo ""
     echo "Next Steps:"
     echo "  1. Commit version update:"
-    echo "     git add frontend/VERSION"
-    echo "     git commit -m \"Bump version to ${VERSION#v}\""
+     echo "     git add frontend/public/version.txt"
+     echo "     git commit -m \"Bump version to ${VERSION#v}\""
     echo "  2. Pull images: docker pull ${BACKEND_IMAGE}"
     echo "  3. Configure production secrets (JWT_SECRET)"
     echo "  4. Set environment variables (CORS_ORIGIN, ALLOW_REGISTRATION)"

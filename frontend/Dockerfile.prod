@@ -3,7 +3,7 @@ FROM nginx:alpine
 # Copy nginx configuration
 COPY ./frontend/nginx.prod.conf /etc/nginx/nginx.conf
 
-# Copy frontend files (includes version.txt)
+# Copy frontend files (includes version.txt for frontend version display)
 COPY ./frontend/public /usr/share/nginx/html
 
 # Expose ports
