@@ -116,23 +116,23 @@ export default async function gameRoutes(fastify, options) {
         }
 
         reply.send({
-          game: {
-            id: game.id,
-            date: new Date(game.date).toLocaleDateString('en-US'),
-            playerCount: game.player_count,
-            commanderId: game.commander_id,
-            won: game.won,
-            rounds: game.rounds,
-            startingPlayerWon: game.starting_player_won,
-            solRingTurnOneWon: game.sol_ring_turn_one_won,
-            notes: game.notes || null,
-            commanderName: game.commander_name,
-            commanderColors: JSON.parse(game.commander_colors || '[]'),
-            userId: game.user_id,
-            createdAt: game.created_at,
-            updatedAt: game.updated_at
-          }
-        })
+            game: {
+              id: game.id,
+              date: new Date(game.date).toLocaleDateString('en-US'),
+              playerCount: game.player_count,
+              commanderId: game.commander_id,
+              won: game.won,
+              rounds: game.rounds,
+              startingPlayerWon: game.starting_player_won,
+              solRingTurnOneWon: game.sol_ring_turn_one_won,
+              notes: game.notes || null,
+              commanderName: game.commander_name,
+              commanderColors: game.commander_colors || [],
+              userId: game.user_id,
+              createdAt: game.created_at,
+              updatedAt: game.updated_at
+            }
+          })
       } catch (error) {
         fastify.log.error('Get game error:', error)
         reply.code(500).send({

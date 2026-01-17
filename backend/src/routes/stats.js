@@ -151,10 +151,10 @@ export default async function statsRoutes(fastify, options) {
                 Math.round((s.wins / s.total) * 100)
               )
             },
-            colors: {
-              labels: colorStats.map((s) => JSON.parse(s.colors).join('')),
-              data: colorStats.map((s) => Math.round((s.wins / s.total) * 100))
-            }
+             colors: {
+               labels: colorStats.map((s) => (Array.isArray(s.colors) ? s.colors.join('') : '')),
+               data: colorStats.map((s) => Math.round((s.wins / s.total) * 100))
+             }
           }
         })
       } catch (error) {

@@ -101,12 +101,12 @@ export default async function commanderRoutes(fastify, options) {
           return
         }
 
-        reply.send({
-          commander: {
-            ...commander,
-            colors: JSON.parse(commander.colors)
-          }
-        })
+         reply.send({
+           commander: {
+             ...commander,
+             colors: commander.colors || []
+           }
+         })
       } catch (error) {
         fastify.log.error('Get commander error:', error)
         reply.code(500).send({
@@ -146,13 +146,13 @@ export default async function commanderRoutes(fastify, options) {
           userId
         })
 
-        reply.code(201).send({
-          message: 'Commander created successfully',
-          commander: {
-            ...commander,
-            colors: JSON.parse(commander.colors)
-          }
-        })
+         reply.code(201).send({
+           message: 'Commander created successfully',
+           commander: {
+             ...commander,
+             colors: commander.colors || []
+           }
+         })
       } catch (error) {
         if (error instanceof z.ZodError) {
           reply.code(400).send({
@@ -207,13 +207,13 @@ export default async function commanderRoutes(fastify, options) {
 
         const commander = await Commander.findById(id)
 
-        reply.send({
-          message: 'Commander updated successfully',
-          commander: {
-            ...commander,
-            colors: JSON.parse(commander.colors)
-          }
-        })
+         reply.send({
+           message: 'Commander updated successfully',
+           commander: {
+             ...commander,
+             colors: commander.colors || []
+           }
+         })
       } catch (error) {
         if (error instanceof z.ZodError) {
           reply.code(400).send({
