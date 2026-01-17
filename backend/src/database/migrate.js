@@ -7,6 +7,14 @@ async function runMigrations() {
   try {
     await dbManager.initialize()
     console.log('Migrations completed successfully!')
+    
+    // Check if seeding is enabled via environment variable
+    const seedingEnabled = process.env.DB_SEED === 'true' || process.env.DB_SEED === '1'
+    if (seedingEnabled) {
+      console.log('Seeding enabled via DB_SEED environment variable')
+      await dbManager.seedData()
+      console.log('Database seeded successfully!')
+    }
   } catch (error) {
     console.error('Migration failed:', error)
     process.exit(1)

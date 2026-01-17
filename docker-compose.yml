@@ -11,10 +11,14 @@ services:
     ports:
       - '5432:5432'
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - ./postgres_data:/var/lib/postgresql/data
       - ./backend/init-db:/docker-entrypoint-initdb.d
     healthcheck:
-      test: ['CMD-SHELL', 'PGPASSWORD=edh_password pg_isready -U postgres -h localhost']
+      test:
+        [
+          'CMD-SHELL',
+          'PGPASSWORD=edh_password pg_isready -U postgres -h localhost'
+        ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -22,11 +26,12 @@ services:
       - edh-stats-network
     restart: unless-stopped
     # Allow connections from the Docker network
-    command: 
-      - "postgres"
-      - "-c"
-      - "listen_addresses=*"
+    command:
+      - 'postgres'
+      - '-c'
+      - 'listen_addresses=*'
 
+   # Database migration service - runs once on startup
   # Database migration service - runs once on startup
   db-migrate:
     build:
@@ -44,6 +49,8 @@ services:
       - DB_NAME=edh_stats
       - DB_USER=postgres
       - DB_PASSWORD=edh_password
+      # Set DB_SEED=true to automatically seed database with sample data after migrations
+      - DB_SEED=false
     command: node src/database/migrate.js migrate
     networks:
       - edh-stats-network
@@ -71,7 +78,7 @@ services:
       - JWT_SECRET=dev-jwt-secret-key-change-in-production
       - CORS_ORIGIN=http://localhost
       - LOG_LEVEL=info
-      - ALLOW_REGISTRATION=false
+      - ALLOW_REGISTRATION=true
     volumes:
       - ./backend/src:/app/src
     restart: unless-stopped

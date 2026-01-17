@@ -303,23 +303,25 @@ services:
            memory: 256M
            cpus: '0.25'
 
-   # Database migration service - runs once on startup
-   db-migrate:
-     image: ${BACKEND_IMAGE}
-     depends_on:
-       postgres:
-         condition: service_healthy
-     environment:
-       - NODE_ENV=production
-       - DB_HOST=postgres
-       - DB_PORT=5432
-       - DB_NAME=\${DB_NAME}
-       - DB_USER=postgres
-       - DB_PASSWORD=\${DB_PASSWORD}
-     command: node src/database/migrate.js migrate
-     networks:
-       - edh-stats-network
-     restart: 'no'
+     # Database migration service - runs once on startup
+     db-migrate:
+       image: ${BACKEND_IMAGE}
+       depends_on:
+         postgres:
+           condition: service_healthy
+       environment:
+         - NODE_ENV=production
+         - DB_HOST=postgres
+         - DB_PORT=5432
+         - DB_NAME=\${DB_NAME}
+         - DB_USER=postgres
+         - DB_PASSWORD=\${DB_PASSWORD}
+         # Set DB_SEED=true to automatically seed database with sample data after migrations
+         - DB_SEED=\${DB_SEED:-false}
+       command: node src/database/migrate.js migrate
+       networks:
+         - edh-stats-network
+       restart: 'no'
 
    backend:
      image: ${BACKEND_IMAGE}

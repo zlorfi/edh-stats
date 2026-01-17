@@ -2,13 +2,14 @@
 -- This file contains sample users, commanders, and games
 
 -- Insert sample users (passwords are 'password123' hashed with bcrypt)
+-- Using DEFAULT for id to auto-increment, or specify id with ON CONFLICT handling
 INSERT INTO users (id, username, password_hash, email) VALUES
 (1, 'testuser', '$2a$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LewdBPjRrhSpXqzOa', 'test@example.com'),
 (2, 'magictg', '$2a$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LewdBPjRrhSpXqzOa', 'magic@example.com')
-ON CONFLICT (username) DO NOTHING;
+ON CONFLICT DO NOTHING;
 
 -- Reset sequence for users
-SELECT setval('users_id_seq', 2, TRUE);
+SELECT setval('users_id_seq', (SELECT MAX(id) FROM users), true);
 
 -- Insert sample commanders with various color identities
 INSERT INTO commanders (id, name, colors, user_id) VALUES
@@ -24,7 +25,7 @@ INSERT INTO commanders (id, name, colors, user_id) VALUES
 ON CONFLICT DO NOTHING;
 
 -- Reset sequence for commanders
-SELECT setval('commanders_id_seq', 8, TRUE);
+SELECT setval('commanders_id_seq', (SELECT MAX(id) FROM commanders), true);
 
 -- Insert sample games with varied statistics
 INSERT INTO games (id, date, player_count, commander_id, won, rounds, starting_player_won, sol_ring_turn_one_won, notes, user_id) VALUES
@@ -45,7 +46,7 @@ INSERT INTO games (id, date, player_count, commander_id, won, rounds, starting_p
 ON CONFLICT DO NOTHING;
 
 -- Reset sequence for games
-SELECT setval('games_id_seq', 12, TRUE);
+SELECT setval('games_id_seq', (SELECT MAX(id) FROM games), true);
 
 -- Additional games for more comprehensive statistics
 INSERT INTO games (id, date, player_count, commander_id, won, rounds, starting_player_won, sol_ring_turn_one_won, notes, user_id) VALUES
@@ -62,4 +63,4 @@ INSERT INTO games (id, date, player_count, commander_id, won, rounds, starting_p
 ON CONFLICT DO NOTHING;
 
 -- Reset sequence for games to cover all inserted IDs
-SELECT setval('games_id_seq', 20, TRUE);
+SELECT setval('games_id_seq', (SELECT MAX(id) FROM games), true);
