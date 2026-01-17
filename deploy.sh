@@ -256,31 +256,86 @@ generate_deployment_config() {
 # GitHub User: ${GITHUB_USER}
 #
 # IMPORTANT: Create a .env file with these variables:
+#   DB_HOST=postgres
+#   DB_PORT=5432
+#   DB_NAME=edh_stats
+#   DB_USER=edh_user
+#   DB_PASSWORD=\$(openssl rand -base64 32)
 #   JWT_SECRET=\$(openssl rand -base64 32)
 #   CORS_ORIGIN=https://yourdomain.com
 #   ALLOW_REGISTRATION=false
 #
 # FIRST TIME SETUP:
 # 1. Create .env file with above variables
-# 2. Run: docker-compose up -d
-# 3. If database error occurs, run: docker volume inspect ${PROJECT_NAME}_sqlite_data
-# 4. Note the Mountpoint path and ensure it's writable by Docker
+# 2. Run: docker-compose -f docker-compose.prod.deployed.yml up -d
+# 3. Database migrations will run automatically via db-migrate service
+# 4. Monitor logs: docker-compose logs -f db-migrate
 
 services:
-  backend:
+  # PostgreSQL database service
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      - POSTGRES_USER=\${DB_USER}
+      - POSTGRES_PASSWORD=\${DB_PASSWORD}
+      - POSTGRES_DB=\${DB_NAME}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U \${DB_USER} -d \${DB_NAME}']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - edh-stats-network
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '0.5'
+        reservations:
+          memory: 256M
+          cpus: '0.25'
+
+  # Database migration service - runs once on startup
+  db-migrate:
     image: ${BACKEND_IMAGE}
+    depends_on:
+      postgres:
+        condition: service_healthy
     environment:
       - NODE_ENV=production
-      - DATABASE_PATH=/app/database/data/edh-stats.db
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_NAME=\${DB_NAME}
+      - DB_USER=\${DB_USER}
+      - DB_PASSWORD=\${DB_PASSWORD}
+    command: node src/database/migrate.js migrate
+    networks:
+      - edh-stats-network
+    restart: 'no'
+
+  backend:
+    image: ${BACKEND_IMAGE}
+    ports:
+      - '3002:3000'
+    depends_on:
+      db-migrate:
+        condition: service_completed_successfully
+    environment:
+      - NODE_ENV=production
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_NAME=\${DB_NAME}
+      - DB_USER=\${DB_USER}
+      - DB_PASSWORD=\${DB_PASSWORD}
       - JWT_SECRET=\${JWT_SECRET}
       - CORS_ORIGIN=\${CORS_ORIGIN:-https://yourdomain.com}
       - LOG_LEVEL=warn
       - RATE_LIMIT_WINDOW=15
       - RATE_LIMIT_MAX=100
       - ALLOW_REGISTRATION=\${ALLOW_REGISTRATION:-false}
-    volumes:
-      - sqlite_data:/app/database/data
-      - app_logs:/app/logs
     restart: unless-stopped
     deploy:
       resources:
@@ -299,19 +354,6 @@ services:
     networks:
       - edh-stats-network
     stop_grace_period: 30s
-    depends_on:
-      - init-db
-
-  init-db:
-    image: alpine:latest
-    volumes:
-      - sqlite_data:/app/database/data
-      - app_logs:/app/logs
-    command: sh -c "mkdir -p /app/database/data /app/logs && chmod 777 /app/database/data /app/logs && touch /app/database/data/.initialized && echo 'Database directories initialized'"
-    networks:
-      - edh-stats-network
-    # Don't restart, it should exit after initialization
-    restart: "no"
 
   frontend:
     image: ${FRONTEND_IMAGE}
@@ -330,9 +372,7 @@ services:
       - backend
 
 volumes:
-  sqlite_data:
-    driver: local
-  app_logs:
+  postgres_data:
     driver: local
 
 networks:
@@ -385,9 +425,14 @@ print_summary() {
      echo "     git add frontend/public/version.txt"
      echo "     git commit -m \"Bump version to ${VERSION#v}\""
     echo "  2. Pull images: docker pull ${BACKEND_IMAGE}"
-    echo "  3. Configure production secrets (JWT_SECRET)"
-    echo "  4. Set environment variables (CORS_ORIGIN, ALLOW_REGISTRATION)"
+    echo "  3. Create .env file with PostgreSQL credentials:"
+    echo "     DB_PASSWORD=\$(openssl rand -base64 32)"
+    echo "     JWT_SECRET=\$(openssl rand -base64 32)"
+    echo "  4. Set production secrets:"
+    echo "     - CORS_ORIGIN=https://yourdomain.com"
+    echo "     - ALLOW_REGISTRATION=false"
     echo "  5. Deploy: docker-compose -f docker-compose.prod.deployed.yml up -d"
+    echo "  6. Monitor migrations: docker-compose logs -f db-migrate"
     echo ""
 }
 

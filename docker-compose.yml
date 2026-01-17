@@ -1,21 +1,72 @@
 # Docker Compose configuration for EDH Stats Tracker
 services:
+  # PostgreSQL database service
+  postgres:
+    image: postgres:16-alpine
+    container_name: edh-stats-postgres
+    environment:
+      - POSTGRES_USER=edh_user
+      - POSTGRES_PASSWORD=edh_password
+      - POSTGRES_DB=edh_stats
+    ports:
+      - '5432:5432'
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U edh_user -d edh_stats']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - edh-stats-network
+    restart: unless-stopped
+
+  # Database migration service - runs once on startup
+  db-migrate:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+      target: production
+    container_name: edh-stats-db-migrate
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      - NODE_ENV=development
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_NAME=edh_stats
+      - DB_USER=edh_user
+      - DB_PASSWORD=edh_password
+    command: node src/database/migrate.js migrate
+    networks:
+      - edh-stats-network
+    restart: 'no'
+
+  # Backend API service
   backend:
     build:
       context: ./backend
       dockerfile: Dockerfile
       target: production
+    container_name: edh-stats-backend
     ports:
       - '3002:3000'
+    depends_on:
+      db-migrate:
+        condition: service_completed_successfully
     environment:
       - NODE_ENV=development
-      - DATABASE_PATH=/app/database/data/edh-stats.db
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_NAME=edh_stats
+      - DB_USER=edh_user
+      - DB_PASSWORD=edh_password
       - JWT_SECRET=dev-jwt-secret-key-change-in-production
       - CORS_ORIGIN=http://localhost
       - LOG_LEVEL=info
       - ALLOW_REGISTRATION=false
     volumes:
-      - sqlite_data:/app/database/data
       - ./backend/src:/app/src
     restart: unless-stopped
     healthcheck:
@@ -35,26 +86,24 @@ services:
     networks:
       - edh-stats-network
 
+  # Frontend web server
   frontend:
     image: nginx:alpine
+    container_name: edh-stats-frontend
     ports:
       - '8081:80'
+    depends_on:
+      - backend
     volumes:
       - ./frontend/nginx.conf:/etc/nginx/nginx.conf:ro
       - ./frontend/public:/usr/share/nginx/html:ro
-    depends_on:
-      - backend
     restart: unless-stopped
     networks:
       - edh-stats-network
 
 volumes:
-  sqlite_data:
+  postgres_data:
     driver: local
-    driver_opts:
-      type: none
-      o: bind
-      device: ${PWD}/database/data
 
 networks:
   edh-stats-network:
