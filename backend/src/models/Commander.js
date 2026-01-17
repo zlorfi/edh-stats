@@ -4,13 +4,18 @@ import dbManager from '../config/database.js'
 class Commander {
   static async create(commanderData) {
     try {
+      // Convert colors array to JSON string for JSONB storage
+      const colors = Array.isArray(commanderData.colors)
+        ? JSON.stringify(commanderData.colors)
+        : commanderData.colors
+
       const result = await dbManager.query(
         `
         INSERT INTO commanders (name, colors, user_id)
-        VALUES ($1, $2, $3)
+        VALUES ($1, $2::jsonb, $3)
         RETURNING id
       `,
-        [commanderData.name, commanderData.colors, commanderData.userId]
+        [commanderData.name, colors, commanderData.userId]
       )
 
       return await this.findById(result.rows[0].id)
@@ -124,8 +129,12 @@ class Commander {
       }
 
       if (updateData.colors !== undefined) {
-        updates.push(`colors = $${paramCount}`)
-        values.push(updateData.colors)
+        // Convert colors array to JSON string for JSONB storage
+        const colors = Array.isArray(updateData.colors)
+          ? JSON.stringify(updateData.colors)
+          : updateData.colors
+        updates.push(`colors = $${paramCount}::jsonb`)
+        values.push(colors)
         paramCount++
       }
 
