@@ -285,6 +285,8 @@ services:
       - POSTGRES_DB=\${DB_NAME}
     volumes:
       - ./postgres_data:/var/lib/postgresql/data
+      - ./scripts:/scripts:ro
+      - ./backups:/backups
     healthcheck:
       test: ['CMD-SHELL', 'PGPASSWORD=\${DB_PASSWORD} pg_isready -U postgres -h localhost']
       interval: 10s
