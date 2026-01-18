@@ -9,38 +9,51 @@
       content="Track your Magic: The Gathering EDH/Commander games and statistics"
     />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-        <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="/css/styles.css" />
   </head>
-  <body
-    class="min-h-full flex flex-col py-12 px-4 sm:px-6 lg:px-8"
-  >
+  <body class="min-h-full flex flex-col py-12 px-4 sm:px-6 lg:px-8">
     <div class="flex items-center justify-center flex-1">
-      <div class="max-w-md w-full space-y-8 text-center" x-data="indexApp()">
-      <h1 class="text-4xl font-bold font-mtg text-edh-primary mb-4">
-        EDH Stats
-      </h1>
-      <p class="text-xl text-gray-600 mb-8">
-        Track your Commander games and statistics
-      </p>
+      <div class="w-full space-y-8 text-center" x-data="indexApp()">
+        <div class="max-w-md mx-auto">
+          <h1 class="text-4xl font-bold font-mtg text-edh-primary mb-4">
+            EDH Stats
+          </h1>
+          <p class="text-xl text-gray-600 mb-8">
+            Track your Commander games and statistics
+          </p>
 
-      <div class="space-y-4">
-        <a href="/login.html" class="btn btn-primary w-full">
-          🎮 Login to Track Games
-        </a>
-        <a
-          x-show="allowRegistration"
-          href="/register.html"
-          class="btn btn-secondary w-full"
-        >
-          📝 Create New Account
-        </a>
-      </div>
+          <div class="space-y-4">
+            <a href="/login.html" class="btn btn-primary w-full">
+              🎮 Login to Track Games
+            </a>
+            <a
+              x-show="allowRegistration"
+              href="/register.html"
+              class="btn btn-secondary w-full"
+            >
+              📝 Create New Account
+            </a>
+          </div>
+        </div>
 
-      <div class="text-sm text-gray-500">
-         <p>Built with Fastify, SQLite, and Alpine.js</p>
-         <p>Ready to track your Commander victories!</p>
-       </div>
+        <!-- Preview Section -->
+        <div class="mt-12 max-w-6xl mx-auto">
+          <h2 class="text-2xl font-bold text-gray-800 mb-6">
+            Dashboard Preview
+          </h2>
+          <div class="bg-white rounded-lg shadow-lg overflow-hidden">
+            <img
+              src="/images/preview.png"
+              alt="EDH Stats Tracker Dashboard Preview showing game statistics, recent games, and top commanders"
+              class="w-full h-auto"
+            />
+          </div>
+          <p class="text-gray-600 mt-4 text-sm">
+            Track your total games, win rates, and top performing commanders
+            with beautiful visualizations
+          </p>
+        </div>
       </div>
     </div>
 
@@ -80,7 +93,6 @@
         Alpine.data('indexApp', indexApp)
       })
     </script>
-
 
     <script src="/js/footer-loader.js"></script>
   </body>
