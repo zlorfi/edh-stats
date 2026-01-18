@@ -338,6 +338,7 @@ services:
       - CORS_ORIGIN=\${CORS_ORIGIN:-https://yourdomain.com}
       - LOG_LEVEL=\${LOG_LEVEL:-warn}
       - ALLOW_REGISTRATION=\${ALLOW_REGISTRATION:-false}
+      - MAX_USERS=\${MAX_USERS:-}
     restart: unless-stopped
     deploy:
       resources:

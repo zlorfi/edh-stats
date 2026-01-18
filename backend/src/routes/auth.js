@@ -126,17 +126,28 @@ export default async function authRoutes(fastify, options) {
       config: { rateLimit: { max: 3, timeWindow: '15 minutes' } }
     },
     async (request, reply) => {
-      try {
-        // Check if registration is allowed
-        if (!registrationConfig.allowRegistration) {
-          return reply.code(403).send({
-            error: 'Registration Disabled',
-            message: 'User registration is currently disabled'
-          })
-        }
+       try {
+         // Check if registration is allowed
+         if (!registrationConfig.allowRegistration) {
+           return reply.code(403).send({
+             error: 'Registration Disabled',
+             message: 'User registration is currently disabled'
+           })
+         }
 
-        // LAYER 1: Schema validation
-        const validatedData = registerSchema.parse(request.body)
+         // Check if max user limit has been reached (only if allowRegistration is true and MAX_USERS is set)
+         if (registrationConfig.allowRegistration && registrationConfig.maxUsers) {
+           const userCount = await userRepo.countUsers()
+           if (userCount >= registrationConfig.maxUsers) {
+             return reply.code(403).send({
+               error: 'Registration Disabled',
+               message: 'User registration limit has been reached'
+             })
+           }
+         }
+
+         // LAYER 1: Schema validation
+         const validatedData = registerSchema.parse(request.body)
 
         // LAYER 2: Business logic validation
         // Check username uniqueness

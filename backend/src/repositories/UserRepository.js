@@ -159,6 +159,20 @@ export class UserRepository extends Repository {
   }
 
   /**
+   * Count total users in the system
+   */
+  async countUsers() {
+    try {
+      const result = await dbManager.query(
+        `SELECT COUNT(*) as count FROM ${this.tableName}`
+      )
+      return parseInt(result.rows[0].count, 10) || 0
+    } catch (error) {
+      throw new Error('Failed to count users')
+    }
+  }
+
+  /**
    * Get user statistics
    */
   async getStats(userId) {

@@ -27,7 +27,8 @@ export const serverConfig = {
 }
 
 export const registrationConfig = {
-  allowRegistration: process.env.ALLOW_REGISTRATION !== 'false'
+  allowRegistration: process.env.ALLOW_REGISTRATION !== 'false',
+  maxUsers: process.env.MAX_USERS ? parseInt(process.env.MAX_USERS) : null
 }
 
 export const rateLimitConfig = {

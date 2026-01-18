@@ -70,6 +70,7 @@ services:
       - CORS_ORIGIN=${CORS_ORIGIN:-http://localhost}
       - LOG_LEVEL=${LOG_LEVEL:-info}
       - ALLOW_REGISTRATION=${ALLOW_REGISTRATION:-true}
+      - MAX_USERS=${MAX_USERS:-}
     volumes:
       - ./backend/src:/app/src
     restart: unless-stopped
