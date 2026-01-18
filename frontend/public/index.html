@@ -43,66 +43,67 @@
             class="bg-white rounded-lg shadow-lg overflow-hidden"
             x-data="slideshow()"
           >
-            <!-- Slides Container -->
-            <div class="relative bg-gray-100 aspect-video overflow-hidden">
-              <template x-for="(slide, index) in slides" :key="index">
-                <img
-                  :src="slide.src"
-                  :alt="slide.alt"
-                  x-show="currentSlide === index"
-                  x-transition:fade.duration.500ms
-                  class="w-full h-full object-contain absolute inset-0"
-                />
-              </template>
+            <!-- Slides Container with Arrow Navigation -->
+            <div class="relative bg-gray-100 pt-12 pb-12 overflow-hidden">
+              <!-- Image Container -->
+              <div class="relative aspect-video flex items-center justify-center">
+                <template x-for="(slide, index) in slides" :key="index">
+                  <img
+                    :src="slide.src"
+                    :alt="slide.alt"
+                    x-show="currentSlide === index"
+                    x-transition:fade.duration.500ms
+                    class="w-full h-full object-contain absolute inset-0"
+                  />
+                </template>
 
-              <!-- Loading Spinner -->
-              <div
-                x-show="loading"
-                class="absolute inset-0 flex items-center justify-center bg-gray-200"
-              >
+                <!-- Loading Spinner -->
                 <div
-                  class="animate-spin rounded-full h-12 w-12 border-b-2 border-edh-primary"
-                ></div>
-              </div>
-            </div>
-
-            <!-- Slide Counter and Controls -->
-            <div class="bg-gray-50 px-6 py-4 flex items-center justify-between">
-              <div class="text-sm text-gray-600">
-                Slide <span x-text="currentSlide + 1"></span> of
-                <span x-text="slides.length"></span>
+                  x-show="loading"
+                  class="absolute inset-0 flex items-center justify-center bg-gray-200"
+                >
+                  <div
+                    class="animate-spin rounded-full h-12 w-12 border-b-2 border-edh-primary"
+                  ></div>
+                </div>
               </div>
 
-              <!-- Navigation Buttons -->
-              <div class="flex gap-2">
-                <button
-                  @click="previousSlide()"
-                  class="px-3 py-1 bg-gray-300 hover:bg-gray-400 rounded text-sm font-medium"
-                  title="Previous slide"
-                >
-                  ← Previous
-                </button>
-                <button
-                  @click="toggleAutoPlay()"
-                  :class="autoPlay ? 'bg-edh-primary text-white' : 'bg-gray-300'"
-                  class="px-3 py-1 hover:opacity-80 rounded text-sm font-medium"
-                  :title="autoPlay ? 'Pause slideshow' : 'Play slideshow'"
-                >
-                  <span x-show="autoPlay">⏸ Pause</span>
-                  <span x-show="!autoPlay">▶ Play</span>
-                </button>
-                <button
-                  @click="nextSlide()"
-                  class="px-3 py-1 bg-gray-300 hover:bg-gray-400 rounded text-sm font-medium"
-                  title="Next slide"
-                >
-                  Next →
-                </button>
-              </div>
+              <!-- Left Arrow Button -->
+              <button
+                @click="previousSlide()"
+                class="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-600 hover:text-gray-800 hover:bg-gray-200 rounded-full p-2 transition-colors"
+                title="Previous slide"
+              >
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+                </svg>
+              </button>
+
+              <!-- Right Arrow Button -->
+              <button
+                @click="nextSlide()"
+                class="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-600 hover:text-gray-800 hover:bg-gray-200 rounded-full p-2 transition-colors"
+                title="Next slide"
+              >
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                </svg>
+              </button>
+
+              <!-- Play/Pause Button -->
+              <button
+                @click="toggleAutoPlay()"
+                :class="autoPlay ? 'bg-edh-primary text-white' : 'bg-gray-300 text-gray-700'"
+                class="absolute top-4 right-4 px-3 py-1 rounded text-sm font-medium hover:opacity-80 transition-opacity"
+                :title="autoPlay ? 'Pause slideshow' : 'Play slideshow'"
+              >
+                <span x-show="autoPlay">⏸</span>
+                <span x-show="!autoPlay">▶</span>
+              </button>
             </div>
 
             <!-- Slide Indicators (Dots) -->
-            <div class="bg-white px-6 py-3 flex justify-center gap-2">
+            <div class="bg-white px-6 py-4 flex justify-center gap-2">
               <template x-for="(slide, index) in slides" :key="index">
                 <button
                   @click="goToSlide(index)"
@@ -215,7 +216,7 @@
           startAutoPlay() {
             this.autoPlayInterval = setInterval(() => {
               this.currentSlide = (this.currentSlide + 1) % this.slides.length
-            }, 3000)
+            }, 5000)
           },
 
           stopAutoPlay() {
