@@ -1,3 +1,6 @@
+// Load environment variables
+import 'dotenv/config.js'
+
 import fastify from 'fastify'
 import rateLimit from '@fastify/rate-limit'
 import cors from '@fastify/cors'

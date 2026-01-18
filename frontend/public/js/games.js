@@ -385,11 +385,7 @@ function gameManager() {
       this.serverError = ''
     },
 
-    loadMore() {
-      if (this.pagination.hasMore) {
-        this.loadMore()
-      }
-    },
+
 
     getCommanderName(id) {
       const commander = this.commanders.find((c) => c.id === id)

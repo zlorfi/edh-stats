@@ -250,26 +250,36 @@ export default async function commanderRoutes(fastify, options) {
       ]
     },
     async (request, reply) => {
-      try {
-        const userId = request.user.id
-        
-        // LAYER 1: Schema validation
-        const validatedData = createCommanderSchema.parse(request.body)
+       try {
+         const userId = request.user.id
+         
+         // LAYER 1: Schema validation
+         const validatedData = createCommanderSchema.parse(request.body)
 
-        // LAYER 2: Business logic validation
-        // Check for duplicate commander name (case-insensitive)
-        const existing = await commanderRepo.findByNameAndUserId(
-          validatedData.name.toLowerCase(),
-          userId
-        )
-        
-        if (existing) {
-          return reply.code(409).send({
-            error: 'Conflict',
-            message: 'Commander already exists',
-            details: [`You already have a commander named "${validatedData.name}"`]
-          })
-        }
+         // LAYER 2: Business logic validation
+         // Check if user has reached max commander limit (100)
+         const commanderCount = await commanderRepo.countCommandersByUserId(userId)
+         if (commanderCount >= 100) {
+           return reply.code(409).send({
+             error: 'Conflict',
+             message: 'Commander limit reached',
+             details: ['You have reached the maximum of 100 commanders. Delete some to add more.']
+           })
+         }
+
+         // Check for duplicate commander name (case-insensitive)
+         const existing = await commanderRepo.findByNameAndUserId(
+           validatedData.name.toLowerCase(),
+           userId
+         )
+         
+         if (existing) {
+           return reply.code(409).send({
+             error: 'Conflict',
+             message: 'Commander already exists',
+             details: [`You already have a commander named "${validatedData.name}"`]
+           })
+         }
 
         // Convert colors array to JSON string for storage
         const colorsJson = JSON.stringify(validatedData.colors)

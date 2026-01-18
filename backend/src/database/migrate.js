@@ -1,3 +1,6 @@
+// Load environment variables
+import 'dotenv/config.js'
+
 // Database migration and seed utility
 import dbManager from '../config/database.js'
 

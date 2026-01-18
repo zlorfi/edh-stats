@@ -337,14 +337,14 @@
           </div>
         </template>
 
-         <!-- Load More -->
-         <div x-show="pagination.hasMore" class="text-center pt-8">
-           <button
-             @click="loadMore()"
-             :disabled="pagination.isLoadingMore"
-             :class="{ 'opacity-50 cursor-not-allowed': pagination.isLoadingMore }"
-             class="btn btn-secondary w-full md:w-auto flex justify-center items-center space-x-2"
-           >
+          <!-- Load More -->
+          <div x-show="pagination.hasMore" class="flex justify-center pt-8">
+            <button
+              @click="loadMore()"
+              :disabled="pagination.isLoadingMore"
+              :class="{ 'opacity-50 cursor-not-allowed': pagination.isLoadingMore }"
+              class="btn btn-secondary flex justify-center items-center space-x-2"
+            >
              <svg
                x-show="!pagination.isLoadingMore"
                class="w-5 h-5"

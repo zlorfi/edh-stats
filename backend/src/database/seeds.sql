@@ -2,11 +2,11 @@
 -- This file contains sample users, commanders, and games
 -- Postgres compatible
 
--- Insert sample users (passwords are 'Password123' hashed with bcrypt)
--- Credentials for testing: testuser / Password123, magictg / Password123
+-- Insert sample users (passwords are hashed with bcryptjs)
+-- Credentials for testing: testuser / password123, magictg / password123
 INSERT INTO users (id, username, password_hash, email) VALUES
-(1, 'testuser', '$2a$12$dQiNpjGAaE2AUucQkn2VbeXRMY0Tmc.1s3CQYk7rOjOgtgv.XuZeC', 'test@example.com'),
-(2, 'magictg', '$2a$12$dQiNpjGAaE2AUucQkn2VbeXRMY0Tmc.1s3CQYk7rOjOgtgv.XuZeC', 'magic@example.com')
+(1, 'testuser', '$2a$12$x7ndYpA34suHO53/WqNuYOKLFmbrLNlB5BSYxMaJVLnnivT8vfwOW', 'test@example.com'),
+(2, 'magictg', '$2a$12$x7ndYpA34suHO53/WqNuYOKLFmbrLNlB5BSYxMaJVLnnivT8vfwOW', 'magic@example.com')
 ON CONFLICT (id) DO NOTHING;
 
 -- Reset sequence for users
