@@ -100,25 +100,79 @@ const updateGameSchema = z.object({
 })
 
 const gameQuerySchema = z.object({
-  q: z
-    .string('Search query must be a string')
-    .min(1, 'Search query cannot be empty')
-    .max(50, 'Search query limited to 50 characters')
-    .optional(),
-  limit: z
-    .coerce
-    .number('Limit must be a number')
-    .int('Limit must be a whole number')
-    .min(1, 'Minimum 1 game per page')
-    .max(100, 'Maximum 100 games per page')
-    .default(50),
-  offset: z
-    .coerce
-    .number('Offset must be a number')
-    .int('Offset must be a whole number')
-    .min(0, 'Offset cannot be negative')
-    .default(0)
-})
+   q: z
+     .string('Search query must be a string')
+     .min(1, 'Search query cannot be empty')
+     .max(50, 'Search query limited to 50 characters')
+     .optional(),
+   limit: z
+     .coerce
+     .number('Limit must be a number')
+     .int('Limit must be a whole number')
+     .min(1, 'Minimum 1 game per page')
+     .max(100, 'Maximum 100 games per page')
+     .default(50),
+   offset: z
+     .coerce
+     .number('Offset must be a number')
+     .int('Offset must be a whole number')
+     .min(0, 'Offset cannot be negative')
+     .default(0),
+   // Date range filters
+   dateFrom: z
+     .string('Date from must be a string')
+     .refine((date) => !isNaN(Date.parse(date)), {
+       message: 'Invalid date format (use YYYY-MM-DD)'
+     })
+     .optional(),
+   dateTo: z
+     .string('Date to must be a string')
+     .refine((date) => !isNaN(Date.parse(date)), {
+       message: 'Invalid date format (use YYYY-MM-DD)'
+     })
+     .optional(),
+   // Player count filter
+   playerCount: z
+     .coerce
+     .number('Player count must be a number')
+     .int('Player count must be a whole number')
+     .min(2, 'Minimum 2 players')
+     .max(8, 'Maximum 8 players')
+     .optional(),
+   // Commander ID filter
+   commanderId: z
+     .coerce
+     .number('Commander ID must be a number')
+     .int('Commander ID must be a whole number')
+     .positive('Commander ID must be positive')
+     .optional(),
+   // Win/Loss filter
+   won: z
+     .enum(['true', 'false'])
+     .transform(val => val === 'true')
+     .optional(),
+   // Rounds range filters
+   roundsMin: z
+     .coerce
+     .number('Min rounds must be a number')
+     .int('Min rounds must be a whole number')
+     .min(1, 'Minimum 1 round')
+     .optional(),
+   roundsMax: z
+     .coerce
+     .number('Max rounds must be a number')
+     .int('Max rounds must be a whole number')
+     .max(50, 'Maximum 50 rounds')
+     .optional(),
+   // Color filters (comma-separated: W,U,B,R,G)
+   colors: z
+     .string('Colors must be a string')
+     .transform(val => val.split(',').filter(c => c.trim()))
+     .refine(colors => colors.every(c => /^[WUBRG]$/.test(c)), {
+       message: 'Invalid color format (use W,U,B,R,G)'
+     })
+     .optional()
+ })
 
 export default async function gameRoutes(fastify, options) {
   // Initialize repositories

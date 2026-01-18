@@ -44,9 +44,11 @@
             x-data="slideshow()"
           >
             <!-- Slides Container with Arrow Navigation -->
-            <div class="relative bg-gray-100 pt-12 pb-12 overflow-hidden">
+            <div class="relative bg-gray-100 pt-9 pb-9 overflow-hidden">
               <!-- Image Container -->
-              <div class="relative aspect-video flex items-center justify-center">
+              <div
+                class="relative aspect-video flex items-center justify-center"
+              >
                 <template x-for="(slide, index) in slides" :key="index">
                   <img
                     :src="slide.src"
@@ -71,22 +73,42 @@
               <!-- Left Arrow Button -->
               <button
                 @click="previousSlide()"
-                class="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-600 hover:text-gray-800 hover:bg-gray-200 rounded-full p-2 transition-colors"
+                class="absolute left-2 top-1/2 transform -translate-y-1/2 text-gray-600 hover:text-gray-800 hover:bg-gray-200 rounded-full p-2 transition-colors"
                 title="Previous slide"
               >
-                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+                <svg
+                  class="w-6 h-6"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M15 19l-7-7 7-7"
+                  />
                 </svg>
               </button>
 
               <!-- Right Arrow Button -->
               <button
                 @click="nextSlide()"
-                class="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-600 hover:text-gray-800 hover:bg-gray-200 rounded-full p-2 transition-colors"
+                class="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-600 hover:text-gray-800 hover:bg-gray-200 rounded-full p-2 transition-colors"
                 title="Next slide"
               >
-                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                <svg
+                  class="w-6 h-6"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M9 5l7 7-7 7"
+                  />
                 </svg>
               </button>
 

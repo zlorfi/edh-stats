@@ -97,16 +97,43 @@ export class GameRepository extends Repository {
       paramCount++
     }
 
-    if (filters.won !== undefined) {
-      query += ` AND g.won = $${paramCount}`
-      params.push(filters.won)
-      paramCount++
-    }
+     if (filters.won !== undefined) {
+       query += ` AND g.won = $${paramCount}`
+       params.push(filters.won)
+       paramCount++
+     }
 
-    query += ` ORDER BY g.date DESC LIMIT $${paramCount} OFFSET $${paramCount + 1}`
-    params.push(limit, offset)
+     if (filters.roundsMin !== undefined) {
+       query += ` AND g.rounds >= $${paramCount}`
+       params.push(filters.roundsMin)
+       paramCount++
+     }
 
-    return dbManager.all(query, params)
+     if (filters.roundsMax !== undefined) {
+       query += ` AND g.rounds <= $${paramCount}`
+       params.push(filters.roundsMax)
+       paramCount++
+     }
+
+     if (filters.colors && filters.colors.length > 0) {
+       // Filter by commander color identity - checks if colors array contains any of the specified colors
+       const colorConditions = filters.colors.map(() => {
+         const condition = `cmdr.colors @> $${paramCount}::jsonb`
+         paramCount++
+         return condition
+       })
+       query += ` AND (${colorConditions.join(' OR ')})`
+       filters.colors.forEach(color => {
+         params.push(JSON.stringify([color]))
+       })
+       paramCount -= filters.colors.length
+       paramCount += filters.colors.length
+     }
+
+     query += ` ORDER BY g.date DESC LIMIT $${paramCount} OFFSET $${paramCount + 1}`
+     params.push(limit, offset)
+
+     return dbManager.all(query, params)
   }
 
   /**
@@ -161,15 +188,48 @@ export class GameRepository extends Repository {
       paramCount++
     }
 
-    if (filters.dateTo) {
-      query += ` AND g.date <= $${paramCount}`
-      params.push(filters.dateTo)
-      paramCount++
-    }
+     if (filters.dateTo) {
+       query += ` AND g.date <= $${paramCount}`
+       params.push(filters.dateTo)
+       paramCount++
+     }
 
-    query += ` ORDER BY g.date DESC`
+     if (filters.won !== undefined) {
+       query += ` AND g.won = $${paramCount}`
+       params.push(filters.won)
+       paramCount++
+     }
 
-    return dbManager.all(query, params)
+     if (filters.roundsMin !== undefined) {
+       query += ` AND g.rounds >= $${paramCount}`
+       params.push(filters.roundsMin)
+       paramCount++
+     }
+
+     if (filters.roundsMax !== undefined) {
+       query += ` AND g.rounds <= $${paramCount}`
+       params.push(filters.roundsMax)
+       paramCount++
+     }
+
+     if (filters.colors && filters.colors.length > 0) {
+       // Filter by commander color identity
+       const colorConditions = filters.colors.map(() => {
+         const condition = `cmdr.colors @> $${paramCount}::jsonb`
+         paramCount++
+         return condition
+       })
+       query += ` AND (${colorConditions.join(' OR ')})`
+       filters.colors.forEach(color => {
+         params.push(JSON.stringify([color]))
+       })
+       paramCount -= filters.colors.length
+       paramCount += filters.colors.length
+     }
+
+     query += ` ORDER BY g.date DESC`
+
+     return dbManager.all(query, params)
   }
 
   /**
