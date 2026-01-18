@@ -18,17 +18,23 @@ function profileManager() {
     // State
     submitting: {
       username: false,
-      password: false
+      password: false,
+      deleteAccount: false
     },
     errors: {},
     serverError: {
       username: '',
-      password: ''
+      password: '',
+      deleteAccount: ''
     },
     successMessage: {
       username: '',
       password: ''
     },
+    
+    // Delete account modal state
+    showDeleteConfirm: false,
+    deleteConfirmText: '',
 
     // Lifecycle
     async init() {
@@ -217,6 +223,47 @@ function profileManager() {
         this.serverError.password = 'Network error occurred'
       } finally {
         this.submitting.password = false
+      }
+    },
+
+    // Handle Delete Account
+    async handleDeleteAccount() {
+      // Extra safeguard - verify confirmation text
+      if (this.deleteConfirmText !== 'delete my account') {
+        this.serverError.deleteAccount = 'Confirmation text does not match'
+        return
+      }
+
+      this.submitting.deleteAccount = true
+      this.serverError.deleteAccount = ''
+
+      try {
+        const token =
+          localStorage.getItem('edh-stats-token') ||
+          sessionStorage.getItem('edh-stats-token')
+        const response = await fetch('/api/auth/me', {
+          method: 'DELETE',
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        })
+
+        if (response.ok) {
+          // Clear auth tokens
+          localStorage.removeItem('edh-stats-token')
+          sessionStorage.removeItem('edh-stats-token')
+          
+          // Redirect to home page with success message
+          window.location.href = '/login.html?deleted=true'
+        } else {
+          const errorData = await response.json()
+          this.serverError.deleteAccount = errorData.message || 'Failed to delete account'
+        }
+      } catch (error) {
+        console.error('Delete account error:', error)
+        this.serverError.deleteAccount = 'Network error occurred'
+      } finally {
+        this.submitting.deleteAccount = false
       }
     }
   }

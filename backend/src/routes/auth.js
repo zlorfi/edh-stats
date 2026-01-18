@@ -589,9 +589,87 @@ export default async function authRoutes(fastify, options) {
     }
   )
 
-   // Change password (PUT)
-   fastify.put(
-     '/change-password',
+    // Change password (PUT)
+    fastify.put(
+      '/change-password',
+      {
+        preHandler: [
+          async (request, reply) => {
+            try {
+              await request.jwtVerify()
+            } catch (err) {
+              reply.code(401).send({
+                error: 'Unauthorized',
+                message: 'Invalid or expired token'
+              })
+            }
+          }
+        ],
+        config: { rateLimit: { max: 3, timeWindow: '1 hour' } }
+      },
+      async (request, reply) => {
+        try {
+          const { currentPassword, newPassword } = changePasswordSchema.parse(
+            request.body
+          )
+
+          // Verify current password
+          const user = await userRepo.findByUsername(request.user.username)
+          if (!user) {
+            reply.code(404).send({
+              error: 'Not Found',
+              message: 'User not found'
+            })
+            return
+          }
+
+          const isValidPassword = await userRepo.verifyPassword(
+            currentPassword,
+            user.password_hash
+          )
+          if (!isValidPassword) {
+            reply.code(401).send({
+              error: 'Authentication Failed',
+              message: 'Current password is incorrect'
+            })
+            return
+          }
+
+          // Update password
+          const updated = await userRepo.updatePassword(request.user.id, newPassword)
+
+         if (!updated) {
+           reply.code(500).send({
+             error: 'Internal Server Error',
+             message: 'Failed to update password'
+           })
+           return
+         }
+
+         reply.send({
+           message: 'Password changed successfully'
+         })
+       } catch (error) {
+         if (error instanceof z.ZodError) {
+           reply.code(400).send({
+             error: 'Validation Error',
+             message: 'Invalid input data',
+             details: error.errors.map((e) => e.message)
+           })
+         } else {
+           fastify.log.error('Change password error:', error)
+           reply.code(500).send({
+             error: 'Internal Server Error',
+             message: 'Failed to change password'
+           })
+         }
+       }
+     }
+   )
+
+   // Delete account (DELETE /me)
+   fastify.delete(
+     '/me',
      {
        preHandler: [
          async (request, reply) => {
@@ -605,17 +683,16 @@ export default async function authRoutes(fastify, options) {
            }
          }
        ],
-       config: { rateLimit: { max: 3, timeWindow: '1 hour' } }
+       config: { rateLimit: { max: 2, timeWindow: '1 hour' } }
      },
      async (request, reply) => {
        try {
-         const { currentPassword, newPassword } = changePasswordSchema.parse(
-           request.body
-         )
+         const userId = request.user.id
 
-         // Verify current password
-         const user = await userRepo.findByUsername(request.user.username)
-         if (!user) {
+         // Delete user account (cascades to commanders and games)
+         const deleted = await userRepo.deleteUser(userId)
+
+         if (!deleted) {
            reply.code(404).send({
              error: 'Not Found',
              message: 'User not found'
@@ -623,47 +700,16 @@ export default async function authRoutes(fastify, options) {
            return
          }
 
-         const isValidPassword = await userRepo.verifyPassword(
-           currentPassword,
-           user.password_hash
-         )
-         if (!isValidPassword) {
-           reply.code(401).send({
-             error: 'Authentication Failed',
-             message: 'Current password is incorrect'
-           })
-           return
-         }
-
-         // Update password
-         const updated = await userRepo.updatePassword(request.user.id, newPassword)
-
-        if (!updated) {
-          reply.code(500).send({
-            error: 'Internal Server Error',
-            message: 'Failed to update password'
-          })
-          return
-        }
-
-        reply.send({
-          message: 'Password changed successfully'
-        })
-      } catch (error) {
-        if (error instanceof z.ZodError) {
-          reply.code(400).send({
-            error: 'Validation Error',
-            message: 'Invalid input data',
-            details: error.errors.map((e) => e.message)
-          })
-        } else {
-          fastify.log.error('Change password error:', error)
-          reply.code(500).send({
-            error: 'Internal Server Error',
-            message: 'Failed to change password'
-          })
-        }
-      }
-    }
-  )
+         reply.send({
+           message: 'Account deleted successfully'
+         })
+       } catch (error) {
+         fastify.log.error('Delete account error:', error)
+         reply.code(500).send({
+           error: 'Internal Server Error',
+           message: 'Failed to delete account'
+         })
+       }
+     }
+   )
 }

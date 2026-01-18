@@ -290,17 +290,124 @@
             <p class="text-red-800" x-text="serverError.password"></p>
           </div>
 
-          <button
-            type="submit"
-            :disabled="submitting.password"
-            class="btn btn-primary"
-          >
-            <span x-show="!submitting.password">Change Password</span>
-            <span x-show="submitting.password">Updating...</span>
-          </button>
-        </form>
-      </div>
-    </main>
+           <button
+             type="submit"
+             :disabled="submitting.password"
+             class="btn btn-primary"
+           >
+             <span x-show="!submitting.password">Change Password</span>
+             <span x-show="submitting.password">Updating...</span>
+           </button>
+         </form>
+       </div>
+
+       <!-- Delete Account Section -->
+       <div class="card mt-8 border-red-200 bg-red-50">
+         <h2 class="text-2xl font-semibold mb-4 text-red-900">Danger Zone</h2>
+         
+         <div class="mb-6 p-4 bg-red-100 rounded-lg border border-red-300">
+           <div class="flex items-start">
+             <svg class="w-5 h-5 text-red-600 mr-3 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+               <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+             </svg>
+             <div>
+               <h3 class="font-semibold text-red-900">Delete Account</h3>
+               <p class="text-sm text-red-800 mt-1">
+                 This action is permanent and cannot be undone. All your game records, commanders, and statistics will be deleted.
+               </p>
+             </div>
+           </div>
+         </div>
+
+         <button
+           @click="showDeleteConfirm = true"
+           type="button"
+           class="btn bg-red-600 hover:bg-red-700 text-white"
+         >
+           Delete Account
+         </button>
+       </div>
+     </main>
+
+     <!-- Delete Account Confirmation Modal -->
+     <div
+       x-show="showDeleteConfirm"
+       x-transition
+       class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4"
+       @click.self="showDeleteConfirm = false"
+     >
+       <div class="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
+         <div class="flex items-center justify-center w-10 h-10 mx-auto bg-red-100 rounded-full mb-4">
+           <svg class="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4v2m0 5v-6m0-6V3m0 0h3m-3 0H9" />
+           </svg>
+         </div>
+
+         <h3 class="text-lg font-semibold text-gray-900 text-center mb-4">
+           Delete Account?
+         </h3>
+
+         <p class="text-gray-600 text-center mb-4">
+           Are you absolutely sure? This will permanently delete:
+         </p>
+
+         <ul class="text-sm text-gray-600 space-y-2 mb-6 pl-4">
+           <li class="flex items-start">
+             <span class="text-red-600 mr-2">•</span>
+             <span>Your account and all personal data</span>
+           </li>
+           <li class="flex items-start">
+             <span class="text-red-600 mr-2">•</span>
+             <span>All game records and statistics</span>
+           </li>
+           <li class="flex items-start">
+             <span class="text-red-600 mr-2">•</span>
+             <span>All commanders and associated data</span>
+           </li>
+         </ul>
+
+         <form @submit.prevent="handleDeleteAccount">
+           <div class="mb-4">
+             <label for="deleteConfirmText" class="form-label text-center block">
+               Type <span class="font-semibold">delete my account</span> to confirm:
+             </label>
+             <input
+               id="deleteConfirmText"
+               type="text"
+               x-model="deleteConfirmText"
+               placeholder="delete my account"
+               class="form-input mt-2"
+             />
+           </div>
+
+           <div
+             x-show="serverError.deleteAccount"
+             class="mb-4 p-3 bg-red-50 rounded-lg border border-red-200"
+           >
+             <p class="text-red-800 text-sm" x-text="serverError.deleteAccount"></p>
+           </div>
+
+           <div class="flex gap-3">
+             <button
+               type="button"
+               @click="showDeleteConfirm = false; deleteConfirmText = ''"
+               class="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 font-medium"
+             >
+               Cancel
+             </button>
+             <button
+               type="submit"
+               :disabled="deleteConfirmText !== 'delete my account' || submitting.deleteAccount"
+               :class="{ 'opacity-50 cursor-not-allowed': deleteConfirmText !== 'delete my account' || submitting.deleteAccount }"
+               class="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 font-medium disabled:hover:bg-red-600"
+             >
+               <span x-show="!submitting.deleteAccount">Delete Account</span>
+               <span x-show="submitting.deleteAccount">Deleting...</span>
+             </button>
+           </div>
+         </form>
+       </div>
+     </div>
 
     <!-- Scripts -->
     <script

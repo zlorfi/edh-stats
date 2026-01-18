@@ -315,24 +315,24 @@
               ></p>
             </div>
 
-            <!-- Terms & Conditions -->
-            <div class="flex items-center">
-              <input
-                id="terms"
-                name="terms"
-                type="checkbox"
-                x-model="formData.terms"
-                @change="validateTerms()"
-                :class="errors.terms ? 'border-red-500' : ''"
-                class="h-4 w-4 text-edh-accent focus:ring-edh-accent border-gray-300 rounded"
-              />
-              <label for="terms" class="ml-2 block text-sm text-gray-900">
-                I agree to the
-                <a href="#" class="text-edh-accent hover:text-edh-primary"
-                  >Terms of Service</a
-                >
-              </label>
-            </div>
+             <!-- Terms & Conditions -->
+             <div class="flex items-center">
+               <input
+                 id="terms"
+                 name="terms"
+                 type="checkbox"
+                 x-model="formData.terms"
+                 @change="validateTerms()"
+                 :class="errors.terms ? 'border-red-500' : ''"
+                 class="h-4 w-4 text-edh-accent focus:ring-edh-accent border-gray-300 rounded"
+               />
+               <label for="terms" class="ml-2 block text-sm text-gray-900">
+                 I agree to the
+                 <a href="/tos.html" target="_blank" class="text-edh-accent hover:text-edh-primary"
+                   >Terms of Service</a
+                 >
+               </label>
+             </div>
             <p
               x-show="errors.terms"
               x-text="errors.terms"
