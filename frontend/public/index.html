@@ -39,16 +39,15 @@
 
         <!-- Preview Slideshow Section -->
         <div class="mt-12 max-w-6xl mx-auto">
-          <h2 class="text-2xl font-bold text-gray-800 mb-6">
-            Feature Gallery
-          </h2>
-          
-          <div class="bg-white rounded-lg shadow-lg overflow-hidden" x-data="slideshow()">
+          <div
+            class="bg-white rounded-lg shadow-lg overflow-hidden"
+            x-data="slideshow()"
+          >
             <!-- Slides Container -->
             <div class="relative bg-gray-100 aspect-video overflow-hidden">
               <template x-for="(slide, index) in slides" :key="index">
-                <img 
-                  :src="slide.src" 
+                <img
+                  :src="slide.src"
                   :alt="slide.alt"
                   x-show="currentSlide === index"
                   x-transition:fade.duration.500ms
@@ -57,27 +56,33 @@
               </template>
 
               <!-- Loading Spinner -->
-              <div x-show="loading" class="absolute inset-0 flex items-center justify-center bg-gray-200">
-                <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-edh-primary"></div>
+              <div
+                x-show="loading"
+                class="absolute inset-0 flex items-center justify-center bg-gray-200"
+              >
+                <div
+                  class="animate-spin rounded-full h-12 w-12 border-b-2 border-edh-primary"
+                ></div>
               </div>
             </div>
 
             <!-- Slide Counter and Controls -->
             <div class="bg-gray-50 px-6 py-4 flex items-center justify-between">
               <div class="text-sm text-gray-600">
-                Slide <span x-text="currentSlide + 1"></span> of <span x-text="slides.length"></span>
+                Slide <span x-text="currentSlide + 1"></span> of
+                <span x-text="slides.length"></span>
               </div>
 
               <!-- Navigation Buttons -->
               <div class="flex gap-2">
-                <button 
+                <button
                   @click="previousSlide()"
                   class="px-3 py-1 bg-gray-300 hover:bg-gray-400 rounded text-sm font-medium"
                   title="Previous slide"
                 >
                   ← Previous
                 </button>
-                <button 
+                <button
                   @click="toggleAutoPlay()"
                   :class="autoPlay ? 'bg-edh-primary text-white' : 'bg-gray-300'"
                   class="px-3 py-1 hover:opacity-80 rounded text-sm font-medium"
@@ -86,7 +91,7 @@
                   <span x-show="autoPlay">⏸ Pause</span>
                   <span x-show="!autoPlay">▶ Play</span>
                 </button>
-                <button 
+                <button
                   @click="nextSlide()"
                   class="px-3 py-1 bg-gray-300 hover:bg-gray-400 rounded text-sm font-medium"
                   title="Next slide"
@@ -110,7 +115,8 @@
           </div>
 
           <p class="text-gray-600 mt-4 text-sm text-center">
-            Explore all the features of EDH Stats Tracker - track games, manage commanders, view statistics, and use the round timer
+            Explore all the features of EDH Stats Tracker - track games, manage
+            commanders, view statistics, and use the round timer
           </p>
         </div>
       </div>
@@ -156,11 +162,6 @@
           loading: false,
           slides: [
             {
-              src: '/images/preview.png',
-              alt: 'Dashboard showing KPI cards with Total Games, Win Rate, Active Decks, and Avg Rounds',
-              title: 'Dashboard'
-            },
-            {
               src: '/images/commanders.png',
               alt: 'Commander management interface for adding and editing decks with color selection',
               title: 'Commanders'
@@ -192,7 +193,8 @@
           },
 
           previousSlide() {
-            this.currentSlide = (this.currentSlide - 1 + this.slides.length) % this.slides.length
+            this.currentSlide =
+              (this.currentSlide - 1 + this.slides.length) % this.slides.length
             this.restartAutoPlay()
           },
 
