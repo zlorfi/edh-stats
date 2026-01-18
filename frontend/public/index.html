@@ -37,21 +37,80 @@
           </div>
         </div>
 
-        <!-- Preview Section -->
+        <!-- Preview Slideshow Section -->
         <div class="mt-12 max-w-6xl mx-auto">
           <h2 class="text-2xl font-bold text-gray-800 mb-6">
-            Dashboard Preview
+            Feature Gallery
           </h2>
-          <div class="bg-white rounded-lg shadow-lg overflow-hidden">
-            <img
-              src="/images/preview.png"
-              alt="EDH Stats Tracker Dashboard Preview showing game statistics, recent games, and top commanders"
-              class="w-full h-auto"
-            />
+          
+          <div class="bg-white rounded-lg shadow-lg overflow-hidden" x-data="slideshow()">
+            <!-- Slides Container -->
+            <div class="relative bg-gray-100 aspect-video overflow-hidden">
+              <template x-for="(slide, index) in slides" :key="index">
+                <img 
+                  :src="slide.src" 
+                  :alt="slide.alt"
+                  x-show="currentSlide === index"
+                  x-transition:fade.duration.500ms
+                  class="w-full h-full object-contain absolute inset-0"
+                />
+              </template>
+
+              <!-- Loading Spinner -->
+              <div x-show="loading" class="absolute inset-0 flex items-center justify-center bg-gray-200">
+                <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-edh-primary"></div>
+              </div>
+            </div>
+
+            <!-- Slide Counter and Controls -->
+            <div class="bg-gray-50 px-6 py-4 flex items-center justify-between">
+              <div class="text-sm text-gray-600">
+                Slide <span x-text="currentSlide + 1"></span> of <span x-text="slides.length"></span>
+              </div>
+
+              <!-- Navigation Buttons -->
+              <div class="flex gap-2">
+                <button 
+                  @click="previousSlide()"
+                  class="px-3 py-1 bg-gray-300 hover:bg-gray-400 rounded text-sm font-medium"
+                  title="Previous slide"
+                >
+                  ← Previous
+                </button>
+                <button 
+                  @click="toggleAutoPlay()"
+                  :class="autoPlay ? 'bg-edh-primary text-white' : 'bg-gray-300'"
+                  class="px-3 py-1 hover:opacity-80 rounded text-sm font-medium"
+                  :title="autoPlay ? 'Pause slideshow' : 'Play slideshow'"
+                >
+                  <span x-show="autoPlay">⏸ Pause</span>
+                  <span x-show="!autoPlay">▶ Play</span>
+                </button>
+                <button 
+                  @click="nextSlide()"
+                  class="px-3 py-1 bg-gray-300 hover:bg-gray-400 rounded text-sm font-medium"
+                  title="Next slide"
+                >
+                  Next →
+                </button>
+              </div>
+            </div>
+
+            <!-- Slide Indicators (Dots) -->
+            <div class="bg-white px-6 py-3 flex justify-center gap-2">
+              <template x-for="(slide, index) in slides" :key="index">
+                <button
+                  @click="goToSlide(index)"
+                  :class="currentSlide === index ? 'bg-edh-primary' : 'bg-gray-300 hover:bg-gray-400'"
+                  class="w-2 h-2 rounded-full transition-colors"
+                  :title="`Go to slide ${index + 1}: ${slide.title}`"
+                />
+              </template>
+            </div>
           </div>
-          <p class="text-gray-600 mt-4 text-sm">
-            Track your total games, win rates, and top performing commanders
-            with beautiful visualizations
+
+          <p class="text-gray-600 mt-4 text-sm text-center">
+            Explore all the features of EDH Stats Tracker - track games, manage commanders, view statistics, and use the round timer
           </p>
         </div>
       </div>
@@ -89,8 +148,97 @@
         }
       }
 
+      function slideshow() {
+        return {
+          currentSlide: 0,
+          autoPlay: true,
+          autoPlayInterval: null,
+          loading: false,
+          slides: [
+            {
+              src: '/images/preview.png',
+              alt: 'Dashboard showing KPI cards with Total Games, Win Rate, Active Decks, and Avg Rounds',
+              title: 'Dashboard'
+            },
+            {
+              src: '/images/commanders.png',
+              alt: 'Commander management interface for adding and editing decks with color selection',
+              title: 'Commanders'
+            },
+            {
+              src: '/images/logs.png',
+              alt: 'Game logging form for recording game results, player count, and outcomes',
+              title: 'Log Games'
+            },
+            {
+              src: '/images/round_timer.png',
+              alt: 'Real-time round counter with automatic game timing and elapsed time tracking',
+              title: 'Round Timer'
+            },
+            {
+              src: '/images/stats.png',
+              alt: 'Detailed statistics showing win rates by color, player count, and commander performance',
+              title: 'Statistics'
+            }
+          ],
+
+          init() {
+            this.startAutoPlay()
+          },
+
+          nextSlide() {
+            this.currentSlide = (this.currentSlide + 1) % this.slides.length
+            this.restartAutoPlay()
+          },
+
+          previousSlide() {
+            this.currentSlide = (this.currentSlide - 1 + this.slides.length) % this.slides.length
+            this.restartAutoPlay()
+          },
+
+          goToSlide(index) {
+            this.currentSlide = index
+            this.restartAutoPlay()
+          },
+
+          toggleAutoPlay() {
+            this.autoPlay = !this.autoPlay
+            if (this.autoPlay) {
+              this.startAutoPlay()
+            } else {
+              this.stopAutoPlay()
+            }
+          },
+
+          startAutoPlay() {
+            this.autoPlayInterval = setInterval(() => {
+              this.currentSlide = (this.currentSlide + 1) % this.slides.length
+            }, 3000)
+          },
+
+          stopAutoPlay() {
+            if (this.autoPlayInterval) {
+              clearInterval(this.autoPlayInterval)
+              this.autoPlayInterval = null
+            }
+          },
+
+          restartAutoPlay() {
+            this.stopAutoPlay()
+            if (this.autoPlay) {
+              this.startAutoPlay()
+            }
+          },
+
+          destroy() {
+            this.stopAutoPlay()
+          }
+        }
+      }
+
       document.addEventListener('alpine:init', () => {
         Alpine.data('indexApp', indexApp)
+        Alpine.data('slideshow', slideshow)
       })
     </script>
 
