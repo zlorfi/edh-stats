@@ -3,15 +3,13 @@ import dbManager from '../config/database.js'
 import { formatValidationErrors } from '../utils/validators.js'
 
 const commanderStatsQuerySchema = z.object({
-  limit: z
-    .coerce
+  limit: z.coerce
     .number('Limit must be a number')
     .int('Limit must be a whole number')
     .min(1, 'Minimum 1 commander per page')
     .max(100, 'Maximum 100 commanders per page')
     .default(50),
-  offset: z
-    .coerce
+  offset: z.coerce
     .number('Offset must be a number')
     .int('Offset must be a whole number')
     .min(0, 'Offset cannot be negative')
@@ -36,11 +34,11 @@ export default async function statsRoutes(fastify, options) {
       ]
     },
     async (request, reply) => {
-       try {
-         const userId = request.user.id
+      try {
+        const userId = request.user.id
 
-         const stats = await dbManager.get(
-           `
+        const stats = await dbManager.get(
+          `
          SELECT
            total_games,
            win_rate,
@@ -49,15 +47,15 @@ export default async function statsRoutes(fastify, options) {
          FROM user_stats
          WHERE user_id = $1
        `,
-           [userId]
-         )
+          [userId]
+        )
 
-         reply.send({
-           totalGames: stats?.total_games || 0,
-           winRate: stats?.win_rate || 0,
-           totalCommanders: stats?.total_commanders || 0,
-           avgRounds: Math.round(stats?.avg_rounds || 0)
-         })
+        reply.send({
+          totalGames: stats?.total_games || 0,
+          winRate: stats?.win_rate || 0,
+          totalCommanders: stats?.total_commanders || 0,
+          avgRounds: Math.round(stats?.avg_rounds || 0)
+        })
       } catch (error) {
         fastify.log.error('Get stats overview error:', error)
         reply.code(500).send({
@@ -94,7 +92,7 @@ export default async function statsRoutes(fastify, options) {
         const rawStats = await dbManager.all(
           `
           SELECT * FROM commander_stats
-          WHERE user_id = $1 AND total_games >= 5
+          WHERE user_id = $1 AND total_games >= 3
           ORDER BY total_games DESC, win_rate DESC
           LIMIT $2 OFFSET $3
         `,
@@ -147,41 +145,43 @@ export default async function statsRoutes(fastify, options) {
           [userId]
         )
 
-         reply.send({
-           stats,
-           pagination: {
-             total: stats.length,
-             limit,
-             offset
-           },
-           charts: {
-             playerCounts: {
-               labels: playerCountStats.map((s) => `${s.player_count} Players`),
-               data: playerCountStats.map((s) =>
-                 Math.round((s.wins / s.total) * 100)
-               )
-             },
-              colors: {
-                labels: colorStats.map((s) => (Array.isArray(s.colors) ? s.colors.join('') : '')),
-                data: colorStats.map((s) => Math.round((s.wins / s.total) * 100))
-              }
-           }
-         })
-       } catch (error) {
-         if (error instanceof z.ZodError) {
-           return reply.code(400).send({
-             error: 'Validation Error',
-             message: 'Invalid query parameters',
-             details: formatValidationErrors(error)
-           })
-         } else {
-           fastify.log.error('Get commander stats error:', error)
-           reply.code(500).send({
-             error: 'Internal Server Error',
-             message: 'Failed to fetch detailed stats'
-           })
-         }
-       }
-     }
-   )
+        reply.send({
+          stats,
+          pagination: {
+            total: stats.length,
+            limit,
+            offset
+          },
+          charts: {
+            playerCounts: {
+              labels: playerCountStats.map((s) => `${s.player_count} Players`),
+              data: playerCountStats.map((s) =>
+                Math.round((s.wins / s.total) * 100)
+              )
+            },
+            colors: {
+              labels: colorStats.map((s) =>
+                Array.isArray(s.colors) ? s.colors.join('') : ''
+              ),
+              data: colorStats.map((s) => Math.round((s.wins / s.total) * 100))
+            }
+          }
+        })
+      } catch (error) {
+        if (error instanceof z.ZodError) {
+          return reply.code(400).send({
+            error: 'Validation Error',
+            message: 'Invalid query parameters',
+            details: formatValidationErrors(error)
+          })
+        } else {
+          fastify.log.error('Get commander stats error:', error)
+          reply.code(500).send({
+            error: 'Internal Server Error',
+            message: 'Failed to fetch detailed stats'
+          })
+        }
+      }
+    }
+  )
 }

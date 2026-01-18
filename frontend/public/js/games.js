@@ -29,12 +29,12 @@ function gameManager() {
       notes: ''
     },
 
-    // Pagination
+    // Pagination - load more pattern
     pagination: {
-      page: 1,
+      offset: 0,
       limit: 20,
-      total: 0,
-      hasMore: false
+      hasMore: false,
+      isLoadingMore: false
     },
 
     // Computed form data - returns editingGame if editing, otherwise newGame
@@ -114,13 +114,13 @@ function gameManager() {
       }
     },
 
-    async loadGames(page = 1) {
+    async loadGames() {
       this.loading = true
-      const offset = (page - 1) * this.pagination.limit
+      this.serverError = ''
 
       try {
         const response = await fetch(
-          `/api/games?limit=${this.pagination.limit}&offset=${offset}`,
+          `/api/games?limit=${this.pagination.limit}&offset=${this.pagination.offset}`,
           {
             headers: {
               Authorization: `Bearer ${localStorage.getItem('edh-stats-token') || sessionStorage.getItem('edh-stats-token')}`
@@ -130,16 +130,8 @@ function gameManager() {
 
         if (response.ok) {
           const data = await response.json()
-
-          if (page === 1) {
-            this.games = data.games || []
-          } else {
-            this.games = [...this.games, ...(data.games || [])]
-          }
-
-          this.pagination.total = data.pagination?.total || 0
-          this.pagination.page = page
-          this.pagination.hasMore = this.games.length < this.pagination.total
+          this.games = data.games || []
+          this.pagination.hasMore = data.pagination?.hasMore || false
         } else {
           this.serverError = 'Failed to load games'
         }
@@ -148,6 +140,40 @@ function gameManager() {
         this.serverError = 'Network error occurred'
       } finally {
         this.loading = false
+      }
+    },
+
+    async loadMore() {
+      this.pagination.isLoadingMore = true
+      this.serverError = ''
+
+      try {
+        this.pagination.offset += this.pagination.limit
+        const response = await fetch(
+          `/api/games?limit=${this.pagination.limit}&offset=${this.pagination.offset}`,
+          {
+            headers: {
+              Authorization: `Bearer ${localStorage.getItem('edh-stats-token') || sessionStorage.getItem('edh-stats-token')}`
+            }
+          }
+        )
+
+        if (response.ok) {
+          const data = await response.json()
+          this.games = [...this.games, ...(data.games || [])]
+          this.pagination.hasMore = data.pagination?.hasMore || false
+        } else {
+          this.serverError = 'Failed to load more games'
+          // Revert offset on error
+          this.pagination.offset -= this.pagination.limit
+        }
+      } catch (error) {
+        console.error('Load more games error:', error)
+        this.serverError = 'Network error occurred'
+        // Revert offset on error
+        this.pagination.offset -= this.pagination.limit
+      } finally {
+        this.pagination.isLoadingMore = false
       }
     },
 
@@ -361,7 +387,7 @@ function gameManager() {
 
     loadMore() {
       if (this.pagination.hasMore) {
-        this.loadGames(this.pagination.page + 1)
+        this.loadMore()
       }
     },
 

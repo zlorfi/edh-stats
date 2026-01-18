@@ -338,12 +338,48 @@
         </template>
 
          <!-- Load More -->
-         <div x-show="pagination.hasMore" class="text-center pt-4">
+         <div x-show="pagination.hasMore" class="text-center pt-8">
            <button
              @click="loadMore()"
-             class="btn btn-secondary w-full md:w-auto"
+             :disabled="pagination.isLoadingMore"
+             :class="{ 'opacity-50 cursor-not-allowed': pagination.isLoadingMore }"
+             class="btn btn-secondary w-full md:w-auto flex justify-center items-center space-x-2"
            >
-             Load More Games
+             <svg
+               x-show="!pagination.isLoadingMore"
+               class="w-5 h-5"
+               fill="none"
+               stroke="currentColor"
+               viewBox="0 0 24 24"
+             >
+               <path
+                 stroke-linecap="round"
+                 stroke-linejoin="round"
+                 stroke-width="2"
+                 d="M12 4v16m8-8H4"
+               ></path>
+             </svg>
+             <svg
+               x-show="pagination.isLoadingMore"
+               class="animate-spin h-5 w-5"
+               fill="none"
+               viewBox="0 0 24 24"
+             >
+               <circle
+                 class="opacity-25"
+                 cx="12"
+                 cy="12"
+                 r="10"
+                 stroke="currentColor"
+                 stroke-width="4"
+               ></circle>
+               <path
+                 class="opacity-75"
+                 fill="currentColor"
+                 d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+               ></path>
+             </svg>
+             <span x-text="pagination.isLoadingMore ? 'Loading...' : 'Load More Games'"></span>
            </button>
          </div>
        </div>

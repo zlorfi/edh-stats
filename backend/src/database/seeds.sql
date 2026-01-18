@@ -1,12 +1,13 @@
 -- Sample seed data for development and testing
 -- This file contains sample users, commanders, and games
+-- Postgres compatible
 
--- Insert sample users (passwords are 'password123' hashed with bcrypt)
--- Credentials for testing: testuser / password123, magictg / password123
+-- Insert sample users (passwords are 'Password123' hashed with bcrypt)
+-- Credentials for testing: testuser / Password123, magictg / Password123
 INSERT INTO users (id, username, password_hash, email) VALUES
-(1, 'testuser', '$2a$12$TbMEXlrucxJW4cMmkvJHeuLdehtWFBUbKJwL0KgYpeRcoG7ZCTo16', 'test@example.com'),
-(2, 'magictg', '$2a$12$TbMEXlrucxJW4cMmkvJHeuLdehtWFBUbKJwL0KgYpeRcoG7ZCTo16', 'magic@example.com')
-ON CONFLICT DO NOTHING;
+(1, 'testuser', '$2a$12$dQiNpjGAaE2AUucQkn2VbeXRMY0Tmc.1s3CQYk7rOjOgtgv.XuZeC', 'test@example.com'),
+(2, 'magictg', '$2a$12$dQiNpjGAaE2AUucQkn2VbeXRMY0Tmc.1s3CQYk7rOjOgtgv.XuZeC', 'magic@example.com')
+ON CONFLICT (id) DO NOTHING;
 
 -- Reset sequence for users
 SELECT setval('users_id_seq', (SELECT MAX(id) FROM users), true);
@@ -22,44 +23,169 @@ INSERT INTO commanders (id, name, colors, user_id) VALUES
 (6, 'Narset of the Ancient Way', '["U","R","W"]'::jsonb, 1),
 (7, 'Tymna the Weaver', '["W","B"]'::jsonb, 2),
 (8, 'Kydele, Chosen of Kruphix', '["U","G"]'::jsonb, 1)
-ON CONFLICT DO NOTHING;
+ON CONFLICT (id) DO NOTHING;
 
 -- Reset sequence for commanders
 SELECT setval('commanders_id_seq', (SELECT MAX(id) FROM commanders), true);
 
 -- Insert sample games with varied statistics
-INSERT INTO games (id, date, player_count, commander_id, won, rounds, starting_player_won, sol_ring_turn_one_won, notes, user_id) VALUES
+INSERT INTO games (date, player_count, commander_id, won, rounds, starting_player_won, sol_ring_turn_one_won, notes, user_id) VALUES
 -- Games for user 1 (testuser)
-(1, '2024-01-15', 4, 1, TRUE, 12, FALSE, FALSE, 'Great control game, won with infinite artifacts', 1),
-(2, '2024-01-18', 3, 1, FALSE, 8, TRUE, TRUE, 'Lost to aggro, Sol Ring helped but not enough', 1),
-(3, '2024-01-22', 4, 2, TRUE, 15, FALSE, TRUE, 'Dinosaur tribal worked perfectly', 1),
-(4, '2024-01-25', 5, 3, FALSE, 10, FALSE, FALSE, 'Mana issues all game', 1),
-(5, '2024-02-01', 4, 1, TRUE, 13, TRUE, FALSE, 'Close game, won with Brain Freeze', 1),
-(6, '2024-02-05', 3, 6, TRUE, 9, FALSE, TRUE, 'Narset enchantments carried the game', 1),
-(7, '2024-02-08', 4, 8, FALSE, 11, TRUE, FALSE, 'Lost to tribal deck', 1),
+('2024-01-15', 4, 1, true, 12, false, false, 'Great control game, won with infinite artifacts', 1),
+('2024-01-18', 3, 1, false, 8, true, true, 'Lost to aggro, Sol Ring helped but not enough', 1),
+('2024-01-22', 4, 2, true, 15, false, true, 'Dinosaur tribal worked perfectly', 1),
+('2024-01-25', 5, 3, false, 10, false, false, 'Mana issues all game', 1),
+('2024-02-01', 4, 1, true, 13, true, false, 'Close game, won with Brain Freeze', 1),
+('2024-02-05', 3, 6, true, 9, false, true, 'Narset enchantments carried the game', 1),
+('2024-02-08', 4, 8, false, 11, true, false, 'Lost to tribal deck', 1),
 -- Games for user 2 (magictg)
-(8, '2024-01-16', 4, 4, TRUE, 14, FALSE, TRUE, 'Krenko went infinite on turn 8', 2),
-(9, '2024-01-20', 5, 5, FALSE, 16, FALSE, FALSE, 'Sac outlet deck was too slow', 2),
-(10, '2024-01-23', 3, 7, TRUE, 7, TRUE, FALSE, 'Partner commanders worked well', 2),
-(11, '2024-01-28', 4, 4, TRUE, 12, FALSE, TRUE, 'Goblins are OP in 1v1', 2),
-(12, '2024-02-02', 6, 5, FALSE, 18, TRUE, TRUE, '6 player chaos game, fun but lost', 2)
-ON CONFLICT DO NOTHING;
-
--- Reset sequence for games
-SELECT setval('games_id_seq', (SELECT MAX(id) FROM games), true);
-
--- Additional games for more comprehensive statistics
-INSERT INTO games (id, date, player_count, commander_id, won, rounds, starting_player_won, sol_ring_turn_one_won, notes, user_id) VALUES
+('2024-01-16', 4, 4, true, 14, false, true, 'Krenko went infinite on turn 8', 2),
+('2024-01-20', 5, 5, false, 16, false, false, 'Sac outlet deck was too slow', 2),
+('2024-01-23', 3, 7, true, 7, true, false, 'Partner commanders worked well', 2),
+('2024-01-28', 4, 4, true, 12, false, true, 'Goblins are OP in 1v1', 2),
+('2024-02-02', 6, 5, false, 18, true, true, '6 player chaos game, fun but lost', 2),
 -- More games for user 1
-(13, '2024-02-10', 4, 2, FALSE, 13, FALSE, FALSE, 'Board wiped too many times', 1),
-(14, '2024-02-12', 3, 6, TRUE, 8, TRUE, TRUE, 'Narset with turn 1 Sol Ring = win', 1),
-(15, '2024-02-15', 4, 3, TRUE, 11, FALSE, FALSE, 'Zombie recursion was key', 1),
-(16, '2024-02-18', 5, 1, FALSE, 17, TRUE, TRUE, '5 player game, lost to storm', 1),
+('2024-02-10', 4, 2, false, 13, false, false, 'Board wiped too many times', 1),
+('2024-02-12', 3, 6, true, 8, true, true, 'Narset with turn 1 Sol Ring = win', 1),
+('2024-02-15', 4, 3, true, 11, false, false, 'Zombie recursion was key', 1),
+('2024-02-18', 5, 1, false, 17, true, true, '5 player game, lost to storm', 1),
 -- More games for user 2
-(17, '2024-02-05', 4, 7, FALSE, 10, FALSE, FALSE, 'Color screw hurt early game', 2),
-(18, '2024-02-09', 3, 4, FALSE, 9, FALSE, TRUE, 'Red deck lost to lifegain', 2),
-(19, '2024-02-14', 4, 5, TRUE, 14, TRUE, FALSE, 'Ghave tokens got huge', 2),
-(20, '2024-02-17', 4, 7, TRUE, 12, FALSE, TRUE, 'Life gain + card draw = win', 2)
+('2024-02-05', 4, 7, false, 10, false, false, 'Color screw hurt early game', 2),
+('2024-02-09', 3, 4, false, 9, false, true, 'Red deck lost to lifegain', 2),
+('2024-02-14', 4, 5, true, 14, true, false, 'Ghave tokens got huge', 2),
+('2024-02-17', 4, 7, true, 12, false, true, 'Life gain + card draw = win', 2),
+-- More games for user 1 (testuser) - reaching 61 total
+('2024-02-20', 4, 1, true, 14, false, true, 'Control deck secured the win with a counter war', 1),
+('2024-02-22', 3, 2, false, 9, true, false, 'Dinosaurs met their match against burn deck', 1),
+('2024-02-25', 4, 6, true, 12, false, false, 'Enchantment strategy was too much', 1),
+('2024-03-01', 5, 3, true, 15, false, true, 'Grimgrin combo won after long grind', 1),
+('2024-03-03', 4, 8, false, 10, false, false, 'Green deck got mana screwed early', 1),
+('2024-03-05', 4, 1, true, 13, true, false, 'Another control victory', 1),
+('2024-03-08', 3, 2, true, 11, false, true, 'Gishath attack was unstoppable', 1),
+('2024-03-10', 4, 6, false, 8, false, false, 'Narset couldn''t generate enough value', 1),
+('2024-03-12', 5, 3, false, 16, true, true, 'Mana base failed me again', 1),
+('2024-03-15', 4, 1, true, 12, false, false, 'Artifact combo goes brrrr', 1),
+('2024-03-18', 3, 2, false, 7, false, false, 'Lost to early pressure', 1),
+('2024-03-20', 4, 8, true, 14, false, true, 'Kydele ramped into victory', 1),
+('2024-03-22', 4, 6, true, 10, true, false, 'Enchantment voltron overwhelming', 1),
+('2024-03-25', 5, 1, false, 18, false, false, 'Got caught without answers in 5 player', 1),
+('2024-03-28', 4, 3, true, 11, false, true, 'Zombie recursion won the day', 1),
+('2024-03-30', 4, 2, true, 13, false, false, 'Dinosaur tribal is underrated', 1),
+('2024-04-02', 3, 1, false, 9, true, false, 'Outpaced by faster deck', 1),
+('2024-04-05', 4, 6, false, 12, false, true, 'Narset stalled but couldn''t finish', 1),
+('2024-04-08', 4, 8, true, 15, false, false, 'Drawing lots of cards wins games', 1),
+('2024-04-10', 5, 3, true, 14, false, true, 'Grimgrin infinite finally assembled', 1),
+('2024-04-12', 4, 2, false, 8, false, false, 'Gishath got removed before attacking', 1),
+('2024-04-15', 3, 1, true, 11, false, false, 'Brain Freeze combo finished the game', 1),
+('2024-04-18', 4, 6, true, 13, true, true, 'Best game yet with Narset', 1),
+('2024-04-20', 4, 8, false, 10, false, false, 'Got mana screwed with Kydele', 1),
+('2024-04-22', 5, 1, true, 16, false, false, 'Control won through sheer card advantage', 1),
+('2024-04-25', 4, 3, false, 12, true, false, 'Zombie deck couldn''t close out', 1),
+('2024-04-28', 4, 2, true, 14, false, true, 'Gishath smashed face all game', 1),
+('2024-05-01', 3, 1, false, 9, false, false, 'Lost to faster combo deck', 1),
+('2024-05-03', 4, 6, true, 11, false, false, 'Enchantments stacked nicely this game', 1),
+('2024-05-05', 4, 8, true, 13, false, true, 'Kydele with draw effects is bonkers', 1),
+('2024-05-08', 5, 3, false, 15, false, false, '5 player games are tough', 1),
+('2024-05-10', 4, 1, true, 12, false, false, 'Infinite loop win with artifacts', 1),
+('2024-05-12', 4, 2, false, 10, true, false, 'Dinosaur strategy whiffed', 1),
+('2024-05-15', 3, 6, true, 8, false, true, 'Early Sol Ring into Narset was GG', 1),
+('2024-05-18', 4, 3, true, 14, false, false, 'Grimgrin combo engines are unstoppable', 1),
+('2024-05-20', 4, 1, false, 11, false, false, 'Control met its match today', 1),
+('2024-05-22', 5, 8, true, 17, false, true, 'Kydele ramp is real', 1),
+('2024-05-25', 4, 2, true, 13, true, false, 'Gishath with haste creatures = gg', 1),
+('2024-05-28', 4, 6, false, 9, false, false, 'Narset didn''t draw enough answers', 1),
+('2024-06-01', 3, 1, true, 10, false, false, 'Artifact combo is my main deck', 1),
+('2024-06-03', 4, 3, false, 12, false, true, 'Got targeted down with Grimgrin', 1),
+('2024-06-05', 4, 2, true, 15, false, false, 'Dinosaur deck hitting on all cylinders', 1),
+('2024-06-08', 5, 1, false, 16, true, false, 'Lost to early pressure in 5 player', 1),
+('2024-06-10', 4, 8, true, 11, false, true, 'Kydele draw engine took over', 1),
+('2024-06-12', 4, 6, true, 13, false, false, 'Narset enchantment voltron', 1),
+('2024-06-15', 3, 3, false, 8, false, false, 'Grimgrin fizzled without protection', 1),
+('2024-06-18', 4, 1, true, 14, false, false, 'Another day another control win', 1),
+('2024-06-20', 4, 2, false, 10, false, true, 'Gishath got board wiped multiple times', 1),
+('2024-06-22', 4, 6, true, 12, true, false, 'Narset was unstoppable this match', 1),
+('2024-06-25', 5, 8, false, 17, false, false, 'Large game too much chaos for me', 1),
+('2024-06-28', 4, 1, true, 13, false, true, 'Infinite combo sealed the victory', 1),
+('2024-07-01', 4, 3, true, 11, false, false, 'Grimgrin value chain won out', 1),
+('2024-07-03', 3, 2, false, 9, false, false, 'Gishath got countered at crucial moment', 1),
+('2024-07-05', 4, 6, false, 10, false, true, 'Narset draw wasn''t enough', 1),
+('2024-07-08', 4, 8, true, 14, false, false, 'Kydele ramp carried me to victory', 1),
+('2024-07-10', 5, 1, true, 15, true, false, 'Control is strongest in 5 player', 1),
+-- More games for user 2 (magictg) - reaching 109 total
+('2024-02-20', 4, 4, false, 13, false, false, 'Krenko got removed too early', 2),
+('2024-02-22', 3, 5, true, 10, true, false, 'Ghave tokens overwhelmed the table', 2),
+('2024-02-25', 4, 7, true, 12, false, true, 'Tymna card draw was key', 2),
+('2024-03-01', 5, 4, true, 14, false, false, 'Goblin swarm in big game', 2),
+('2024-03-03', 4, 5, false, 11, false, true, 'Ghave deck was too slow', 2),
+('2024-03-05', 4, 7, false, 9, false, false, 'Tymna didn''t find answers', 2),
+('2024-03-08', 3, 4, true, 8, true, false, 'Krenko turned the corner early', 2),
+('2024-03-10', 4, 5, true, 13, false, true, 'Ghave token generation too much', 2),
+('2024-03-12', 5, 7, false, 16, false, false, 'Got shut down in 5 player game', 2),
+('2024-03-15', 4, 4, true, 12, false, false, 'Goblins just do what they do', 2),
+('2024-03-18', 3, 5, false, 7, false, false, 'Early mana issues hurt Ghave', 2),
+('2024-03-20', 4, 7, true, 14, false, true, 'Tymna generated tons of value', 2),
+('2024-03-22', 4, 4, true, 10, true, false, 'Krenko goes infinite as usual', 2),
+('2024-03-25', 5, 5, true, 15, false, false, 'Ghave in big game surprisingly good', 2),
+('2024-03-28', 4, 7, false, 11, false, false, 'Tymna partner wasn''t online', 2),
+('2024-03-30', 4, 4, false, 9, false, true, 'Goblin deck got tempo''d out', 2),
+('2024-04-02', 3, 5, true, 12, false, false, 'Ghave sac outlets finally came online', 2),
+('2024-04-05', 4, 7, true, 13, false, true, 'Tymna life gain strategy won', 2),
+('2024-04-08', 4, 4, true, 14, false, false, 'Krenko infinite on turn 9', 2),
+('2024-04-10', 5, 5, false, 17, true, true, 'Chaos game didn''t favor my deck', 2),
+('2024-04-12', 4, 7, true, 10, false, false, 'Tymna drew and won', 2),
+('2024-04-15', 3, 4, false, 8, false, false, 'Got mana screwed with Krenko', 2),
+('2024-04-18', 4, 5, true, 14, false, true, 'Ghave token combo was epic', 2),
+('2024-04-20', 4, 7, false, 11, false, false, 'Tymna deck bricked on draw', 2),
+('2024-04-22', 5, 4, true, 15, false, false, 'Big red deck in big game', 2),
+('2024-04-25', 4, 5, true, 13, true, false, 'Ghave went wide and tall', 2),
+('2024-04-28', 4, 7, true, 12, false, true, 'Tymna + Gideon was nuts', 2),
+('2024-05-01', 3, 4, true, 9, false, false, 'Krenko tempo deck active', 2),
+('2024-05-03', 4, 5, false, 12, false, false, 'Ghave got color screwed', 2),
+('2024-05-05', 4, 7, true, 14, false, true, 'Tymna life gain won race', 2),
+('2024-05-08', 5, 4, false, 16, false, false, 'Krenko in 5 player couldn''t compete', 2),
+('2024-05-10', 4, 5, true, 13, false, false, 'Ghave sac strategy dominated', 2),
+('2024-05-12', 4, 7, false, 10, true, false, 'Tymna drew poorly', 2),
+('2024-05-15', 3, 4, true, 11, false, true, 'Krenko + Sol Ring = turn 8 win', 2),
+('2024-05-18', 4, 5, true, 15, false, false, 'Ghave token swarm incoming', 2),
+('2024-05-20', 4, 7, true, 13, false, false, 'Tymna found perfect answers', 2),
+('2024-05-22', 5, 4, false, 14, false, false, 'Goblin deck faced too much removal', 2),
+('2024-05-25', 4, 5, false, 11, false, true, 'Ghave got targeted early', 2),
+('2024-05-28', 4, 7, true, 12, true, false, 'Tymna lifegain infinite with Zuran', 2),
+('2024-06-01', 3, 4, true, 10, false, false, 'Krenko mono red works great', 2),
+('2024-06-03', 4, 5, true, 14, false, false, 'Ghave tokens became 100/100 each', 2),
+('2024-06-05', 4, 7, false, 9, false, true, 'Tymna didn''t stick', 2),
+('2024-06-08', 5, 4, true, 15, false, false, 'Krenko in multiplayer is solid', 2),
+('2024-06-10', 4, 5, true, 13, false, false, 'Ghave sac package is strong', 2),
+('2024-06-12', 4, 7, true, 14, false, true, 'Tymna draw engine too good', 2),
+('2024-06-15', 3, 4, false, 8, false, false, 'Krenko got board wiped', 2),
+('2024-06-18', 4, 5, false, 11, false, false, 'Ghave never got going', 2),
+('2024-06-20', 4, 7, true, 13, true, false, 'Tymna partner synergy won', 2),
+('2024-06-22', 5, 4, true, 16, false, true, 'Goblins swarm in multiplayer', 2),
+('2024-06-25', 4, 5, true, 14, false, false, 'Ghave with good ramp is overpowered', 2),
+('2024-06-28', 4, 7, false, 10, false, false, 'Tymna couldn''t generate enough board', 2),
+('2024-07-01', 3, 4, true, 12, false, false, 'Another Krenko victory', 2),
+('2024-07-03', 4, 5, true, 13, false, true, 'Ghave went very wide', 2),
+('2024-07-05', 4, 7, true, 11, false, false, 'Tymna + lifelink was unbeatable', 2),
+('2024-07-08', 5, 4, false, 17, false, false, 'Large red deck couldn''t scale', 2),
+('2024-07-10', 4, 5, false, 12, false, false, 'Ghave got removed before value', 2),
+('2024-07-12', 4, 7, true, 15, true, true, 'Tymna card draw infinite', 2),
+('2024-07-15', 3, 4, true, 9, false, false, 'Krenko sealed early', 2),
+('2024-07-18', 4, 5, true, 14, false, false, 'Ghave token game strong', 2),
+('2024-07-20', 4, 7, false, 10, false, false, 'Tymna fizzled in 4 player', 2),
+('2024-07-22', 5, 4, true, 15, false, true, 'Goblin swarm is meta', 2),
+('2024-07-25', 4, 5, true, 13, false, false, 'Ghave sac combo activated', 2),
+('2024-07-28', 4, 7, true, 12, false, false, 'Tymna the ultimate draw engine', 2),
+('2024-07-30', 3, 4, false, 8, true, false, 'Krenko got removed instantly', 2),
+('2024-08-02', 4, 5, false, 11, false, true, 'Ghave mana screwed hard', 2),
+('2024-08-05', 4, 7, true, 13, false, false, 'Tymna control won late game', 2),
+('2024-08-08', 5, 4, true, 16, false, false, 'Krenko multiplayer domination', 2),
+('2024-08-10', 4, 5, true, 14, false, false, 'Ghave go wide strategy', 2),
+('2024-08-12', 4, 7, false, 9, false, true, 'Tymna deck didn''t draw enough', 2),
+('2024-08-15', 3, 4, true, 11, false, false, 'Red deck always good', 2),
+('2024-08-18', 4, 5, true, 13, false, false, 'Ghave tokens eventually won', 2),
+('2024-08-20', 4, 7, true, 14, true, false, 'Tymna card advantage overwhelming', 2),
+('2024-08-22', 5, 4, false, 15, false, false, 'Krenko got politics''d out', 2),
+('2024-08-25', 4, 5, false, 12, false, true, 'Ghave got hated out', 2)
 ON CONFLICT DO NOTHING;
 
 -- Reset sequence for games to cover all inserted IDs

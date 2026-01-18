@@ -256,35 +256,41 @@ export default async function gameRoutes(fastify, options) {
              filters.won = won
            }
 
-           let games = await gameRepo.getGamesByUserId(userId, limit, offset, filters)
+           // Fetch one extra game to check if there are more
+           let games = await gameRepo.getGamesByUserId(userId, limit + 1, offset, filters)
+           
+           // Check if there are more games beyond the limit
+           const hasMore = games.length > limit
+           
+           // Only return the requested limit
+           const gamesForResponse = games.slice(0, limit)
 
-          // Transform database results to camelCase with commander info
-          const transformedGames = games.map((game) => ({
-            id: game.id,
-            date: new Date(game.date).toLocaleDateString('en-US'),
-            playerCount: game.player_count,
-            commanderId: game.commander_id,
-            won: game.won,
-            rounds: game.rounds,
-            startingPlayerWon: game.starting_player_won,
-            solRingTurnOneWon: game.sol_ring_turn_one_won,
-            notes: game.notes || null,
-            commanderName: game.name,
-            commanderColors: game.colors || [],
-            userId: game.user_id,
-            createdAt: game.created_at,
-            updatedAt: game.updated_at
-          }))
+           // Transform database results to camelCase with commander info
+           const transformedGames = gamesForResponse.map((game) => ({
+             id: game.id,
+             date: new Date(game.date).toLocaleDateString('en-US'),
+             playerCount: game.player_count,
+             commanderId: game.commander_id,
+             won: game.won,
+             rounds: game.rounds,
+             startingPlayerWon: game.starting_player_won,
+             solRingTurnOneWon: game.sol_ring_turn_one_won,
+             notes: game.notes || null,
+             commanderName: game.name,
+             commanderColors: game.colors || [],
+             userId: game.user_id,
+             createdAt: game.created_at,
+             updatedAt: game.updated_at
+           }))
 
-         reply.send({
-           games: transformedGames,
-           pagination: {
-             total: transformedGames.length,
-             page: Math.floor(limit / 20) + 1,
-             limit,
-             offset
-           }
-         })
+          reply.send({
+            games: transformedGames,
+            pagination: {
+              limit,
+              offset,
+              hasMore
+            }
+          })
         } catch (error) {
           if (error instanceof z.ZodError) {
             return reply.code(400).send({
