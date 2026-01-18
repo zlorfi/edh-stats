@@ -105,6 +105,35 @@ const gameQuerySchema = z.object({
     .min(1, 'Search query cannot be empty')
     .max(50, 'Search query limited to 50 characters')
     .optional(),
+  playerCount: z
+    .coerce
+    .number('Player count must be a number')
+    .int('Player count must be a whole number')
+    .min(2, 'Minimum 2 players required')
+    .max(8, 'Maximum 8 players allowed')
+    .optional(),
+  commanderId: z
+    .coerce
+    .number('Commander ID must be a number')
+    .int('Commander ID must be a whole number')
+    .positive('Commander ID must be positive')
+    .optional(),
+  dateFrom: z
+    .string('dateFrom must be a string')
+    .refine((date) => !isNaN(Date.parse(date)), {
+      message: 'Invalid dateFrom format (use YYYY-MM-DD)'
+    })
+    .optional(),
+  dateTo: z
+    .string('dateTo must be a string')
+    .refine((date) => !isNaN(Date.parse(date)), {
+      message: 'Invalid dateTo format (use YYYY-MM-DD)'
+    })
+    .optional(),
+  won: z
+    .enum(['true', 'false'])
+    .transform((val) => val === 'true')
+    .optional(),
   limit: z
     .coerce
     .number('Limit must be a number')
@@ -118,7 +147,65 @@ const gameQuerySchema = z.object({
     .int('Offset must be a whole number')
     .min(0, 'Offset cannot be negative')
     .default(0)
-})
+}).refine(
+  (data) => {
+    if (data.dateFrom && data.dateTo) {
+      return new Date(data.dateFrom) <= new Date(data.dateTo)
+    }
+    return true
+  },
+  {
+    message: 'dateFrom must be before or equal to dateTo',
+    path: ['dateFrom']
+  }
+)
+
+const exportGameQuerySchema = z.object({
+  commander: z
+    .string('Commander filter must be a string')
+    .max(100, 'Commander filter limited to 100 characters')
+    .optional(),
+  playerCount: z
+    .coerce
+    .number('Player count must be a number')
+    .int('Player count must be a whole number')
+    .min(2, 'Minimum 2 players required')
+    .max(8, 'Maximum 8 players allowed')
+    .optional(),
+  commanderId: z
+    .coerce
+    .number('Commander ID must be a number')
+    .int('Commander ID must be a whole number')
+    .positive('Commander ID must be positive')
+    .optional(),
+  dateFrom: z
+    .string('dateFrom must be a string')
+    .refine((date) => !isNaN(Date.parse(date)), {
+      message: 'Invalid dateFrom format (use YYYY-MM-DD)'
+    })
+    .optional(),
+  dateTo: z
+    .string('dateTo must be a string')
+    .refine((date) => !isNaN(Date.parse(date)), {
+      message: 'Invalid dateTo format (use YYYY-MM-DD)'
+    })
+    .optional(),
+  won: z
+    .enum(['true', 'false'])
+    .transform((val) => val === 'true')
+    .optional()
+}).refine(
+  (data) => {
+    if (data.dateFrom && data.dateTo) {
+      return new Date(data.dateFrom) <= new Date(data.dateTo)
+    }
+    return true
+  },
+  {
+    message: 'dateFrom must be before or equal to dateTo',
+    path: ['dateFrom']
+  }
+)
 
 export default async function gameRoutes(fastify, options) {
   // Initialize repositories
@@ -143,17 +230,33 @@ export default async function gameRoutes(fastify, options) {
         }
       ]
     },
-     async (request, reply) => {
-       try {
-          const { q, limit, offset } = gameQuerySchema.parse(request.query)
-          const userId = request.user.id
+      async (request, reply) => {
+        try {
+           const validatedQuery = gameQuerySchema.parse(request.query)
+           const { q, limit, offset, playerCount, commanderId, dateFrom, dateTo, won } = validatedQuery
+           const userId = request.user.id
 
-          const filters = {}
-          if (q) {
-            filters.commander = q
-          }
+           const filters = {}
+           if (q) {
+             filters.commander = q
+           }
+           if (playerCount !== undefined) {
+             filters.playerCount = playerCount
+           }
+           if (commanderId !== undefined) {
+             filters.commanderId = commanderId
+           }
+           if (dateFrom !== undefined) {
+             filters.dateFrom = dateFrom
+           }
+           if (dateTo !== undefined) {
+             filters.dateTo = dateTo
+           }
+           if (won !== undefined) {
+             filters.won = won
+           }
 
-          let games = await gameRepo.getGamesByUserId(userId, limit, offset, filters)
+           let games = await gameRepo.getGamesByUserId(userId, limit, offset, filters)
 
           // Transform database results to camelCase with commander info
           const transformedGames = games.map((game) => ({
@@ -182,13 +285,21 @@ export default async function gameRoutes(fastify, options) {
              offset
            }
          })
-       } catch (error) {
-         fastify.log.error('Get games error:', error)
-         reply.code(500).send({
-           error: 'Internal Server Error',
-           message: 'Failed to fetch games'
-         })
-       }
+        } catch (error) {
+          if (error instanceof z.ZodError) {
+            return reply.code(400).send({
+              error: 'Validation Error',
+              message: 'Invalid query parameters',
+              details: formatValidationErrors(error)
+            })
+          } else {
+            fastify.log.error('Get games error:', error)
+            reply.code(500).send({
+              error: 'Internal Server Error',
+              message: 'Failed to fetch games'
+            })
+          }
+        }
      }
   )
 
@@ -211,10 +322,20 @@ export default async function gameRoutes(fastify, options) {
     },
     async (request, reply) => {
        try {
-         const { id } = request.params
-         const userId = request.user.id
+          const { id } = request.params
+          const userId = request.user.id
 
-         const game = await gameRepo.getGameById(id, userId)
+          // Validate game ID parameter
+          const gameId = parseInt(id)
+          if (isNaN(gameId) || gameId <= 0) {
+            return reply.code(400).send({
+              error: 'Bad Request',
+              message: 'Invalid game ID',
+              details: ['Game ID must be a positive integer']
+            })
+          }
+
+          const game = await gameRepo.getGameById(gameId, userId)
 
          if (!game) {
           reply.code(404).send({
@@ -276,34 +397,17 @@ export default async function gameRoutes(fastify, options) {
         // LAYER 1: Schema validation
         const validatedData = createGameSchema.parse(request.body)
 
-        // LAYER 2: Business logic validation
-        // Check commander exists and belongs to user
-        const commander = await commanderRepo.findById(validatedData.commanderId)
-        
-        if (!commander || commander.user_id !== userId) {
-          return reply.code(400).send({
-            error: 'Bad Request',
-            message: 'Invalid commander ID or commander not found',
-            details: ['Commander does not exist or does not belong to you']
-          })
-        }
-
-        // Check for duplicate games (same commander on same date)
-        const existingGame = await gameRepo.findGameByDateAndCommander(
-          userId,
-          validatedData.date,
-          validatedData.commanderId
-        )
-        
-        if (existingGame) {
-          return reply.code(409).send({
-            error: 'Conflict',
-            message: 'Duplicate game detected',
-            details: [
-              `You already logged a game with ${commander.name} on ${validatedData.date}`
-            ]
-          })
-        }
+         // LAYER 2: Business logic validation
+         // Check commander exists and belongs to user
+         const commander = await commanderRepo.findById(validatedData.commanderId)
+         
+         if (!commander || commander.user_id !== userId) {
+           return reply.code(400).send({
+             error: 'Bad Request',
+             message: 'Invalid commander ID or commander not found',
+             details: ['Commander does not exist or does not belong to you']
+           })
+         }
 
         // Convert camelCase to snake_case for database
         const gameData = {
@@ -378,10 +482,35 @@ export default async function gameRoutes(fastify, options) {
       ]
     },
     async (request, reply) => {
-      try {
-        const { id } = request.params
-        const userId = request.user.id
-        const updateData = updateGameSchema.parse(request.body)
+       try {
+          const { id } = request.params
+          const userId = request.user.id
+          
+          // Validate game ID parameter
+          const gameId = parseInt(id)
+          if (isNaN(gameId) || gameId <= 0) {
+            return reply.code(400).send({
+              error: 'Bad Request',
+              message: 'Invalid game ID',
+              details: ['Game ID must be a positive integer']
+            })
+          }
+
+          const updateData = updateGameSchema.parse(request.body)
+
+           // LAYER 2: Business logic validation
+           // Check commander exists and belongs to user if updating commander
+           if (updateData.commanderId !== undefined) {
+             const commander = await commanderRepo.findById(updateData.commanderId)
+             
+             if (!commander || commander.user_id !== userId) {
+               return reply.code(400).send({
+                 error: 'Bad Request',
+                 message: 'Invalid commander ID or commander not found',
+                 details: ['Commander does not exist or does not belong to you']
+               })
+             }
+           }
 
          // Convert camelCase to snake_case for database
          const gameData = {}
@@ -398,7 +527,7 @@ export default async function gameRoutes(fastify, options) {
            gameData.sol_ring_turn_one_won = updateData.solRingTurnOneWon
          if (updateData.notes !== undefined) gameData.notes = updateData.notes
 
-         const updated = await gameRepo.updateGame(id, userId, gameData)
+         const updated = await gameRepo.updateGame(gameId, userId, gameData)
 
         if (!updated) {
           reply.code(400).send({
@@ -408,7 +537,7 @@ export default async function gameRoutes(fastify, options) {
           return
         }
 
-         const game = await gameRepo.getGameById(id, userId)
+         const game = await gameRepo.getGameById(gameId, userId)
 
             reply.send({
               message: 'Game updated successfully',
@@ -466,10 +595,20 @@ export default async function gameRoutes(fastify, options) {
     },
     async (request, reply) => {
        try {
-         const { id } = request.params
-         const userId = request.user.id
+          const { id } = request.params
+          const userId = request.user.id
 
-         const deleted = await gameRepo.deleteGame(id, userId)
+          // Validate game ID parameter
+          const gameId = parseInt(id)
+          if (isNaN(gameId) || gameId <= 0) {
+            return reply.code(400).send({
+              error: 'Bad Request',
+              message: 'Invalid game ID',
+              details: ['Game ID must be a positive integer']
+            })
+          }
+
+          const deleted = await gameRepo.deleteGame(gameId, userId)
 
          if (!deleted) {
           reply.code(404).send({
@@ -510,18 +649,21 @@ export default async function gameRoutes(fastify, options) {
       ]
     },
     async (request, reply) => {
-      try {
-        const userId = request.user.id
-        const filters = {}
-        
-        // Parse optional query filters
-        if (request.query.commander) filters.commander = request.query.commander
-        if (request.query.playerCount) filters.playerCount = parseInt(request.query.playerCount)
-        if (request.query.commanderId) filters.commanderId = parseInt(request.query.commanderId)
-        if (request.query.dateFrom) filters.dateFrom = request.query.dateFrom
-        if (request.query.dateTo) filters.dateTo = request.query.dateTo
+       try {
+         const userId = request.user.id
+         
+         // Validate and parse export query parameters
+         const validatedQuery = exportGameQuerySchema.parse(request.query)
+         
+         const filters = {}
+         if (validatedQuery.commander !== undefined) filters.commander = validatedQuery.commander
+         if (validatedQuery.playerCount !== undefined) filters.playerCount = validatedQuery.playerCount
+         if (validatedQuery.commanderId !== undefined) filters.commanderId = validatedQuery.commanderId
+         if (validatedQuery.dateFrom !== undefined) filters.dateFrom = validatedQuery.dateFrom
+         if (validatedQuery.dateTo !== undefined) filters.dateTo = validatedQuery.dateTo
+         if (validatedQuery.won !== undefined) filters.won = validatedQuery.won
 
-         const games = await gameRepo.exportGamesByUserId(userId, filters)
+          const games = await gameRepo.exportGamesByUserId(userId, filters)
          
          // Generate filename with current date
         const today = new Date().toLocaleDateString('en-US').replace(/\//g, '_')
@@ -540,14 +682,22 @@ export default async function gameRoutes(fastify, options) {
           games: games
         }
         
-        reply.send(exportData)
-      } catch (error) {
-        fastify.log.error('Export games error:', error)
-        reply.code(500).send({
-          error: 'Internal Server Error',
-          message: 'Failed to export games'
-        })
-      }
-    }
-  )
+         reply.send(exportData)
+       } catch (error) {
+         if (error instanceof z.ZodError) {
+           return reply.code(400).send({
+             error: 'Validation Error',
+             message: 'Invalid filter parameters',
+             details: formatValidationErrors(error)
+           })
+         } else {
+           fastify.log.error('Export games error:', error)
+           reply.code(500).send({
+             error: 'Internal Server Error',
+             message: 'Failed to export games'
+           })
+         }
+       }
+     }
+   )
 }

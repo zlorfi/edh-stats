@@ -70,7 +70,31 @@ const commanderQuerySchema = z.object({
     .int('Limit must be a whole number')
     .min(1, 'Minimum 1 commander per page')
     .max(50, 'Maximum 50 commanders per page')
-    .default(20)
+    .default(20),
+  offset: z
+    .coerce
+    .number('Offset must be a number')
+    .int('Offset must be a whole number')
+    .min(0, 'Offset cannot be negative')
+    .default(0),
+  sortBy: z
+    .enum(['created_at', 'updated_at', 'name', 'total_games'])
+    .default('created_at')
+    .optional(),
+  sortOrder: z
+    .enum(['ASC', 'DESC'])
+    .default('DESC')
+    .optional()
+})
+
+const popularCommandersQuerySchema = z.object({
+  limit: z
+    .coerce
+    .number('Limit must be a number')
+    .int('Limit must be a whole number')
+    .min(1, 'Minimum 1 commander')
+    .max(50, 'Maximum 50 commanders')
+    .default(10)
 })
 
 // Helper function to transform commander from DB format to API format
@@ -113,26 +137,38 @@ export default async function commanderRoutes(fastify, options) {
     },
     async (request, reply) => {
       try {
-         const { q, limit } = commanderQuerySchema.parse(request.query)
+         const { q, limit, offset, sortBy, sortOrder } = commanderQuerySchema.parse(request.query)
          const userId = request.user.id
 
          let commanders
          if (q) {
-           commanders = await commanderRepo.searchCommandersByName(userId, q, limit)
+           commanders = await commanderRepo.searchCommandersByName(userId, q, limit, offset)
          } else {
-           commanders = await commanderRepo.getCommandersByUserId(userId, limit)
+           commanders = await commanderRepo.getCommandersByUserId(userId, limit, offset, sortBy, sortOrder)
          }
 
         reply.send({
           commanders: commanders.map(transformCommander),
-          total: commanders.length
+          pagination: {
+            total: commanders.length,
+            limit,
+            offset
+          }
         })
       } catch (error) {
-        fastify.log.error('Get commanders error:', error)
-        reply.code(500).send({
-          error: 'Internal Server Error',
-          message: 'Failed to fetch commanders'
-        })
+        if (error instanceof z.ZodError) {
+          return reply.code(400).send({
+            error: 'Validation Error',
+            message: 'Invalid query parameters',
+            details: formatValidationErrors(error)
+          })
+        } else {
+          fastify.log.error('Get commanders error:', error)
+          reply.code(500).send({
+            error: 'Internal Server Error',
+            message: 'Failed to fetch commanders'
+          })
+        }
       }
     }
   )
@@ -159,7 +195,17 @@ export default async function commanderRoutes(fastify, options) {
          const { id } = request.params
          const userId = request.user.id
 
-         const commander = await commanderRepo.findById(id)
+         // Validate commander ID parameter
+         const commanderId = parseInt(id)
+         if (isNaN(commanderId) || commanderId <= 0) {
+           return reply.code(400).send({
+             error: 'Bad Request',
+             message: 'Invalid commander ID',
+             details: ['Commander ID must be a positive integer']
+           })
+         }
+
+         const commander = await commanderRepo.findById(commanderId)
 
          if (!commander || commander.user_id !== userId) {
            reply.code(404).send({
@@ -279,6 +325,17 @@ export default async function commanderRoutes(fastify, options) {
        try {
          const { id } = request.params
          const userId = request.user.id
+
+         // Validate commander ID parameter
+         const commanderId = parseInt(id)
+         if (isNaN(commanderId) || commanderId <= 0) {
+           return reply.code(400).send({
+             error: 'Bad Request',
+             message: 'Invalid commander ID',
+             details: ['Commander ID must be a positive integer']
+           })
+         }
+
          const updateData = updateCommanderSchema.parse(request.body)
 
          // Convert colors array to JSON if provided
@@ -287,7 +344,7 @@ export default async function commanderRoutes(fastify, options) {
            updatePayload.colors = JSON.stringify(updatePayload.colors)
          }
 
-         const updated = await commanderRepo.updateCommander(id, userId, updatePayload)
+         const updated = await commanderRepo.updateCommander(commanderId, userId, updatePayload)
 
          if (!updated) {
            reply.code(400).send({
@@ -297,12 +354,12 @@ export default async function commanderRoutes(fastify, options) {
            return
          }
 
-         const commander = await commanderRepo.findById(id)
+          const commander = await commanderRepo.findById(commanderId)
 
-          reply.send({
-            message: 'Commander updated successfully',
-            commander: transformCommander(commander)
-          })
+           reply.send({
+             message: 'Commander updated successfully',
+             commander: transformCommander(commander)
+           })
        } catch (error) {
          if (error instanceof z.ZodError) {
            const formattedErrors = formatValidationErrors(error)
@@ -346,7 +403,17 @@ export default async function commanderRoutes(fastify, options) {
          const { id } = request.params
          const userId = request.user.id
 
-         const deleted = await commanderRepo.deleteCommander(id, userId)
+         // Validate commander ID parameter
+         const commanderId = parseInt(id)
+         if (isNaN(commanderId) || commanderId <= 0) {
+           return reply.code(400).send({
+             error: 'Bad Request',
+             message: 'Invalid commander ID',
+             details: ['Commander ID must be a positive integer']
+           })
+         }
+
+         const deleted = await commanderRepo.deleteCommander(commanderId, userId)
 
          if (!deleted) {
            reply.code(404).send({
@@ -391,7 +458,17 @@ export default async function commanderRoutes(fastify, options) {
          const { id } = request.params
          const userId = request.user.id
 
-         const stats = await commanderRepo.getCommanderStats(id, userId)
+         // Validate commander ID parameter
+         const commanderId = parseInt(id)
+         if (isNaN(commanderId) || commanderId <= 0) {
+           return reply.code(400).send({
+             error: 'Bad Request',
+             message: 'Invalid commander ID',
+             details: ['Commander ID must be a positive integer']
+           })
+         }
+
+         const stats = await commanderRepo.getCommanderStats(commanderId, userId)
 
          reply.send({
            stats: {
@@ -429,18 +506,31 @@ export default async function commanderRoutes(fastify, options) {
     },
     async (request, reply) => {
        try {
+         const { limit } = popularCommandersQuerySchema.parse(request.query)
          const userId = request.user.id
-         const commanders = await commanderRepo.getPopularCommandersByUserId(userId)
+         const commanders = await commanderRepo.getPopularCommandersByUserId(userId, limit)
 
          reply.send({
-           commanders: commanders.map(transformCommander)
+           commanders: commanders.map(transformCommander),
+           pagination: {
+             total: commanders.length,
+             limit
+           }
          })
       } catch (error) {
-        fastify.log.error('Get popular commanders error:', error)
-        reply.code(500).send({
-          error: 'Internal Server Error',
-          message: 'Failed to fetch popular commanders'
-        })
+        if (error instanceof z.ZodError) {
+          return reply.code(400).send({
+            error: 'Validation Error',
+            message: 'Invalid query parameters',
+            details: formatValidationErrors(error)
+          })
+        } else {
+          fastify.log.error('Get popular commanders error:', error)
+          reply.code(500).send({
+            error: 'Internal Server Error',
+            message: 'Failed to fetch popular commanders'
+          })
+        }
       }
     }
   )

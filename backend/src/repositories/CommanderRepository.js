@@ -37,6 +37,14 @@ export class CommanderRepository extends Repository {
     sortBy = 'created_at',
     sortOrder = 'DESC'
   ) {
+    // Validate pagination parameters
+    if (!Number.isInteger(limit) || limit < 1 || limit > 50) {
+      throw new Error('Limit must be an integer between 1 and 50')
+    }
+    if (!Number.isInteger(offset) || offset < 0) {
+      throw new Error('Offset must be a non-negative integer')
+    }
+
     // Whitelist allowed sort columns
     const allowedSortColumns = [
       'created_at',
@@ -74,7 +82,18 @@ export class CommanderRepository extends Repository {
   /**
    * Search commanders by name for a user
    */
-  async searchCommandersByName(userId, query, limit = 20) {
+  async searchCommandersByName(userId, query, limit = 20, offset = 0) {
+    // Validate parameters
+    if (typeof query !== 'string' || query.length === 0 || query.length > 100) {
+      throw new Error('Search query must be a non-empty string with max 100 characters')
+    }
+    if (!Number.isInteger(limit) || limit < 1 || limit > 50) {
+      throw new Error('Limit must be an integer between 1 and 50')
+    }
+    if (!Number.isInteger(offset) || offset < 0) {
+      throw new Error('Offset must be a non-negative integer')
+    }
+
     const searchQuery = `%${query}%`
 
     const sql = `
@@ -93,16 +112,21 @@ export class CommanderRepository extends Repository {
       FROM ${this.tableName} c
       WHERE c.user_id = $1 AND c.name ILIKE $2
       ORDER BY c.name ASC
-      LIMIT $3
+      LIMIT $3 OFFSET $4
     `
 
-    return dbManager.all(sql, [userId, searchQuery, limit])
+    return dbManager.all(sql, [userId, searchQuery, limit, offset])
   }
 
   /**
    * Get popular commanders for a user (with 5+ games)
    */
   async getPopularCommandersByUserId(userId, limit = 10) {
+    // Validate limit parameter
+    if (!Number.isInteger(limit) || limit < 1 || limit > 50) {
+      throw new Error('Limit must be an integer between 1 and 50')
+    }
+
     const query = `
       SELECT
         c.id,
@@ -129,6 +153,11 @@ export class CommanderRepository extends Repository {
    * Get commander statistics
    */
   async getCommanderStats(commanderId, userId) {
+    // Validate parameters
+    if (!Number.isInteger(commanderId) || commanderId <= 0) {
+      throw new Error('Commander ID must be a positive integer')
+    }
+
     const query = `
       SELECT
         c.id,

@@ -43,6 +43,14 @@ export class GameRepository extends Repository {
    * Get games for a user with filtering and pagination
    */
   async getGamesByUserId(userId, limit = 50, offset = 0, filters = {}) {
+    // Validate pagination parameters
+    if (!Number.isInteger(limit) || limit < 1 || limit > 100) {
+      throw new Error('Limit must be an integer between 1 and 100')
+    }
+    if (!Number.isInteger(offset) || offset < 0) {
+      throw new Error('Offset must be a non-negative integer')
+    }
+
     let query = `
       SELECT
         g.id,
@@ -66,38 +74,63 @@ export class GameRepository extends Repository {
     const params = [userId]
     let paramCount = 2
 
-    // Apply filters
+    // Apply filters with validation
     if (filters.commander) {
+      if (typeof filters.commander !== 'string' || filters.commander.length > 100) {
+        throw new Error('Commander filter must be a string with max 100 characters')
+      }
       query += ` AND cmdr.name ILIKE $${paramCount}`
       params.push(`%${filters.commander}%`)
       paramCount++
     }
 
-    if (filters.playerCount) {
+    if (filters.playerCount !== undefined) {
+      if (!Number.isInteger(filters.playerCount) || filters.playerCount < 2 || filters.playerCount > 8) {
+        throw new Error('Player count must be an integer between 2 and 8')
+      }
       query += ` AND g.player_count = $${paramCount}`
       params.push(filters.playerCount)
       paramCount++
     }
 
-    if (filters.commanderId) {
+    if (filters.commanderId !== undefined) {
+      if (!Number.isInteger(filters.commanderId) || filters.commanderId <= 0) {
+        throw new Error('Commander ID must be a positive integer')
+      }
       query += ` AND g.commander_id = $${paramCount}`
       params.push(filters.commanderId)
       paramCount++
     }
 
     if (filters.dateFrom) {
+      if (isNaN(Date.parse(filters.dateFrom))) {
+        throw new Error('dateFrom must be a valid date')
+      }
       query += ` AND g.date >= $${paramCount}`
       params.push(filters.dateFrom)
       paramCount++
     }
 
     if (filters.dateTo) {
+      if (isNaN(Date.parse(filters.dateTo))) {
+        throw new Error('dateTo must be a valid date')
+      }
       query += ` AND g.date <= $${paramCount}`
       params.push(filters.dateTo)
       paramCount++
     }
 
+    // Validate date range if both provided
+    if (filters.dateFrom && filters.dateTo) {
+      if (new Date(filters.dateFrom) > new Date(filters.dateTo)) {
+        throw new Error('dateFrom must be before or equal to dateTo')
+      }
+    }
+
     if (filters.won !== undefined) {
+      if (typeof filters.won !== 'boolean') {
+        throw new Error('Won filter must be a boolean')
+      }
       query += ` AND g.won = $${paramCount}`
       params.push(filters.won)
       paramCount++
@@ -136,34 +169,65 @@ export class GameRepository extends Repository {
     const params = [userId]
     let paramCount = 2
 
-    // Apply filters
+    // Apply filters with validation
     if (filters.commander) {
+      if (typeof filters.commander !== 'string' || filters.commander.length > 100) {
+        throw new Error('Commander filter must be a string with max 100 characters')
+      }
       query += ` AND cmdr.name ILIKE $${paramCount}`
       params.push(`%${filters.commander}%`)
       paramCount++
     }
 
-    if (filters.playerCount) {
+    if (filters.playerCount !== undefined) {
+      if (!Number.isInteger(filters.playerCount) || filters.playerCount < 2 || filters.playerCount > 8) {
+        throw new Error('Player count must be an integer between 2 and 8')
+      }
       query += ` AND g.player_count = $${paramCount}`
       params.push(filters.playerCount)
       paramCount++
     }
 
-    if (filters.commanderId) {
+    if (filters.commanderId !== undefined) {
+      if (!Number.isInteger(filters.commanderId) || filters.commanderId <= 0) {
+        throw new Error('Commander ID must be a positive integer')
+      }
       query += ` AND g.commander_id = $${paramCount}`
       params.push(filters.commanderId)
       paramCount++
     }
 
     if (filters.dateFrom) {
+      if (isNaN(Date.parse(filters.dateFrom))) {
+        throw new Error('dateFrom must be a valid date')
+      }
       query += ` AND g.date >= $${paramCount}`
       params.push(filters.dateFrom)
       paramCount++
     }
 
     if (filters.dateTo) {
+      if (isNaN(Date.parse(filters.dateTo))) {
+        throw new Error('dateTo must be a valid date')
+      }
       query += ` AND g.date <= $${paramCount}`
       params.push(filters.dateTo)
+      paramCount++
+    }
+
+    // Validate date range if both provided
+    if (filters.dateFrom && filters.dateTo) {
+      if (new Date(filters.dateFrom) > new Date(filters.dateTo)) {
+        throw new Error('dateFrom must be before or equal to dateTo')
+      }
+    }
+
+    if (filters.won !== undefined) {
+      if (typeof filters.won !== 'boolean') {
+        throw new Error('Won filter must be a boolean')
+      }
+      query += ` AND g.won = $${paramCount}`
+      params.push(filters.won)
       paramCount++
     }
 
@@ -176,6 +240,11 @@ export class GameRepository extends Repository {
    * Get game by ID with commander details
    */
   async getGameById(gameId, userId) {
+    // Validate parameters
+    if (!Number.isInteger(parseInt(gameId)) || parseInt(gameId) <= 0) {
+      throw new Error('Game ID must be a positive integer')
+    }
+    
     const query = `
       SELECT
         g.id,
@@ -285,6 +354,14 @@ export class GameRepository extends Repository {
    * Find game by date and commander (for duplicate checking)
    */
   async findGameByDateAndCommander(userId, date, commanderId) {
+    // Validate parameters
+    if (isNaN(Date.parse(date))) {
+      throw new Error('Date must be a valid date')
+    }
+    if (!Number.isInteger(commanderId) || commanderId <= 0) {
+      throw new Error('Commander ID must be a positive integer')
+    }
+
     try {
       const result = await dbManager.query(
         `
@@ -304,6 +381,11 @@ export class GameRepository extends Repository {
    * Get game statistics for a commander
    */
   async getCommanderGameStats(commanderId, userId) {
+    // Validate parameters
+    if (!Number.isInteger(commanderId) || commanderId <= 0) {
+      throw new Error('Commander ID must be a positive integer')
+    }
+
     const query = `
       SELECT
         COUNT(*) as total_games,
