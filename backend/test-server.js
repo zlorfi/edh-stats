@@ -6,9 +6,16 @@ await app.register(rateLimit, {
   global: false
 })
 
-app.get('/', async (request, reply) => {
-  return { hello: 'world' }
-})
+app.get(
+  '/',
+  {
+    config: { rateLimit: { max: 3, timeWindow: '15 minutes' } }
+  },
+
+  async (request, reply) => {
+    return { hello: 'world' }
+  }
+)
 
 app.post(
   '/test',
