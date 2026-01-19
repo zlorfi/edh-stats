@@ -375,19 +375,13 @@ services:
     depends_on:
       - backend
     labels:
-      # Enable Traefik discovery for this service
       - traefik.enable=true
-      # Routing rule - change edh.example.com to your domain
       - traefik.http.routers.edh-stats-frontend.rule=Host(\`edh.zlor.fi\`)
-      # Entry points: web (HTTP) and websecure (HTTPS)
-      - traefik.http.routers.edh-stats-frontend.entrypoints=web,websecure
-      # Service configuration
+      - traefik.http.routers.edh-stats-frontend.entrypoints=websecure
       - traefik.http.routers.edh-stats-frontend.service=edh-stats-frontend
-      # Backend port (nginx internal port)
       - traefik.http.services.edh-stats-frontend.loadbalancer.server.port=80
-      # Enable TLS with Let's Encrypt
       - traefik.http.routers.edh-stats-frontend.tls=true
-      - traefik.http.routers.edh-stats-frontend.tls.certresolver=letsencrypt
+      - traefik.http.routers.edh-stats-frontend.tls.certresolver=letsencrypt-cloudflare
     deploy:
       resources:
         limits:

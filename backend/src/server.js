@@ -8,7 +8,12 @@ import jwt from '@fastify/jwt'
 import closeWithGrace from 'close-with-grace'
 
 // Import configurations
-import { jwtConfig, corsConfig, serverConfig, rateLimitConfig } from './config/jwt.js'
+import {
+  jwtConfig,
+  corsConfig,
+  serverConfig,
+  rateLimitConfig
+} from './config/jwt.js'
 import dbManager from './config/database.js'
 
 // Import routes
@@ -26,22 +31,28 @@ export default async function build(opts = {}) {
   // Add request logging hook
   app.addHook('onRequest', async (request, reply) => {
     request.startTime = Date.now()
-    app.log.debug({
-      method: request.method,
-      url: request.url,
-      ip: request.ip
-    }, 'Incoming request')
+    app.log.debug(
+      {
+        method: request.method,
+        url: request.url,
+        ip: request.ip
+      },
+      'Incoming request'
+    )
   })
 
   // Add response logging hook
   app.addHook('onResponse', async (request, reply) => {
     const duration = Date.now() - (request.startTime || Date.now())
-    app.log.debug({
-      method: request.method,
-      url: request.url,
-      statusCode: reply.statusCode,
-      durationMs: duration
-    }, 'Request completed')
+    app.log.debug(
+      {
+        method: request.method,
+        url: request.url,
+        statusCode: reply.statusCode,
+        durationMs: duration
+      },
+      'Request completed'
+    )
   })
 
   await app.register(jwt, {
@@ -108,7 +119,7 @@ export default async function build(opts = {}) {
   app.get('/', async (request, reply) => {
     return {
       message: 'EDH/Commander Stats API',
-      version: '1.0.0',
+      version: '2.1.2',
       status: 'running'
     }
   })
