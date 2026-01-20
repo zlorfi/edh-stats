@@ -26,7 +26,7 @@ jobs:
     permissions:
       contents: read
       packages: write
-    
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -89,7 +89,7 @@ jobs:
         run: |
           cat > docker-compose.prod.deployed.yml << 'EOF'
           version: '3.8'
-          
+
           services:
              postgres:
                image: postgres:16-alpine
@@ -111,7 +111,7 @@ jobs:
               networks:
                 - edh-stats-network
               restart: unless-stopped
-            
+
              db-migrate:
                image: ${{ steps.version.outputs.BACKEND_IMAGE }}
                depends_on:
@@ -129,7 +129,7 @@ jobs:
               networks:
                 - edh-stats-network
               restart: 'no'
-            
+
              backend:
                image: ${{ steps.version.outputs.BACKEND_IMAGE }}
                depends_on:
@@ -162,7 +162,7 @@ jobs:
               networks:
                 - edh-stats-network
               stop_grace_period: 30s
-            
+
             frontend:
               image: ${{ steps.version.outputs.FRONTEND_IMAGE }}
               ports:
@@ -173,11 +173,11 @@ jobs:
               restart: unless-stopped
               networks:
                 - edh-stats-network
-          
+
           volumes:
             postgres_data:
               driver: local
-          
+
           networks:
             edh-stats-network:
               driver: bridge
@@ -198,6 +198,22 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Clean up old backend images
+        uses: actions/delete-package-versions@v4
+        with:
+          package-name: '${{ env.PROJECT_NAME }}-backend'
+          package-type: 'container'
+          min-versions-to-keep: 10
+          delete-only-untagged-versions: false
+
+      - name: Clean up old frontend images
+        uses: actions/delete-package-versions@v4
+        with:
+          package-name: '${{ env.PROJECT_NAME }}-frontend'
+          package-type: 'container'
+          min-versions-to-keep: 10
+          delete-only-untagged-versions: false
+
       - name: Post deployment info
         run: |
           echo "## Deployment Summary" >> $GITHUB_STEP_SUMMARY
@@ -212,3 +228,5 @@ jobs:
           echo "docker pull ${{ steps.version.outputs.BACKEND_IMAGE }}" >> $GITHUB_STEP_SUMMARY
           echo "docker pull ${{ steps.version.outputs.FRONTEND_IMAGE }}" >> $GITHUB_STEP_SUMMARY
           echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Cleanup:** Old images (keeping last 10 versions)" >> $GITHUB_STEP_SUMMARY
