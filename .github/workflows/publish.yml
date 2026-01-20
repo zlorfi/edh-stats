@@ -200,6 +200,7 @@ jobs:
 
       - name: Clean up old backend images
         uses: actions/delete-package-versions@v4
+        continue-on-error: true
         with:
           package-name: '${{ env.PROJECT_NAME }}-backend'
           package-type: 'container'
@@ -208,6 +209,7 @@ jobs:
 
       - name: Clean up old frontend images
         uses: actions/delete-package-versions@v4
+        continue-on-error: true
         with:
           package-name: '${{ env.PROJECT_NAME }}-frontend'
           package-type: 'container'
