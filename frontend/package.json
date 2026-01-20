@@ -1,6 +1,6 @@
 {
   "name": "edh-stats-frontend",
-  "version": "1.1.0",
+  "version": "2.1.2",
   "description": "Frontend for EDH/Commander stats tracking application",
   "type": "module",
   "scripts": {
