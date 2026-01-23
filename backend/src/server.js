@@ -119,7 +119,7 @@ export default async function build(opts = {}) {
   app.get('/', async (request, reply) => {
     return {
       message: 'EDH/Commander Stats API',
-      version: '2.1.2',
+      version: '2.1.8',
       status: 'running'
     }
   })

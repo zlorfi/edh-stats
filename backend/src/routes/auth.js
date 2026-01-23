@@ -24,7 +24,7 @@ const registerSchema = z.object({
     .refine((val) => isNotReservedUsername(val), {
       message: 'This username is reserved and cannot be used'
     }),
-  
+
   password: z
     .string('Password must be a string')
     .min(8, 'Password must be at least 8 characters')
@@ -38,7 +38,7 @@ const registerSchema = z.object({
     .refine((val) => /(?=.*\d)/.test(val), {
       message: 'Password must contain at least one number'
     }),
-  
+
   email: z
     .string('Email must be a string')
     .email('Invalid email format')
@@ -54,19 +54,20 @@ const loginSchema = z.object({
     .string('Username is required')
     .min(1, 'Username is required')
     .transform((val) => val.toLowerCase().trim()),
-  
-  password: z
-    .string('Password is required')
-    .min(1, 'Password is required'),
-  
-  remember: z.boolean('Remember must be true or false').optional().default(false)
+
+  password: z.string('Password is required').min(1, 'Password is required'),
+
+  remember: z
+    .boolean('Remember must be true or false')
+    .optional()
+    .default(false)
 })
 
 const changePasswordSchema = z.object({
   currentPassword: z
     .string('Current password is required')
     .min(1, 'Current password is required'),
-  
+
   newPassword: z
     .string('New password must be a string')
     .min(8, 'New password must be at least 8 characters')
@@ -113,11 +114,17 @@ export default async function authRoutes(fastify, options) {
   const userRepo = new UserRepository()
 
   // Public endpoint to check if registration is allowed
-  fastify.get('/config', async (request, reply) => {
-    return {
-      allowRegistration: registrationConfig.allowRegistration
+  fastify.get(
+    '/config',
+    {
+      config: { rateLimit: { max: 10, timeWindow: '10 seconds' } }
+    },
+    async (request, reply) => {
+      return {
+        allowRegistration: registrationConfig.allowRegistration
+      }
     }
-  })
+  )
 
   // Register new user
   fastify.post(
@@ -126,32 +133,37 @@ export default async function authRoutes(fastify, options) {
       config: { rateLimit: { max: 3, timeWindow: '15 minutes' } }
     },
     async (request, reply) => {
-       try {
-         // Check if registration is allowed
-         if (!registrationConfig.allowRegistration) {
-           return reply.code(403).send({
-             error: 'Registration Disabled',
-             message: 'User registration is currently disabled'
-           })
-         }
+      try {
+        // Check if registration is allowed
+        if (!registrationConfig.allowRegistration) {
+          return reply.code(403).send({
+            error: 'Registration Disabled',
+            message: 'User registration is currently disabled'
+          })
+        }
 
-         // Check if max user limit has been reached (only if allowRegistration is true and MAX_USERS is set)
-         if (registrationConfig.allowRegistration && registrationConfig.maxUsers) {
-           const userCount = await userRepo.countUsers()
-           if (userCount >= registrationConfig.maxUsers) {
-             return reply.code(403).send({
-               error: 'Registration Disabled',
-               message: 'User registration limit has been reached'
-             })
-           }
-         }
+        // Check if max user limit has been reached (only if allowRegistration is true and MAX_USERS is set)
+        if (
+          registrationConfig.allowRegistration &&
+          registrationConfig.maxUsers
+        ) {
+          const userCount = await userRepo.countUsers()
+          if (userCount >= registrationConfig.maxUsers) {
+            return reply.code(403).send({
+              error: 'Registration Disabled',
+              message: 'User registration limit has been reached'
+            })
+          }
+        }
 
-         // LAYER 1: Schema validation
-         const validatedData = registerSchema.parse(request.body)
+        // LAYER 1: Schema validation
+        const validatedData = registerSchema.parse(request.body)
 
         // LAYER 2: Business logic validation
         // Check username uniqueness
-        const existingUser = await userRepo.findByUsername(validatedData.username)
+        const existingUser = await userRepo.findByUsername(
+          validatedData.username
+        )
         if (existingUser) {
           return reply.code(409).send({
             error: 'Conflict',
@@ -167,7 +179,9 @@ export default async function authRoutes(fastify, options) {
             return reply.code(409).send({
               error: 'Conflict',
               message: 'Email already registered',
-              details: ['This email is already in use. Please use a different email.']
+              details: [
+                'This email is already in use. Please use a different email.'
+              ]
             })
           }
         }
@@ -304,17 +318,17 @@ export default async function authRoutes(fastify, options) {
       }
     },
     async (request, reply) => {
-       try {
-         await request.jwtVerify()
+      try {
+        await request.jwtVerify()
 
-         const user = await userRepo.findById(request.user.id)
-         if (!user) {
-           reply.code(401).send({
-             error: 'Authentication Failed',
-             message: 'User not found'
-           })
-           return
-         }
+        const user = await userRepo.findById(request.user.id)
+        if (!user) {
+          reply.code(401).send({
+            error: 'Authentication Failed',
+            message: 'User not found'
+          })
+          return
+        }
 
         // Generate new token
         const token = await reply.jwtSign(
@@ -358,24 +372,24 @@ export default async function authRoutes(fastify, options) {
       ]
     },
     async (request, reply) => {
-       try {
-         const user = await userRepo.findById(request.user.id)
-         if (!user) {
-           reply.code(404).send({
-             error: 'Not Found',
-             message: 'User not found'
-           })
-           return
-         }
+      try {
+        const user = await userRepo.findById(request.user.id)
+        if (!user) {
+          reply.code(404).send({
+            error: 'Not Found',
+            message: 'User not found'
+          })
+          return
+        }
 
-         reply.send({
-           user: {
-             id: user.id,
-             username: user.username,
-             email: user.email,
-             createdAt: user.created_at
-           }
-         })
+        reply.send({
+          user: {
+            id: user.id,
+            username: user.username,
+            email: user.email,
+            createdAt: user.created_at
+          }
+        })
       } catch (error) {
         fastify.log.error('Get profile error:', error)
         reply.code(500).send({
@@ -404,20 +418,23 @@ export default async function authRoutes(fastify, options) {
       ]
     },
     async (request, reply) => {
-       try {
-         const validatedData = updateProfileSchema.parse(request.body)
+      try {
+        const validatedData = updateProfileSchema.parse(request.body)
 
-         const updated = await userRepo.updateProfile(request.user.id, validatedData)
+        const updated = await userRepo.updateProfile(
+          request.user.id,
+          validatedData
+        )
 
-         if (!updated) {
-           reply.code(400).send({
-             error: 'Update Failed',
-             message: 'No valid fields to update'
-           })
-           return
-         }
+        if (!updated) {
+          reply.code(400).send({
+            error: 'Update Failed',
+            message: 'No valid fields to update'
+          })
+          return
+        }
 
-         const user = await userRepo.findById(request.user.id)
+        const user = await userRepo.findById(request.user.id)
 
         reply.send({
           message: 'Profile updated successfully',
@@ -470,31 +487,34 @@ export default async function authRoutes(fastify, options) {
       config: { rateLimit: { max: 5, timeWindow: '1 hour' } }
     },
     async (request, reply) => {
-       try {
-         const { newUsername } = updateUsernameSchema.parse(request.body)
+      try {
+        const { newUsername } = updateUsernameSchema.parse(request.body)
 
-         // Check if username is already taken
-         const existingUser = await userRepo.findByUsername(newUsername)
-         if (existingUser && existingUser.id !== request.user.id) {
-           reply.code(400).send({
-             error: 'Username Taken',
-             message: 'Username is already taken'
-           })
-           return
-         }
+        // Check if username is already taken
+        const existingUser = await userRepo.findByUsername(newUsername)
+        if (existingUser && existingUser.id !== request.user.id) {
+          reply.code(400).send({
+            error: 'Username Taken',
+            message: 'Username is already taken'
+          })
+          return
+        }
 
-         // Update username using repository method
-         const updated = await userRepo.updateUsername(request.user.id, newUsername)
+        // Update username using repository method
+        const updated = await userRepo.updateUsername(
+          request.user.id,
+          newUsername
+        )
 
-         if (!updated) {
-           reply.code(500).send({
-             error: 'Internal Server Error',
-             message: 'Failed to update username'
-           })
-           return
-         }
+        if (!updated) {
+          reply.code(500).send({
+            error: 'Internal Server Error',
+            message: 'Failed to update username'
+          })
+          return
+        }
 
-         const user = await userRepo.findById(request.user.id)
+        const user = await userRepo.findById(request.user.id)
 
         reply.send({
           message: 'Username updated successfully',
@@ -522,54 +542,57 @@ export default async function authRoutes(fastify, options) {
     }
   )
 
-   // Change password (POST - keep for backward compatibility)
-   fastify.post(
-     '/change-password',
-     {
-       preHandler: [
-         async (request, reply) => {
-           try {
-             await request.jwtVerify()
-           } catch (err) {
-             reply.code(401).send({
-               error: 'Unauthorized',
-               message: 'Invalid or expired token'
-             })
-           }
-         }
-       ],
-       config: { rateLimit: { max: 3, timeWindow: '1 hour' } }
-     },
-     async (request, reply) => {
-       try {
-         const { currentPassword, newPassword } = changePasswordSchema.parse(
-           request.body
-         )
+  // Change password (POST - keep for backward compatibility)
+  fastify.post(
+    '/change-password',
+    {
+      preHandler: [
+        async (request, reply) => {
+          try {
+            await request.jwtVerify()
+          } catch (err) {
+            reply.code(401).send({
+              error: 'Unauthorized',
+              message: 'Invalid or expired token'
+            })
+          }
+        }
+      ],
+      config: { rateLimit: { max: 3, timeWindow: '1 hour' } }
+    },
+    async (request, reply) => {
+      try {
+        const { currentPassword, newPassword } = changePasswordSchema.parse(
+          request.body
+        )
 
-         // Verify current password
-         const user = await userRepo.findByUsername(request.user.username)
-         if (!user) {
-           reply.code(404).send({
-             error: 'Not Found',
-             message: 'User not found'
-           })
-           return
-         }
+        // Verify current password
+        const user = await userRepo.findByUsername(request.user.username)
+        if (!user) {
+          reply.code(404).send({
+            error: 'Not Found',
+            message: 'User not found'
+          })
+          return
+        }
 
-         const isValidPassword = await userRepo.verifyPassword(
-           currentPassword,
-           user.password_hash
-         )
-         if (!isValidPassword) {
-           reply.code(401).send({
-             error: 'Authentication Failed',
-             message: 'Current password is incorrect'
-           })
-           return
-         }
+        const isValidPassword = await userRepo.verifyPassword(
+          currentPassword,
+          user.password_hash
+        )
+        if (!isValidPassword) {
+          reply.code(401).send({
+            error: 'Authentication Failed',
+            message: 'Current password is incorrect'
+          })
+          return
+        }
 
-         // Update password
-         const updated = await userRepo.updatePassword(request.user.id, newPassword)
+        // Update password
+        const updated = await userRepo.updatePassword(
+          request.user.id,
+          newPassword
+        )
 
         if (!updated) {
           reply.code(500).send({
@@ -600,127 +623,130 @@ export default async function authRoutes(fastify, options) {
     }
   )
 
-    // Change password (PUT)
-    fastify.put(
-      '/change-password',
-      {
-        preHandler: [
-          async (request, reply) => {
-            try {
-              await request.jwtVerify()
-            } catch (err) {
-              reply.code(401).send({
-                error: 'Unauthorized',
-                message: 'Invalid or expired token'
-              })
-            }
-          }
-        ],
-        config: { rateLimit: { max: 3, timeWindow: '1 hour' } }
-      },
-      async (request, reply) => {
-        try {
-          const { currentPassword, newPassword } = changePasswordSchema.parse(
-            request.body
-          )
-
-          // Verify current password
-          const user = await userRepo.findByUsername(request.user.username)
-          if (!user) {
-            reply.code(404).send({
-              error: 'Not Found',
-              message: 'User not found'
-            })
-            return
-          }
-
-          const isValidPassword = await userRepo.verifyPassword(
-            currentPassword,
-            user.password_hash
-          )
-          if (!isValidPassword) {
+  // Change password (PUT)
+  fastify.put(
+    '/change-password',
+    {
+      preHandler: [
+        async (request, reply) => {
+          try {
+            await request.jwtVerify()
+          } catch (err) {
             reply.code(401).send({
-              error: 'Authentication Failed',
-              message: 'Current password is incorrect'
+              error: 'Unauthorized',
+              message: 'Invalid or expired token'
             })
-            return
           }
+        }
+      ],
+      config: { rateLimit: { max: 3, timeWindow: '1 hour' } }
+    },
+    async (request, reply) => {
+      try {
+        const { currentPassword, newPassword } = changePasswordSchema.parse(
+          request.body
+        )
 
-          // Update password
-          const updated = await userRepo.updatePassword(request.user.id, newPassword)
+        // Verify current password
+        const user = await userRepo.findByUsername(request.user.username)
+        if (!user) {
+          reply.code(404).send({
+            error: 'Not Found',
+            message: 'User not found'
+          })
+          return
+        }
 
-         if (!updated) {
-           reply.code(500).send({
-             error: 'Internal Server Error',
-             message: 'Failed to update password'
-           })
-           return
-         }
+        const isValidPassword = await userRepo.verifyPassword(
+          currentPassword,
+          user.password_hash
+        )
+        if (!isValidPassword) {
+          reply.code(401).send({
+            error: 'Authentication Failed',
+            message: 'Current password is incorrect'
+          })
+          return
+        }
 
-         reply.send({
-           message: 'Password changed successfully'
-         })
-       } catch (error) {
-         if (error instanceof z.ZodError) {
-           reply.code(400).send({
-             error: 'Validation Error',
-             message: 'Invalid input data',
-             details: error.errors.map((e) => e.message)
-           })
-         } else {
-           fastify.log.error('Change password error:', error)
-           reply.code(500).send({
-             error: 'Internal Server Error',
-             message: 'Failed to change password'
-           })
-         }
-       }
-     }
-   )
+        // Update password
+        const updated = await userRepo.updatePassword(
+          request.user.id,
+          newPassword
+        )
 
-   // Delete account (DELETE /me)
-   fastify.delete(
-     '/me',
-     {
-       preHandler: [
-         async (request, reply) => {
-           try {
-             await request.jwtVerify()
-           } catch (err) {
-             reply.code(401).send({
-               error: 'Unauthorized',
-               message: 'Invalid or expired token'
-             })
-           }
-         }
-       ],
-       config: { rateLimit: { max: 2, timeWindow: '1 hour' } }
-     },
-     async (request, reply) => {
-       try {
-         const userId = request.user.id
+        if (!updated) {
+          reply.code(500).send({
+            error: 'Internal Server Error',
+            message: 'Failed to update password'
+          })
+          return
+        }
 
-         // Delete user account (cascades to commanders and games)
-         const deleted = await userRepo.deleteUser(userId)
+        reply.send({
+          message: 'Password changed successfully'
+        })
+      } catch (error) {
+        if (error instanceof z.ZodError) {
+          reply.code(400).send({
+            error: 'Validation Error',
+            message: 'Invalid input data',
+            details: error.errors.map((e) => e.message)
+          })
+        } else {
+          fastify.log.error('Change password error:', error)
+          reply.code(500).send({
+            error: 'Internal Server Error',
+            message: 'Failed to change password'
+          })
+        }
+      }
+    }
+  )
 
-         if (!deleted) {
-           reply.code(404).send({
-             error: 'Not Found',
-             message: 'User not found'
-           })
-           return
-         }
+  // Delete account (DELETE /me)
+  fastify.delete(
+    '/me',
+    {
+      preHandler: [
+        async (request, reply) => {
+          try {
+            await request.jwtVerify()
+          } catch (err) {
+            reply.code(401).send({
+              error: 'Unauthorized',
+              message: 'Invalid or expired token'
+            })
+          }
+        }
+      ],
+      config: { rateLimit: { max: 2, timeWindow: '1 hour' } }
+    },
+    async (request, reply) => {
+      try {
+        const userId = request.user.id
 
-         reply.send({
-           message: 'Account deleted successfully'
-         })
-       } catch (error) {
-         fastify.log.error('Delete account error:', error)
-         reply.code(500).send({
-           error: 'Internal Server Error',
-           message: 'Failed to delete account'
-         })
-       }
-     }
-   )
+        // Delete user account (cascades to commanders and games)
+        const deleted = await userRepo.deleteUser(userId)
+
+        if (!deleted) {
+          reply.code(404).send({
+            error: 'Not Found',
+            message: 'User not found'
+          })
+          return
+        }
+
+        reply.send({
+          message: 'Account deleted successfully'
+        })
+      } catch (error) {
+        fastify.log.error('Delete account error:', error)
+        reply.code(500).send({
+          error: 'Internal Server Error',
+          message: 'Failed to delete account'
+        })
+      }
+    }
+  )
 }
