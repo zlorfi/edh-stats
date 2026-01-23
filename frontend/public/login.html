@@ -264,6 +264,15 @@
 
 
     <!-- Scripts -->
+    <script>
+      // Check if user is already logged in and redirect
+      (function() {
+        const token = localStorage.getItem('edh-stats-token') || sessionStorage.getItem('edh-stats-token')
+        if (token) {
+          window.location.href = '/dashboard.html'
+        }
+      })()
+    </script>
     <script
       defer
       src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"
