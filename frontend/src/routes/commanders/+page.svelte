@@ -3,17 +3,21 @@
 	import { authenticatedFetch } from '$stores/auth';
 	import NavBar from '$components/NavBar.svelte';
 	import ProtectedRoute from '$components/ProtectedRoute.svelte';
+	import Footer from '$components/Footer.svelte';
 	
 	let showAddForm = false;
 	let commanders = [];
 	let loading = false;
 	let submitting = false;
 	let serverError = '';
+	let editingCommander = null;
 	
 	let newCommander = {
 		name: '',
 		colors: []
 	};
+	
+	$: formData = editingCommander || newCommander;
 	
 	const mtgColors = [
 		{ id: 'W', name: 'White', hex: '#F0E6D2' },
@@ -30,13 +34,33 @@
 	async function loadCommanders() {
 		loading = true;
 		try {
-			const response = await authenticatedFetch('/api/stats/commanders');
+			// Load all commanders (not just ones with stats)
+			const response = await authenticatedFetch('/api/commanders');
 			if (response.ok) {
 				const data = await response.json();
-				commanders = data.stats || [];
-				if (commanders.length > 0) {
-					console.log('First commander data:', commanders[0]);
+				const commandersList = data.commanders || [];
+				
+				// Load stats for each commander
+				const statsResponse = await authenticatedFetch('/api/stats/commanders');
+				let statsMap = {};
+				if (statsResponse.ok) {
+					const statsData = await statsResponse.json();
+					const statsList = statsData.stats || [];
+					// Map stats by commanderId
+					statsList.forEach(stat => {
+						statsMap[stat.commanderId] = stat;
+					});
 				}
+				
+				// Merge commanders with their stats
+				commanders = commandersList.map(cmd => ({
+					...cmd,
+					commanderId: cmd.id,
+					totalGames: statsMap[cmd.id]?.totalGames || 0,
+					winRate: statsMap[cmd.id]?.winRate || 0,
+					avgRounds: statsMap[cmd.id]?.avgRounds || 0,
+					wins: statsMap[cmd.id]?.totalWins || 0
+				}));
 			}
 		} catch (error) {
 			console.error('Load commanders error:', error);
@@ -47,43 +71,94 @@
 	}
 	
 	function toggleColor(colorId) {
-		if (newCommander.colors.includes(colorId)) {
-			newCommander.colors = newCommander.colors.filter((c) => c !== colorId);
+		const current = editingCommander || newCommander;
+		if (current.colors.includes(colorId)) {
+			current.colors = current.colors.filter((c) => c !== colorId);
 		} else {
-			newCommander.colors = [...newCommander.colors, colorId];
+			current.colors = [...current.colors, colorId];
 		}
+		
+		if (editingCommander) {
+			editingCommander = { ...editingCommander, colors: current.colors };
+		} else {
+			newCommander = { ...newCommander, colors: current.colors };
+		}
+	}
+	
+	function startEdit(commander) {
+		// Handle both array and string formats for colors
+		const colorsArray = Array.isArray(commander.colors) 
+			? commander.colors 
+			: (typeof commander.colors === 'string' ? commander.colors.split('') : []);
+		
+		editingCommander = {
+			id: commander.id || commander.commanderId,
+			name: commander.name,
+			colors: colorsArray
+		};
+		showAddForm = true;
+		serverError = '';
+	}
+	
+	function cancelEdit() {
+		editingCommander = null;
+		showAddForm = false;
+		resetForm();
 	}
 	
 	async function handleAddCommander(e) {
 		e.preventDefault();
 		serverError = '';
 		
-		if (!newCommander.name.trim()) {
+		const current = editingCommander || newCommander;
+		
+		if (!current.name.trim()) {
 			serverError = 'Commander name is required';
 			return;
 		}
 		
 		submitting = true;
 		try {
-			const response = await authenticatedFetch('/api/commanders', {
-				method: 'POST',
-				body: JSON.stringify({
-					name: newCommander.name.trim(),
-					colors: newCommander.colors // Send as array, not joined string
-				})
-			});
-			
-			if (response.ok) {
-				// Reload commanders to get stats
-				await loadCommanders();
-				resetForm();
-				showAddForm = false;
+			if (editingCommander) {
+				// Update existing commander
+				const response = await authenticatedFetch(`/api/commanders/${editingCommander.id}`, {
+					method: 'PUT',
+					body: JSON.stringify({
+						name: current.name.trim(),
+						colors: current.colors
+					})
+				});
+				
+				if (response.ok) {
+					await loadCommanders();
+					editingCommander = null;
+					resetForm();
+					showAddForm = false;
+				} else {
+					const errorData = await response.json();
+					serverError = errorData.message || 'Failed to update commander';
+				}
 			} else {
-				const errorData = await response.json();
-				serverError = errorData.message || 'Failed to add commander';
+				// Create new commander
+				const response = await authenticatedFetch('/api/commanders', {
+					method: 'POST',
+					body: JSON.stringify({
+						name: current.name.trim(),
+						colors: current.colors
+					})
+				});
+				
+				if (response.ok) {
+					await loadCommanders();
+					resetForm();
+					showAddForm = false;
+				} else {
+					const errorData = await response.json();
+					serverError = errorData.message || 'Failed to add commander';
+				}
 			}
 		} catch (error) {
-			console.error('Add commander error:', error);
+			console.error('Commander save error:', error);
 			serverError = 'Network error occurred';
 		} finally {
 			submitting = false;
@@ -124,7 +199,6 @@
 	};
 	
 	function showDeleteConfirm(commanderId, commanderName) {
-		console.log('showDeleteConfirm called with:', { commanderId, commanderName });
 		deleteConfirm = {
 			show: true,
 			commanderId,
@@ -134,12 +208,9 @@
 	}
 	
 	async function handleDelete() {
-		console.log('handleDelete called, commanderId:', deleteConfirm.commanderId);
 		deleteConfirm.deleting = true;
 		try {
-			const url = `/api/commanders/${deleteConfirm.commanderId}`;
-			console.log('DELETE request URL:', url);
-			const response = await authenticatedFetch(url, {
+			const response = await authenticatedFetch(`/api/commanders/${deleteConfirm.commanderId}`, {
 				method: 'DELETE'
 			});
 			
@@ -173,8 +244,11 @@
 				<h1 class="text-3xl font-bold text-gray-900">Commanders</h1>
 				<button
 					on:click={() => {
-						showAddForm = !showAddForm;
-						if (!showAddForm) resetForm();
+						if (showAddForm) {
+							cancelEdit();
+						} else {
+							showAddForm = true;
+						}
 					}}
 					class="btn btn-primary"
 				>
@@ -189,7 +263,9 @@
 			<!-- Add Commander Form -->
 			{#if showAddForm}
 				<div class="card mb-8">
-					<h2 class="text-xl font-bold mb-4">Add New Commander</h2>
+					<h2 class="text-xl font-bold mb-4">
+						{editingCommander ? 'Edit Commander' : 'Add New Commander'}
+					</h2>
 					
 					<form on:submit={handleAddCommander} class="space-y-4">
 						<div>
@@ -199,7 +275,7 @@
 							<input
 								id="name"
 								type="text"
-								bind:value={newCommander.name}
+								bind:value={formData.name}
 								required
 								class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
 								placeholder="Enter commander name"
@@ -215,7 +291,7 @@
 									<button
 										type="button"
 										on:click={() => toggleColor(color.id)}
-										class="w-12 h-12 rounded-full border-2 transition-all {newCommander.colors.includes(
+										class="w-12 h-12 rounded-full border-2 transition-all {formData.colors.includes(
 											color.id
 										)
 											? 'border-gray-900 ring-2 ring-offset-2 ring-gray-900'
@@ -238,17 +314,29 @@
 							</div>
 						{/if}
 						
-						<button
-							type="submit"
-							disabled={submitting}
-							class="btn btn-primary disabled:opacity-50"
-						>
-							{#if submitting}
-								<div class="loading-spinner w-5 h-5 mx-auto"></div>
-							{:else}
-								Add Commander
+						<div class="flex gap-3">
+							<button
+								type="submit"
+								disabled={submitting}
+								class="btn btn-primary disabled:opacity-50 flex-1"
+							>
+								{#if submitting}
+									<div class="loading-spinner w-5 h-5 mx-auto"></div>
+								{:else}
+									{editingCommander ? 'Update Commander' : 'Add Commander'}
+								{/if}
+							</button>
+							{#if editingCommander}
+								<button
+									type="button"
+									on:click={cancelEdit}
+									disabled={submitting}
+									class="btn bg-gray-200 hover:bg-gray-300 text-gray-700 disabled:opacity-50"
+								>
+									Cancel
+								</button>
 							{/if}
-						</button>
+						</div>
 					</form>
 				</div>
 			{/if}
@@ -274,7 +362,7 @@
 								<h3 class="text-xl font-bold text-gray-900">{commander.name}</h3>
 								<div class="flex gap-2">
 									<button
-										on:click={() => alert('Edit functionality coming soon')}
+										on:click={() => startEdit(commander)}
 										class="text-gray-600 hover:text-indigo-600"
 										title="Edit commander"
 									>
@@ -283,7 +371,7 @@
 										</svg>
 									</button>
 									<button
-										on:click={() => showDeleteConfirm(commander.commanderId || commander.id, commander.name)}
+										on:click={() => showDeleteConfirm(commander.id || commander.commanderId, commander.name)}
 										class="text-gray-600 hover:text-red-600"
 										title="Delete commander"
 									>
@@ -323,7 +411,7 @@
 								</div>
 								<div class="text-center">
 									<div class="text-sm text-gray-500 mt-2">Added</div>
-									<div class="text-sm text-gray-700">{formatDate(commander.createdAt || commander.created_at || commander.lastPlayed)}</div>
+									<div class="text-sm text-gray-700">{formatDate(commander.createdAt || commander.created_at)}</div>
 								</div>
 							</div>
 						</div>
@@ -369,11 +457,6 @@
 			{/if}
 		</main>
 		
-		<!-- Footer -->
-		<footer class="bg-white border-t border-gray-200 mt-12">
-			<div class="container mx-auto px-4 py-6 text-center text-sm text-gray-600">
-				<p>EDH Stats Tracker • Track your Commander games</p>
-			</div>
-		</footer>
+		<Footer />
 	</div>
 </ProtectedRoute>

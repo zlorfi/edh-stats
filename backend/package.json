@@ -1,6 +1,6 @@
 {
   "name": "edh-stats-backend",
-  "version": "2.1.8",
+  "version": "2.1.12",
   "description": "Backend API for EDH/Commander stats tracking application",
   "main": "src/server.js",
   "type": "module",

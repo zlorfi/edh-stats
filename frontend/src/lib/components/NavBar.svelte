@@ -32,9 +32,6 @@
 					<a href="/games" class="text-white hover:text-edh-accent transition-colors">
 						Game Log
 					</a>
-					<a href="/stats" class="text-white hover:text-edh-accent transition-colors">
-						Statistics
-					</a>
 				</div>
 			</div>
 
@@ -128,13 +125,6 @@
 					on:click={closeMenus}
 				>
 					Game Log
-				</a>
-				<a
-					href="/stats"
-					class="block py-2 hover:text-edh-accent transition-colors"
-					on:click={closeMenus}
-				>
-					Statistics
 				</a>
 			</div>
 		{/if}

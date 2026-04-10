@@ -202,8 +202,9 @@ export function getAuthToken() {
 export async function authenticatedFetch(url, options = {}) {
 	const token = getAuthToken();
 	
+	// Only set Content-Type for requests with a body
 	const defaultHeaders = {
-		'Content-Type': 'application/json',
+		...(options.body && { 'Content-Type': 'application/json' }),
 		...(token && { Authorization: `Bearer ${token}` })
 	};
 	
