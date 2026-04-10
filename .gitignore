@@ -98,6 +98,11 @@ Thumbs.db
 dist/
 build/
 
+# SvelteKit
+.svelte-kit/
+frontend/.svelte-kit/
+frontend/build/
+
 # Temporary files
 tmp/
 temp/
