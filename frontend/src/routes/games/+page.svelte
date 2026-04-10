@@ -56,7 +56,6 @@
 			if (response.ok) {
 				const data = await response.json();
 				games = data.games || [];
-				console.log('Loaded games, first game:', games[0]);
 			}
 		} catch (error) {
 			console.error('Failed to load games:', error);
@@ -197,22 +196,22 @@
 	}
 	
 	function startEdit(game) {
-		// Map API response to form fields - handle both snake_case and camelCase
+		// Map API response to form fields
 		const formattedDate = game.date ? new Date(game.date).toISOString().split('T')[0] : new Date().toISOString().split('T')[0];
 		
-		// Get commanderId and ensure it's a number (not string) to match select options
-		const cmdId = game.commanderId || game.commander_id;
+		// Ensure commanderId is a number to match select options
+		const cmdId = game.commanderId;
 		const finalCmdId = cmdId ? (typeof cmdId === 'number' ? cmdId : parseInt(cmdId)) : '';
 		
 		editingGame = { 
 			id: game.id,
 			date: formattedDate,
 			commanderId: finalCmdId,
-			playerCount: game.playerCount || game.player_count || 4,
+			playerCount: game.playerCount || 4,
 			won: game.won || false,
 			rounds: game.rounds || 8,
-			startingPlayerWon: game.startingPlayerWon || game.starting_player_won || false,
-			solRingTurnOneWon: game.solRingTurnOneWon || game.sol_ring_turn_one_won || false,
+			startingPlayerWon: game.startingPlayerWon || false,
+			solRingTurnOneWon: game.solRingTurnOneWon || false,
 			notes: game.notes || ''
 		};
 		
@@ -478,12 +477,12 @@
 			{:else}
 				<div class="space-y-4">
 					{#each games as game}
-						<div class="card hover:shadow-lg transition-shadow">
+						<div class="card hover:shadow-lg transition-shadow {game.won ? 'border-l-4 border-l-green-500' : ''}">
 							<div class="flex items-start justify-between">
 								<div class="flex-1">
 									<div class="flex items-center gap-3 mb-2">
 										<h3 class="text-lg font-bold text-gray-900">
-											{game.commanderName || game.commander_name || 'Unknown Commander'}
+											{game.commanderName}
 										</h3>
 										{#if game.won}
 											<span
@@ -502,12 +501,12 @@
 									
 									<div class="text-sm text-gray-600 space-y-1">
 										<p>
-											{formatDate(game.date)} • {game.rounds} rounds • {game.player_count} players
+											{formatDate(game.date)} • {game.rounds} rounds • {game.playerCount} players
 										</p>
-										{#if game.starting_player_won}
+										{#if game.startingPlayerWon}
 											<p>• Starting player won</p>
 										{/if}
-										{#if game.sol_ring_turn_one_won}
+										{#if game.solRingTurnOneWon}
 											<p>• Sol Ring turn 1 won</p>
 										{/if}
 										{#if game.notes}

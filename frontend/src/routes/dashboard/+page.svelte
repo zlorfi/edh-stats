@@ -200,9 +200,9 @@
 								{#each recentGames as game}
 									<div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
 										<div class="flex-1">
-											<p class="font-medium text-gray-900">{game.commander_name}</p>
+											<p class="font-medium text-gray-900">{game.commanderName}</p>
 											<p class="text-sm text-gray-600">
-												{formatDate(game.date)} • {game.rounds} rounds • {game.player_count} players
+												{formatDate(game.date)} • {game.rounds} rounds • {game.playerCount} players
 											</p>
 										</div>
 										<div class="ml-4">
@@ -245,14 +245,14 @@
 										<div class="flex-1">
 											<p class="font-medium text-gray-900">{commander.name}</p>
 											<p class="text-sm text-gray-600">
-												{commander.total_games} games • {commander.win_rate}% win rate
+												{commander.totalGames} games • {commander.winRate}% win rate
 											</p>
 										</div>
 										<div class="ml-4">
 											<div class="text-2xl">
-												{#if commander.win_rate >= 50}
+												{#if commander.winRate >= 50}
 													🏆
-												{:else if commander.win_rate >= 25}
+												{:else if commander.winRate >= 25}
 													⚔️
 												{:else}
 													🎲

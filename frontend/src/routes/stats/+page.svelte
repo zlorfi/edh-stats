@@ -280,7 +280,7 @@
 												</div>
 											</td>
 											<td class="px-6 py-4 whitespace-nowrap">
-												<div class="text-sm text-gray-900">{commander.total_games}</div>
+												<div class="text-sm text-gray-900">{commander.totalGames}</div>
 											</td>
 											<td class="px-6 py-4 whitespace-nowrap">
 												<div class="text-sm text-gray-900">{commander.wins}</div>
@@ -288,12 +288,12 @@
 											<td class="px-6 py-4 whitespace-nowrap">
 												<div class="text-sm">
 													<span
-														class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium {commander.win_rate >=
+														class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium {commander.winRate >=
 														50
 															? 'bg-green-100 text-green-800'
 															: 'bg-gray-100 text-gray-800'}"
 													>
-														{commander.win_rate}%
+														{commander.winRate}%
 													</span>
 												</div>
 											</td>
