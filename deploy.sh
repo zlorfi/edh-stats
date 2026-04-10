@@ -480,6 +480,9 @@ main() {
     # Check token
     check_github_token
 
+    # Authenticate (must happen before build to allow --push)
+    login_to_registry
+
     # Update version file
     update_version_file
 
@@ -489,9 +492,6 @@ main() {
 
     # Verify images
     verify_images
-
-    # Authenticate
-    login_to_registry
 
     # Push images
     push_backend
