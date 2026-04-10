@@ -66,7 +66,7 @@
 				method: 'POST',
 				body: JSON.stringify({
 					name: newCommander.name.trim(),
-					colors: newCommander.colors.join('')
+					colors: newCommander.colors // Send as array, not joined string
 				})
 			});
 			
@@ -95,8 +95,12 @@
 	}
 	
 	function getColorBadges(colors) {
-		if (!colors) return 'Colorless';
-		return colors.split('').map((c) => {
+		if (!colors || colors.length === 0) return 'Colorless';
+		
+		// Handle both string and array formats
+		const colorArray = typeof colors === 'string' ? colors.split('') : colors;
+		
+		return colorArray.map((c) => {
 			const color = mtgColors.find((mc) => mc.id === c);
 			return color ? color.name : c;
 		}).join(', ');

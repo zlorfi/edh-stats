@@ -56,6 +56,7 @@
 			if (response.ok) {
 				const data = await response.json();
 				games = data.games || [];
+				console.log('Loaded games, first game:', games[0]);
 			}
 		} catch (error) {
 			console.error('Failed to load games:', error);
@@ -177,12 +178,13 @@
 				body: JSON.stringify(payload)
 			});
 			
-			if (response.ok) {
-				const data = await response.json();
-				games = games.map((g) => (g.id === data.game.id ? data.game : g));
-				resetForm();
-				editingGame = null;
-			} else {
+		if (response.ok) {
+			const data = await response.json();
+			games = games.map((g) => (g.id === data.game.id ? data.game : g));
+			resetForm();
+			editingGame = null;
+			showLogForm = false;
+		} else {
 				const errorData = await response.json();
 				serverError = errorData.message || 'Failed to update game';
 			}
@@ -195,7 +197,25 @@
 	}
 	
 	function startEdit(game) {
-		editingGame = { ...game };
+		// Map API response to form fields - handle both snake_case and camelCase
+		const formattedDate = game.date ? new Date(game.date).toISOString().split('T')[0] : new Date().toISOString().split('T')[0];
+		
+		// Get commanderId and ensure it's a number (not string) to match select options
+		const cmdId = game.commanderId || game.commander_id;
+		const finalCmdId = cmdId ? (typeof cmdId === 'number' ? cmdId : parseInt(cmdId)) : '';
+		
+		editingGame = { 
+			id: game.id,
+			date: formattedDate,
+			commanderId: finalCmdId,
+			playerCount: game.playerCount || game.player_count || 4,
+			won: game.won || false,
+			rounds: game.rounds || 8,
+			startingPlayerWon: game.startingPlayerWon || game.starting_player_won || false,
+			solRingTurnOneWon: game.solRingTurnOneWon || game.sol_ring_turn_one_won || false,
+			notes: game.notes || ''
+		};
+		
 		showLogForm = true;
 		serverError = '';
 		setTimeout(() => {
@@ -296,6 +316,7 @@
 						{editingGame ? 'Edit Game' : 'Log New Game'}
 					</h2>
 					
+					{#key editingGame?.id || 'new'}
 					<form on:submit={handleLogGame} class="space-y-4">
 						<!-- Date and Commander Row -->
 						<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -438,6 +459,7 @@
 							{/if}
 						</div>
 					</form>
+					{/key}
 				</div>
 			{/if}
 			
@@ -461,7 +483,7 @@
 								<div class="flex-1">
 									<div class="flex items-center gap-3 mb-2">
 										<h3 class="text-lg font-bold text-gray-900">
-											{game.commander_name}
+											{game.commanderName || game.commander_name || 'Unknown Commander'}
 										</h3>
 										{#if game.won}
 											<span
