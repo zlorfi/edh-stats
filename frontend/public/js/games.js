@@ -232,6 +232,9 @@ function gameManager() {
           this.resetForm()
           this.showLogForm = false
           await this.reloadStats()
+          
+          // Reset the round counter state
+          localStorage.removeItem('edh-round-counter-state')
         } else {
           const errorData = await response.json()
           this.serverError = errorData.message || 'Failed to log game'
