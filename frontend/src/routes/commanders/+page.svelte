@@ -40,19 +40,6 @@
         const data = await response.json();
         const commandersList = data.commanders || [];
 
-        // Load stats for each commander
-        const statsResponse = await authenticatedFetch("/api/stats/commanders");
-        let statsMap = {};
-        if (statsResponse.ok) {
-          const statsData = await statsResponse.json();
-          const statsList = statsData.stats || [];
-          // Map stats by commanderId
-          statsList.forEach((stat) => {
-            statsMap[stat.commanderId] = stat;
-          });
-        }
-
-        // Merge commanders with their stats
         commanders = commandersList.map((cmd) => ({
           ...cmd,
           commanderId: cmd.id,
