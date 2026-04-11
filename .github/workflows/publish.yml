@@ -202,7 +202,7 @@ jobs:
         uses: actions/delete-package-versions@v4
         continue-on-error: true
         with:
-          package-name: "${{ env.PROJECT_NAME }}-backend"
+          package-name: "${{ github.repository_owner }}/${{ env.PROJECT_NAME }}-backend"
           package-type: "container"
           min-versions-to-keep: 10
           delete-only-untagged-versions: false
@@ -211,7 +211,7 @@ jobs:
         uses: actions/delete-package-versions@v4
         continue-on-error: true
         with:
-          package-name: "${{ env.PROJECT_NAME }}-frontend"
+          package-name: "${{ github.repository_owner }}/${{ env.PROJECT_NAME }}-frontend"
           package-type: "container"
           min-versions-to-keep: 10
           delete-only-untagged-versions: false
