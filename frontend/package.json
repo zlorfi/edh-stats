@@ -1,21 +1,27 @@
 {
   "name": "edh-stats-frontend",
-  "version": "2.1.8",
+  "version": "2.2.0",
   "description": "Frontend for EDH/Commander stats tracking application",
   "type": "module",
   "scripts": {
-    "dev": "echo 'Static files - use nginx server' && python3 -m http.server 8080",
-    "build-css": "tailwindcss -i ./css/input.css -o ./css/styles.css --watch",
-    "build-css:prod": "tailwindcss -i ./css/input.css -o ./css/styles.css --minify"
+    "dev": "vite dev",
+    "build": "vite build",
+    "preview": "vite preview",
+    "check": "svelte-kit sync && svelte-check --tsconfig ./jsconfig.json",
+    "check:watch": "svelte-kit sync && svelte-check --tsconfig ./jsconfig.json --watch"
   },
   "dependencies": {
     "alpinejs": "^3.13.3",
     "chart.js": "^4.4.1"
   },
   "devDependencies": {
-    "tailwindcss": "^3.4.0",
+    "@sveltejs/adapter-static": "^3.0.10",
+    "@sveltejs/kit": "^2.57.1",
     "autoprefixer": "^10.4.16",
-    "postcss": "^8.4.32"
+    "postcss": "^8.4.32",
+    "svelte": "^5.55.2",
+    "tailwindcss": "^3.4.0",
+    "vite": "^8.0.8"
   },
   "keywords": [
     "alpinejs",
@@ -25,5 +31,6 @@
     "commander"
   ],
   "author": "EDH Stats App",
-  "license": "MIT"
+  "license": "MIT",
+  "main": "postcss.config.js"
 }

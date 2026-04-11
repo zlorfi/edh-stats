@@ -26,7 +26,6 @@ const createCommanderSchema = z.object({
         errorMap: () => ({ message: 'Colors must be an array' })
       }
     )
-    .min(1, 'Select at least one color')
     .max(5, 'Maximum 5 colors allowed')
     .refine((colors) => hasNoDuplicateColors(colors), {
       message: 'Duplicate colors are not allowed'
@@ -50,7 +49,6 @@ const updateCommanderSchema = z.object({
         errorMap: () => ({ message: 'Invalid color (must be W, U, B, R, or G)' })
       })
     )
-    .min(1, 'Select at least one color')
     .max(5, 'Maximum 5 colors allowed')
     .refine((colors) => hasNoDuplicateColors(colors), {
       message: 'Duplicate colors are not allowed'

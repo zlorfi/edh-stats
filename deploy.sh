@@ -133,7 +133,7 @@ check_github_token() {
 update_version_file() {
     print_header "Updating Version File"
 
-    local version_file="./frontend/public/version.txt"
+    local version_file="./frontend/static/version.txt"
     local current_version=""
 
     # Check if version file exists
@@ -172,21 +172,21 @@ build_backend() {
 }
 
 build_frontend() {
-    print_header "Building Frontend Image"
+    print_header "Building Frontend Image (SvelteKit)"
 
     print_info "Building: ${FRONTEND_IMAGE}"
     print_info "Building for architectures: linux/amd64"
 
-    # Note: Dockerfile.prod is now a permanent file in the repository
-    # It uses a multi-stage build to compile Tailwind CSS in production
+    # SvelteKit multi-stage build with Vite bundler
+    # Automatically handles cache busting with hashed filenames
 
     docker buildx build \
         --platform linux/amd64 \
-        --file ./frontend/Dockerfile.prod \
+        --file ./frontend/Dockerfile.svelte \
         --tag "${FRONTEND_IMAGE}" \
         --tag "${FRONTEND_IMAGE_LATEST}" \
         --push \
-        .
+        ./frontend
 
     print_success "Frontend image built and pushed successfully"
 }
@@ -402,10 +402,6 @@ networks:
   traefik-network:
     external: true
     name: traefik-network
-
-x-dockge:
-  urls:
-    - https://edh.zlor.fi
 EOF
 
     print_success "Deployment configuration generated: ${config_file}"
@@ -442,12 +438,12 @@ print_summary() {
     echo "Version: ${VERSION}"
     echo ""
     echo "Version Management:"
-    echo "  Frontend version file updated: ./frontend/public/version.txt"
-    echo "  Version displayed in footer: v${VERSION#v}"
+    echo "  Frontend version file updated: ./frontend/static/version.txt"
+    echo "  SvelteKit with automatic cache busting (hashed filenames)"
     echo ""
     echo "Next Steps:"
     echo "  1. Commit version update:"
-    echo "     git add frontend/public/version.txt"
+    echo "     git add frontend/static/version.txt"
     echo "     git commit -m \"Bump version to ${VERSION#v}\""
     echo "  2. Pull images: docker pull ${BACKEND_IMAGE}"
     echo "  3. Create .env file with PostgreSQL credentials:"

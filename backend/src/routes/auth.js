@@ -566,8 +566,8 @@ export default async function authRoutes(fastify, options) {
           request.body
         )
 
-        // Verify current password
-        const user = await userRepo.findByUsername(request.user.username)
+        // Verify current password - use id (stable across username changes)
+        const user = await userRepo.findById(request.user.id)
         if (!user) {
           reply.code(404).send({
             error: 'Not Found',
@@ -647,8 +647,8 @@ export default async function authRoutes(fastify, options) {
           request.body
         )
 
-        // Verify current password
-        const user = await userRepo.findByUsername(request.user.username)
+        // Verify current password - use id (stable across username changes)
+        const user = await userRepo.findById(request.user.id)
         if (!user) {
           reply.code(404).send({
             error: 'Not Found',
