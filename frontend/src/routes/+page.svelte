@@ -4,11 +4,18 @@
 
   let allowRegistration = true;
 
-  onMount(async () => {
-    await auth.checkRegistrationConfig();
-    auth.subscribe(($auth) => {
+  onMount(() => {
+    (async () => {
+      await auth.checkRegistrationConfig();
+    })();
+
+    const unsubscribe = auth.subscribe(($auth) => {
       allowRegistration = $auth.allowRegistration;
     });
+
+    return () => {
+      unsubscribe();
+    };
   });
 </script>
 

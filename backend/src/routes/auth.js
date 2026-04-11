@@ -109,6 +109,38 @@ const updateUsernameSchema = z.object({
     })
 })
 
+const AUTH_COOKIE_NAME = 'edh_stats_token'
+const ONE_WEEK_IN_SECONDS = 60 * 60 * 24 * 7
+const secureCookies =
+  process.env.COOKIE_SECURE === 'true' || process.env.NODE_ENV === 'production'
+
+function buildCookieOptions(maxAgeSeconds) {
+  const base = {
+    path: '/',
+    sameSite: 'strict',
+    httpOnly: true,
+    secure: secureCookies
+  }
+
+  if (maxAgeSeconds) {
+    return {
+      ...base,
+      maxAge: maxAgeSeconds
+    }
+  }
+
+  return base
+}
+
+function setAuthCookie(reply, token, remember) {
+  const maxAge = remember ? ONE_WEEK_IN_SECONDS : undefined
+  reply.setCookie(AUTH_COOKIE_NAME, token, buildCookieOptions(maxAge))
+}
+
+function clearAuthCookie(reply) {
+  reply.clearCookie(AUTH_COOKIE_NAME, buildCookieOptions(0))
+}
+
 export default async function authRoutes(fastify, options) {
   // Initialize repository
   const userRepo = new UserRepository()
@@ -204,6 +236,8 @@ export default async function authRoutes(fastify, options) {
           }
         )
 
+        setAuthCookie(reply, token, false)
+
         reply.code(201).send({
           message: 'User registered successfully',
           user: {
@@ -246,7 +280,7 @@ export default async function authRoutes(fastify, options) {
     async (request, reply) => {
       try {
         // LAYER 1: Schema validation
-        const { username, password } = loginSchema.parse(request.body)
+        const { username, password, remember } = loginSchema.parse(request.body)
 
         // LAYER 2: Find user (also serves as authorization check)
         const user = await userRepo.findByUsername(username)
@@ -278,9 +312,11 @@ export default async function authRoutes(fastify, options) {
             username: user.username
           },
           {
-            expiresIn: request.body.remember ? '7d' : '2h'
+            expiresIn: remember ? '7d' : '2h'
           }
         )
+
+        setAuthCookie(reply, token, remember)
 
         reply.send({
           message: 'Login successful',
@@ -341,6 +377,8 @@ export default async function authRoutes(fastify, options) {
           }
         )
 
+        setAuthCookie(reply, token, false)
+
         reply.send({
           message: 'Token refreshed successfully',
           token
@@ -399,6 +437,30 @@ export default async function authRoutes(fastify, options) {
       }
     }
   )
+
+  fastify.get('/session', async (request, reply) => {
+    try {
+      await request.jwtVerify()
+      const user = await userRepo.findById(request.user.id)
+
+      if (!user) {
+        clearAuthCookie(reply)
+        return reply.send({ authenticated: false })
+      }
+
+      reply.send({
+        authenticated: true,
+        user: {
+          id: user.id,
+          username: user.username,
+          email: user.email,
+          createdAt: user.created_at
+        }
+      })
+    } catch (error) {
+      reply.send({ authenticated: false })
+    }
+  })
 
   // Update user profile
   fastify.patch(
@@ -737,6 +799,8 @@ export default async function authRoutes(fastify, options) {
           return
         }
 
+        clearAuthCookie(reply)
+
         reply.send({
           message: 'Account deleted successfully'
         })
@@ -749,4 +813,9 @@ export default async function authRoutes(fastify, options) {
       }
     }
   )
+
+  fastify.post('/logout', async (request, reply) => {
+    clearAuthCookie(reply)
+    reply.send({ message: 'Logged out' })
+  })
 }

@@ -4,6 +4,7 @@ import 'dotenv/config.js'
 import fastify from 'fastify'
 import rateLimit from '@fastify/rate-limit'
 import cors from '@fastify/cors'
+import cookie from '@fastify/cookie'
 import jwt from '@fastify/jwt'
 import closeWithGrace from 'close-with-grace'
 
@@ -27,6 +28,19 @@ export default async function build(opts = {}) {
 
   // Register plugins
   await app.register(cors, corsConfig)
+
+  const shouldUseSecureCookies =
+    process.env.COOKIE_SECURE === 'true' || process.env.NODE_ENV === 'production'
+
+  await app.register(cookie, {
+    hook: 'onRequest',
+    parseOptions: {
+      sameSite: 'strict',
+      httpOnly: true,
+      secure: shouldUseSecureCookies,
+      path: '/'
+    }
+  })
 
   // Add request logging hook
   app.addHook('onRequest', async (request, reply) => {
@@ -57,6 +71,16 @@ export default async function build(opts = {}) {
 
   await app.register(jwt, {
     secret: jwtConfig.secret
+  })
+
+  app.addHook('preHandler', async (request, reply) => {
+    if (
+      !request.headers.authorization &&
+      request.cookies &&
+      request.cookies.edh_stats_token
+    ) {
+      request.headers.authorization = `Bearer ${request.cookies.edh_stats_token}`
+    }
   })
 
   // Register global rate limiting if configured
