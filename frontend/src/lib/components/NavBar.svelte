@@ -39,7 +39,7 @@
 				<!-- User Menu -->
 				<div class="relative">
 					<button
-						on:click={() => (userMenuOpen = !userMenuOpen)}
+						on:click|stopPropagation={() => (userMenuOpen = !userMenuOpen)}
 						class="flex items-center space-x-2 hover:text-edh-accent"
 					>
 						<svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -62,26 +62,31 @@
 					</button>
 
 					{#if userMenuOpen}
-						<div
+						<ul
+							role="menu"
 							class="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-50"
-							on:click|stopPropagation
-							on:clickoutside={() => (userMenuOpen = false)}
 						>
-							<a
-								href="/profile"
-								class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-								on:click={closeMenus}
-							>
-								Profile
-							</a>
-							<hr class="my-1" />
-							<button
-								on:click={handleLogout}
-								class="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-							>
-								Logout
-							</button>
-						</div>
+							<li role="none">
+								<a
+									href="/profile"
+									role="menuitem"
+									class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+									on:click|stopPropagation={closeMenus}
+								>
+									Profile
+								</a>
+							</li>
+							<li role="none"><hr class="my-1" /></li>
+							<li role="none">
+								<button
+									role="menuitem"
+									on:click|stopPropagation={handleLogout}
+									class="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+								>
+									Logout
+								</button>
+							</li>
+						</ul>
 					{/if}
 				</div>
 
@@ -89,6 +94,7 @@
 				<button
 					on:click={() => (mobileMenuOpen = !mobileMenuOpen)}
 					class="md:hidden"
+					aria-label="Toggle navigation menu"
 				>
 					<svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 						<path

@@ -33,8 +33,8 @@ function createAuthStore() {
 					});
 					
 					if (response.ok) {
-						const user = await response.json();
-						update(state => ({ ...state, token, user, loading: false }));
+						const data = await response.json();
+						update(state => ({ ...state, token, user: data.user, loading: false }));
 					} else {
 						// Invalid token
 						localStorage.removeItem('edh-stats-token');
@@ -156,6 +156,13 @@ function createAuthStore() {
 			goto('/login');
 		},
 		
+		/**
+		 * Update the current user data in the store
+		 */
+		updateUser: (user) => {
+			update(state => ({ ...state, user }));
+		},
+
 		/**
 		 * Check registration config
 		 */

@@ -539,11 +539,13 @@
 		
 		<!-- Delete Confirmation Modal -->
 		{#if deleteConfirm.show}
-			<div
-				class="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center z-50"
-				on:click={() => !deleteConfirm.deleting && (deleteConfirm.show = false)}
-			>
-				<div class="bg-white rounded-lg p-6 max-w-sm w-full mx-4" on:click|stopPropagation>
+			<div class="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center z-50">
+				<button
+					class="absolute inset-0 w-full h-full cursor-default"
+					aria-label="Close dialog"
+					on:click={() => !deleteConfirm.deleting && (deleteConfirm.show = false)}
+				></button>
+				<div class="relative bg-white rounded-lg p-6 max-w-sm w-full mx-4">
 					<h3 class="text-lg font-bold text-gray-900 mb-2">Delete Game</h3>
 					<p class="text-gray-600 mb-6">
 						Are you sure you want to delete this game? This action cannot be undone.
