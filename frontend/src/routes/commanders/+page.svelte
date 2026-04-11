@@ -205,6 +205,25 @@
     };
   }
 
+  function closeDeleteDialog() {
+    if (!deleteConfirm.deleting) {
+      deleteConfirm.show = false;
+    }
+  }
+
+  function handleOverlayClick(event) {
+    if (event.target === event.currentTarget) {
+      closeDeleteDialog();
+    }
+  }
+
+  function handleDeleteDialogKeydown(event) {
+    if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault();
+      closeDeleteDialog();
+    }
+  }
+
   async function handleDelete() {
     deleteConfirm.deleting = true;
     try {
@@ -287,9 +306,9 @@
             </div>
 
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-2">
+              <p class="block text-sm font-medium text-gray-700 mb-2">
                 Color Identity
-              </label>
+              </p>
               <div class="flex gap-3">
                 {#each mtgColors as color}
                   <button
@@ -358,7 +377,7 @@
           </button>
         </div>
       {:else}
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
           {#each commanders as commander}
             <div class="card hover:shadow-lg transition-shadow">
               <!-- Header with name and actions -->
@@ -435,14 +454,14 @@
       {#if deleteConfirm.show}
         <div
           class="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center z-50"
-          on:click={() =>
-            !deleteConfirm.deleting && (deleteConfirm.show = false)}
+          on:click={handleOverlayClick}
+          on:keydown={handleDeleteDialogKeydown}
           role="dialog"
           aria-modal="true"
+          tabindex="-1"
         >
           <div
             class="bg-white rounded-lg p-6 max-w-sm w-full mx-4"
-            on:click|stopPropagation
             role="document"
           >
             <h3 class="text-lg font-bold text-gray-900 mb-2">

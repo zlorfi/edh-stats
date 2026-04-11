@@ -185,17 +185,6 @@
       year: "numeric",
     });
   }
-
-  function getColorName(color) {
-    const colorNames = {
-      W: "White",
-      U: "Blue",
-      B: "Black",
-      R: "Red",
-      G: "Green",
-    };
-    return colorNames[color] || color;
-  }
 </script>
 
 <svelte:head>
