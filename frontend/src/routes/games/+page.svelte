@@ -9,6 +9,7 @@
   let showLogForm = false;
   let games = [];
   let commanders = [];
+  let allCommanders = [];
   let loading = false;
   let loadingMore = false;
   let limit = 20;
@@ -47,12 +48,14 @@
       const response = await authenticatedFetch("/api/commanders");
       if (response.ok) {
         const data = await response.json();
-        commanders = data.commanders || [];
+        allCommanders = data.commanders || [];
       }
     } catch (error) {
       console.error("Failed to load commanders:", error);
     }
   }
+
+  $: commanders = deriveCommanderOptions(allCommanders, formData?.commanderId);
 
   async function loadGames({ append = false } = {}) {
     if (append) {
@@ -340,6 +343,39 @@
       year: "numeric",
     });
   }
+
+  function deriveCommanderOptions(allList, currentCommanderId) {
+    if (!Array.isArray(allList) || allList.length === 0) {
+      return [];
+    }
+
+    const active = allList.filter((cmd) => !cmd.archived);
+    const normalizedId = normalizeCommanderId(currentCommanderId);
+
+    if (normalizedId === null) {
+      return active;
+    }
+
+    const current = allList.find((cmd) => cmd.id === normalizedId);
+    if (
+      current &&
+      current.archived &&
+      !active.some((cmd) => cmd.id === current.id)
+    ) {
+      return [...active, current];
+    }
+
+    return active;
+  }
+
+  function normalizeCommanderId(value) {
+    if (value === undefined || value === null || value === "") {
+      return null;
+    }
+
+    const parsed = Number(value);
+    return Number.isNaN(parsed) ? null : parsed;
+  }
 </script>
 
 <svelte:head>
@@ -411,7 +447,9 @@
                   >
                     <option value="">Select a commander</option>
                     {#each commanders as commander}
-                      <option value={commander.id}>{commander.name}</option>
+                      <option value={commander.id}>
+                        {commander.name}{commander.archived ? " (Archived)" : ""}
+                      </option>
                     {/each}
                   </select>
                 </div>

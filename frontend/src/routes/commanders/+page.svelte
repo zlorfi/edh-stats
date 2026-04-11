@@ -15,9 +15,11 @@
   let newCommander = {
     name: "",
     colors: [],
+    archived: false,
   };
 
   $: formData = editingCommander || newCommander;
+  $: hasArchivedCommanders = commanders.some((cmd) => cmd.archived);
 
   const mtgColors = [
     { id: "W", name: "White", hex: "#F0E6D2" },
@@ -47,6 +49,7 @@
           winRate: cmd.winRate || 0,
           avgRounds: cmd.avgRounds || 0,
           wins: cmd.totalWins || 0,
+          archived: cmd.archived ?? false,
         }));
       }
     } catch (error) {
@@ -84,6 +87,7 @@
       id: commander.id || commander.commanderId,
       name: commander.name,
       colors: colorsArray,
+      archived: commander.archived ?? false,
     };
     showAddForm = true;
     serverError = "";
@@ -117,6 +121,7 @@
             body: JSON.stringify({
               name: current.name.trim(),
               colors: current.colors,
+              archived: current.archived ?? false,
             }),
           },
         );
@@ -137,6 +142,7 @@
           body: JSON.stringify({
             name: current.name.trim(),
             colors: current.colors,
+            archived: current.archived ?? false,
           }),
         });
 
@@ -161,6 +167,7 @@
     newCommander = {
       name: "",
       colors: [],
+      archived: false,
     };
   }
 
@@ -280,6 +287,12 @@
         </button>
       </div>
 
+      {#if hasArchivedCommanders}
+        <div class="mb-6 rounded-md border border-yellow-200 bg-yellow-50 p-4 text-sm text-yellow-800">
+          Archived commanders remain in your history but will not appear when logging new games.
+        </div>
+      {/if}
+
       <!-- Add Commander Form -->
       {#if showAddForm}
         <div class="card mb-8">
@@ -331,6 +344,24 @@
               </p>
             </div>
 
+            {#if editingCommander}
+              <div class="rounded-md border border-gray-200 bg-gray-50 p-3">
+                <label class="flex items-start gap-3 text-sm text-gray-900">
+                  <input
+                    type="checkbox"
+                    bind:checked={formData.archived}
+                    class="mt-1 h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+                  />
+                  <span>
+                    Archive this commander
+                    <span class="block text-xs text-gray-500">
+                      Archived commanders stay visible in this list but cannot be selected when logging games.
+                    </span>
+                  </span>
+                </label>
+              </div>
+            {/if}
+
             {#if serverError}
               <div class="rounded-md bg-red-50 p-4">
                 <p class="text-sm font-medium text-red-800">{serverError}</p>
@@ -379,12 +410,21 @@
       {:else}
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
           {#each commanders as commander}
-            <div class="card hover:shadow-lg transition-shadow">
+            <div class="card hover:shadow-lg transition-shadow {commander.archived ? 'opacity-80' : ''}">
               <!-- Header with name and actions -->
               <div class="flex items-start justify-between mb-4">
-                <h3 class="text-xl font-bold text-gray-900">
-                  {commander.name}
-                </h3>
+                <div>
+                  <div class="flex items-center gap-2">
+                    <h3 class="text-xl font-bold text-gray-900">
+                      {commander.name}
+                    </h3>
+                    {#if commander.archived}
+                      <span class="inline-flex items-center rounded-full bg-gray-200 px-2 py-0.5 text-xs font-medium text-gray-700">
+                        Archived
+                      </span>
+                    {/if}
+                  </div>
+                </div>
                 <div class="flex gap-2">
                   <button
                     on:click={() => startEdit(commander)}

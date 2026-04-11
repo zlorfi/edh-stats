@@ -29,7 +29,8 @@ const createCommanderSchema = z.object({
     .max(5, 'Maximum 5 colors allowed')
     .refine((colors) => hasNoDuplicateColors(colors), {
       message: 'Duplicate colors are not allowed'
-    })
+    }),
+  archived: z.boolean('Archived must be a boolean').optional().default(false)
 })
 
 const updateCommanderSchema = z.object({
@@ -53,7 +54,8 @@ const updateCommanderSchema = z.object({
     .refine((colors) => hasNoDuplicateColors(colors), {
       message: 'Duplicate colors are not allowed'
     })
-    .optional()
+    .optional(),
+  archived: z.boolean('Archived must be a boolean').optional()
 })
 
 const commanderQuerySchema = z.object({
@@ -102,6 +104,7 @@ function transformCommander(cmd) {
     name: cmd.name,
     colors: cmd.colors || [],
     userId: cmd.user_id,
+    archived: cmd.archived ?? false,
     totalGames: parseInt(cmd.total_games) || 0,
     totalWins: parseInt(cmd.total_wins) || 0,
     winRate: cmd.win_rate ? parseFloat(cmd.win_rate) : 0,
@@ -213,12 +216,13 @@ export default async function commanderRoutes(fastify, options) {
            return
          }
 
-         reply.send({
-           commander: {
-             ...commander,
-             colors: commander.colors || []
-           }
-         })
+          reply.send({
+            commander: {
+              ...commander,
+              colors: commander.colors || [],
+              archived: commander.archived ?? false
+            }
+          })
       } catch (error) {
         fastify.log.error('Get commander error:', error)
         reply.code(500).send({
@@ -284,7 +288,8 @@ export default async function commanderRoutes(fastify, options) {
         const commander = await commanderRepo.createCommander(
           userId,
           validatedData.name,
-          colorsJson
+          colorsJson,
+          validatedData.archived ?? false
         )
 
          reply.code(201).send({
@@ -348,7 +353,7 @@ export default async function commanderRoutes(fastify, options) {
 
          // Convert colors array to JSON if provided
          const updatePayload = { ...updateData }
-         if (updatePayload.colors) {
+         if (updatePayload.colors !== undefined) {
            updatePayload.colors = JSON.stringify(updatePayload.colors)
          }
 

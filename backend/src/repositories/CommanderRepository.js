@@ -10,15 +10,15 @@ export class CommanderRepository extends Repository {
   /**
    * Create a new commander
    */
-  async createCommander(userId, name, colors) {
+  async createCommander(userId, name, colors, archived = false) {
     try {
       const result = await dbManager.query(
         `
-        INSERT INTO ${this.tableName} (name, colors, user_id)
-        VALUES ($1, $2, $3)
-        RETURNING id, name, colors, user_id, created_at, updated_at
+        INSERT INTO ${this.tableName} (name, colors, user_id, archived)
+        VALUES ($1, $2, $3, $4)
+        RETURNING id, name, colors, user_id, archived, created_at, updated_at
       `,
-        [name, colors, userId]
+        [name, colors, userId, archived]
       )
 
       return result.rows[0]
@@ -63,6 +63,7 @@ export class CommanderRepository extends Repository {
         c.name,
         c.colors,
         c.user_id,
+        c.archived,
         c.created_at,
         c.updated_at,
         (SELECT COUNT(*) FROM games WHERE commander_id = c.id) as total_games,
@@ -102,6 +103,7 @@ export class CommanderRepository extends Repository {
         c.name,
         c.colors,
         c.user_id,
+        c.archived,
         c.created_at,
         c.updated_at,
         (SELECT COUNT(*) FROM games WHERE commander_id = c.id) as total_games,
@@ -133,6 +135,7 @@ export class CommanderRepository extends Repository {
         c.name,
         c.colors,
         c.user_id,
+        c.archived,
         c.created_at,
         c.updated_at,
         (SELECT COUNT(*) FROM games WHERE commander_id = c.id) as total_games,
@@ -198,6 +201,12 @@ export class CommanderRepository extends Repository {
     if (updateData.colors !== undefined) {
       updates.push(`colors = $${paramCount}`)
       values.push(updateData.colors)
+      paramCount++
+    }
+
+    if (updateData.archived !== undefined) {
+      updates.push(`archived = $${paramCount}`)
+      values.push(updateData.archived)
       paramCount++
     }
 
