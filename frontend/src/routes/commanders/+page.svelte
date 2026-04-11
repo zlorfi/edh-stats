@@ -1,5 +1,5 @@
 <script>
-  import { onMount } from "svelte";
+  import { onMount, tick } from "svelte";
   import { authenticatedFetch } from "$stores/auth";
   import NavBar from "$components/NavBar.svelte";
   import ProtectedRoute from "$components/ProtectedRoute.svelte";
@@ -11,6 +11,7 @@
   let submitting = false;
   let serverError = "";
   let editingCommander = null;
+  let formElement;
 
   let newCommander = {
     name: "",
@@ -75,7 +76,7 @@
     }
   }
 
-  function startEdit(commander) {
+  async function startEdit(commander) {
     // Handle both array and string formats for colors
     const colorsArray = Array.isArray(commander.colors)
       ? commander.colors
@@ -91,6 +92,9 @@
     };
     showAddForm = true;
     serverError = "";
+
+    await tick();
+    formElement?.scrollIntoView({ behavior: "smooth", block: "start" });
   }
 
   function cancelEdit() {
@@ -300,7 +304,7 @@
             {editingCommander ? "Edit Commander" : "Add New Commander"}
           </h2>
 
-          <form on:submit={handleAddCommander} class="space-y-4">
+          <form on:submit={handleAddCommander} class="space-y-4" bind:this={formElement}>
             <div>
               <label
                 for="name"

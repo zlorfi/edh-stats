@@ -1,5 +1,5 @@
 <script>
-  import { onMount } from "svelte";
+  import { onMount, tick } from "svelte";
   import { browser } from "$app/environment";
   import { authenticatedFetch } from "$stores/auth";
   import NavBar from "$components/NavBar.svelte";
@@ -18,6 +18,7 @@
   let submitting = false;
   let editingGame = null;
   let serverError = "";
+  let logFormElement;
 
   let deleteConfirm = {
     show: false,
@@ -108,7 +109,7 @@
     await loadGames({ append: true });
   }
 
-  function loadPrefilled() {
+  async function loadPrefilled() {
     if (!browser) return;
 
     const prefilled = localStorage.getItem("edh-prefill-game");
@@ -124,11 +125,8 @@
         showLogForm = true;
         localStorage.removeItem("edh-prefill-game");
 
-        setTimeout(() => {
-          document
-            .querySelector("form")
-            ?.scrollIntoView({ behavior: "smooth" });
-        }, 100);
+        await tick();
+        logFormElement?.scrollIntoView({ behavior: "smooth", block: "start" });
       } catch (error) {
         console.error("Error loading prefilled game data:", error);
       }
@@ -249,7 +247,7 @@
     }
   }
 
-  function startEdit(game) {
+  async function startEdit(game) {
     // Map API response to form fields
     const formattedDate = game.date
       ? new Date(game.date).toISOString().split("T")[0]
@@ -277,9 +275,8 @@
 
     showLogForm = true;
     serverError = "";
-    setTimeout(() => {
-      document.querySelector("form")?.scrollIntoView({ behavior: "smooth" });
-    }, 100);
+    await tick();
+    logFormElement?.scrollIntoView({ behavior: "smooth", block: "start" });
   }
 
   function cancelEdit() {
@@ -413,7 +410,7 @@
           </h2>
 
           {#key editingGame?.id || "new"}
-            <form on:submit={handleLogGame} class="space-y-4">
+            <form on:submit={handleLogGame} class="space-y-4" bind:this={logFormElement}>
               <!-- Date and Commander Row -->
               <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
