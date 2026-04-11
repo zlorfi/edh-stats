@@ -199,24 +199,24 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Clean up old backend images
-        uses: actions/delete-package-versions@v4
+        uses: actions/delete-package-versions@v5
         continue-on-error: true
         with:
-          owner: "${{ github.repository_owner }}"
-          package-name: "${{ env.PROJECT_NAME }}-backend"
-          package-type: "container"
+          owner: ${{ github.repository_owner }}
+          package-name: ${{ env.PROJECT_NAME }}-backend
+          package-type: container
           min-versions-to-keep: 10
-          delete-only-untagged-versions: false
+          delete-only-untagged-versions: true
 
-      - name: Clean up old frontend images
-        uses: actions/delete-package-versions@v4
+      - name: Clean up old backend images
+        uses: actions/delete-package-versions@v5
         continue-on-error: true
         with:
-          owner: "${{ github.repository_owner }}"
-          package-name: "${{ env.PROJECT_NAME }}-frontend"
-          package-type: "container"
+          owner: ${{ github.repository_owner }}
+          package-name: ${{ env.PROJECT_NAME }}-frontend
+          package-type: container
           min-versions-to-keep: 10
-          delete-only-untagged-versions: false
+          delete-only-untagged-versions: true
 
       - name: Post deployment info
         run: |
