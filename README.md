@@ -1,6 +1,6 @@
 # EDH/Commander Stats Tracker
 
-A lightweight, responsive web application for tracking Magic: The Gathering EDH/Commander games with comprehensive statistics and analytics. Built with Fastify (Node.js), PostgreSQL, and Alpine.js for optimal performance and scalability.
+A lightweight, responsive web application for tracking Magic: The Gathering EDH/Commander games with comprehensive statistics and analytics. Built with Fastify (Node.js), PostgreSQL, and SvelteKit for optimal performance and scalability.
 
 ## Features
 
@@ -9,7 +9,7 @@ A lightweight, responsive web application for tracking Magic: The Gathering EDH/
 #### Authentication & Users
 - **Secure Authentication**: JWT-based login/registration system with password hashing (HS512).
 - **User Profile Management**: View and edit user profile information.
-- **Session Management**: Persistent authentication with localStorage/sessionStorage support.
+- **Session Management**: Secure, HttpOnly cookie-based authentication for seamless sessions.
 - **Configurable Registration**: Toggle user registration on/off via `ALLOW_REGISTRATION` environment variable for controlled access.
 
 #### Commander Management
@@ -64,7 +64,7 @@ A lightweight, responsive web application for tracking Magic: The Gathering EDH/
 #### User Interface
 - **Responsive Design**: Mobile-friendly layout using Tailwind CSS.
 - **Dark Theme**: Professional dark color scheme with proper contrast.
-- **Alpine.js Components**: Lightweight, reactive UI without heavy frameworks.
+- **Svelte Components**: Reactive UI powered by SvelteKit and shared stores.
 - **Professional Navigation**: Easy access to all major features.
 - **Accessibility**: Semantic HTML and accessible form controls.
 
@@ -103,7 +103,7 @@ A lightweight, responsive web application for tracking Magic: The Gathering EDH/
 
 - **Backend**: Fastify (Node.js v20+)
 - **Database**: PostgreSQL 16 with connection pooling (pg library)
-- **Frontend**: Alpine.js, Tailwind CSS (CDN)
+- **Frontend**: SvelteKit, Tailwind CSS
 - **Visualization**: Chart.js
 - **Containerization**: Docker & Docker Compose
 - **Authentication**: JWT with HS512 hashing
@@ -242,15 +242,15 @@ edh-stats/
 │   ├── package.json        # Node.js dependencies
 │   └── Dockerfile
 ├── frontend/
-│   ├── public/
-│   │   ├── css/            # Tailwind styles
-│   │   ├── js/             # Alpine.js components
-│   │   ├── components/     # Reusable HTML components
-│   │   ├── *.html          # View files
-│   │   └── round-counter.html  # Live round counter (NEW)
+│   ├── src/
+│   │   ├── routes/         # SvelteKit pages and layouts
+│   │   ├── lib/components/ # Shared UI components (NavBar, Footer, etc.)
+│   │   └── lib/stores/     # Svelte stores (auth, derived state)
+│   ├── static/             # Static assets (fonts, images, css)
 │   ├── tailwind.config.js  # Tailwind configuration
-│   ├── package.json        # Node.js dependencies
-│   └── Dockerfile
+│   ├── vite.config.js      # Vite dev/proxy configuration
+│   ├── package.json        # Frontend dependencies
+│   └── Dockerfile*         # Dev/prod Dockerfiles
 ├── postgres_data/          # Persisted PostgreSQL data (Docker volume)
 ├── docs/                   # Documentation
 ├── FIXES.md                # Detailed list of fixes applied
@@ -384,24 +384,19 @@ docker compose exec postgres psql -U postgres -d edh_stats
 The application logs connection pool info at startup. To debug connection issues, set `LOG_LEVEL=debug` to see detailed connection logging.
 
 ### Frontend State Management
-- Alpine.js components handle all state management
-- No external state management library needed
-- Components: 
-  - `app()`: Main dashboard and page initialization
-  - `commanderManager()`: Commander CRUD operations
-  - `gameManager()`: Game logging and editing
-  - `roundCounterApp()`: Real-time round counter with game timing
-- Authentication tokens stored in `localStorage` (persistent) or `sessionStorage` (session-only)
-- Data persistence: `localStorage` for round counter state
-- Dynamic content loading: Partial HTML pages loaded and inserted via loaders
+- SvelteKit components manage UI state through Svelte's built-in reactivity.
+- Shared state (authentication, derived data) lives in `src/lib/stores`, primarily `auth.js`.
+- Authentication relies on secure HttpOnly cookies; the store only tracks user metadata and loading state.
+- Persistent client data (e.g., round counter progress) is stored in `localStorage` with defensive guards for SSR.
+- Routing, forms, and API interactions are handled with first-class SvelteKit primitives instead of manual DOM loaders.
 
 ### Authentication Flow
 1. User registers with username and password
 2. Password hashed with bcryptjs (12 rounds)
 3. JWT token generated (HS512 algorithm)
-4. Token stored in browser (localStorage/sessionStorage)
-5. Token validated on protected routes
-6. Automatic token validation on component initialization
+4. Secure session cookie issued to the browser
+5. Protected routes validate the JWT extracted from the cookie
+6. `auth.init()` validates the cookie on app start and hydrates the user store
 
 ### Error Handling
 - All API errors return appropriate HTTP status codes
@@ -448,13 +443,13 @@ The application logs connection pool info at startup. To debug connection issues
 - **Registration Control**: Added `ALLOW_REGISTRATION` environment variable to toggle signup availability
 - **Game API Response**: Ensured all game endpoints return complete commander information (name, colors)
 - **Form Validation**: Improved notes field handling to prevent null value validation errors
-- **Frontend Error Handling**: Fixed Alpine.js key binding issues in top commanders template
+- **Frontend Error Handling**: Fixed legacy Alpine.js key binding issues in top commanders template prior to the Svelte migration
 
 ### Previous Session Fixes
 This version includes **19+ bug fixes and improvements** addressing:
 - SQL parameter mismatches and injection vulnerabilities
 - Boolean type conversion issues in form submissions
-- Invalid Alpine.js expressions and duplicate elements
+- Invalid legacy Alpine.js expressions and duplicate elements
 - Corrupted SVG paths in UI components
 - Field name mismatches between frontend and backend
 - Color parsing and null/undefined value handling
