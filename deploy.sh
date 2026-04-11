@@ -402,10 +402,6 @@ networks:
   traefik-network:
     external: true
     name: traefik-network
-
-x-dockge:
-  urls:
-    - https://edh.zlor.fi
 EOF
 
     print_success "Deployment configuration generated: ${config_file}"
