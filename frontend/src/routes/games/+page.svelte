@@ -519,13 +519,13 @@
 								<div class="flex gap-2 ml-4">
 									<button
 										on:click={() => startEdit(game)}
-										class="text-indigo-600 hover:text-indigo-800 text-sm font-medium"
+										class="text-indigo-600 hover:text-indigo-800 text-xl font-medium"
 									>
 										Edit
 									</button>
 									<button
 										on:click={() => showDeleteConfirm(game.id)}
-										class="text-red-600 hover:text-red-800 text-sm font-medium"
+										class="text-red-600 hover:text-red-800 text-xl font-medium"
 									>
 										Delete
 									</button>
