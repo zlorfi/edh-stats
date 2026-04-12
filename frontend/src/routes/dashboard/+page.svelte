@@ -11,6 +11,7 @@
     totalGames: 0,
     winRate: 0,
     totalCommanders: 0,
+    inactiveCommanders: 0,
     avgRounds: 0,
   };
 
@@ -234,9 +235,16 @@
             <div class="flex items-center justify-between">
               <div>
                 <p class="text-sm text-gray-600 mb-1">Commanders</p>
-                <p class="text-3xl font-bold text-gray-900">
-                  {stats.totalCommanders}
-                </p>
+                <div class="flex items-baseline gap-2">
+                  <p class="text-3xl font-bold text-gray-900">
+                    {stats.totalCommanders}
+                  </p>
+                  {#if stats.inactiveCommanders > 0}
+                    <span class="text-sm text-gray-500">
+                      ({stats.inactiveCommanders} archived)
+                    </span>
+                  {/if}
+                </div>
               </div>
             </div>
           </div>
