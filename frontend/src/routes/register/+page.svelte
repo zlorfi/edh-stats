@@ -18,6 +18,7 @@
   let serverError = "";
   let successMessage = "";
   let allowRegistration = true;
+  let showTermsModal = false;
 
   onMount(() => {
     (async () => {
@@ -358,7 +359,14 @@
                   class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded mt-1"
                 />
                 <label for="terms" class="ml-2 block text-sm text-gray-900">
-                  I agree to the Terms of Service and Privacy Policy
+                  I agree to the
+                  <button
+                    type="button"
+                    class="text-indigo-600 hover:text-indigo-500 underline-offset-4 underline"
+                    on:click={() => (showTermsModal = true)}
+                  >
+                    Terms of Service
+                  </button>
                 </label>
               </div>
               {#if errors.terms}
@@ -421,3 +429,187 @@
     </div>
   </div>
 </div>
+
+{#if showTermsModal}
+  <div class="fixed inset-0 z-40 flex items-center justify-center">
+    <div
+      class="absolute inset-0 bg-gray-900 bg-opacity-50"
+      on:click={() => (showTermsModal = false)}
+    ></div>
+    <div
+      class="relative z-50 w-full max-w-3xl mx-4 bg-white rounded-2xl shadow-2xl flex flex-col max-h-[90vh]"
+    >
+      <div
+        class="flex items-center justify-between border-b border-gray-200 px-6 py-4"
+      >
+        <div>
+          <p class="text-sm uppercase tracking-wide text-gray-500">
+            Terms of Service
+          </p>
+          <h3 class="text-xl font-semibold text-gray-900">EDH Stats Tracker</h3>
+        </div>
+        <button
+          class="text-gray-400 hover:text-gray-600"
+          on:click={() => (showTermsModal = false)}
+          aria-label="Close terms of service"
+        >
+          <svg
+            class="w-6 h-6"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M6 18L18 6M6 6l12 12"
+            />
+          </svg>
+        </button>
+      </div>
+      <div class="flex-1 overflow-y-auto p-6 text-gray-700">
+        <p class="text-gray-600 mb-6 text-sm">Last updated: January 2026</p>
+        <div class="prose prose-sm max-w-none">
+          <h2 class="text-2xl font-bold text-gray-900 mt-6 mb-4">
+            Welcome to EDH Stats Tracker
+          </h2>
+          <p class="text-gray-700 mb-4">
+            By creating an account and using EDH Stats Tracker, you agree to
+            these Terms of Service. We've kept them simple and
+            straightforward—no legal jargon that makes your brain hurt. (You're
+            welcome.)
+          </p>
+
+          <h2 class="text-2xl font-bold text-gray-900 mt-6 mb-4">
+            1. What This Service Is
+          </h2>
+          <p class="text-gray-700 mb-4">
+            EDH Stats Tracker is a web application designed to help Magic: The
+            Gathering players track, analyze, and celebrate their EDH/Commander
+            game statistics. We store your game records, commanders, and
+            associated statistics. Think of us as your personal game journal
+            that actually does math for you.
+          </p>
+
+          <h2 class="text-2xl font-bold text-gray-900 mt-6 mb-4">
+            2. User Accounts
+          </h2>
+          <p class="text-gray-700 mb-4">
+            You are responsible for maintaining the confidentiality of your
+            password. You agree not to share your account credentials with
+            anyone else. If someone logs into your account and logs all your
+            games as losses, we'll sympathize, but that's on you.
+          </p>
+          <p class="text-gray-700 mb-4">
+            You represent that the information you provide during registration
+            is accurate and true. If you use a fake name, that's between you and
+            Magic's lore team.
+          </p>
+
+          <h2 class="text-2xl font-bold text-gray-900 mt-6 mb-4">
+            3. Your Content
+          </h2>
+          <p class="text-gray-700 mb-4">
+            All game records, commander lists, notes, and data you enter into
+            EDH Stats Tracker remain your property. We don't own your stats—we
+            just help you organize them. We won't sell your data, trade it for
+            pack equity, or share it with strangers. (We're not monsters.)
+          </p>
+
+          <h2 class="text-2xl font-bold text-gray-900 mt-6 mb-4">
+            4. Acceptable Use
+          </h2>
+          <p class="text-gray-700 mb-4">
+            You agree to use EDH Stats Tracker for its intended purpose:
+            tracking and analyzing your EDH games. Don't use it to harass,
+            deceive, or cause harm to others. Be cool.
+          </p>
+          <p class="text-gray-700 mb-4">
+            Don't try to break the service through hacking, automated attacks,
+            or other malicious means. If you find a security vulnerability,
+            please let us know responsibly instead.
+          </p>
+
+          <h2 class="text-2xl font-bold text-gray-900 mt-6 mb-4">
+            5. Service Availability
+          </h2>
+          <p class="text-gray-700 mb-4">
+            We aim to keep EDH Stats Tracker available and reliable. However,
+            like all software, it may occasionally go down for maintenance or
+            experience technical issues. We're doing our best here.
+          </p>
+          <p class="text-gray-700 mb-4">
+            We reserve the right to make changes to the service, add features,
+            or modify functionality as we see fit. We'll try to keep breaking
+            changes to a minimum.
+          </p>
+
+          <h2 class="text-2xl font-bold text-gray-900 mt-6 mb-4">
+            6. Limitation of Liability
+          </h2>
+          <p class="text-gray-700 mb-4">
+            EDH Stats Tracker is provided "as is." While we work hard to make it
+            great, we don't guarantee it will be perfect or meet every need.
+            We're not liable for data loss, lost wins, or your opponent's lucky
+            top-decks.
+          </p>
+
+          <h2 class="text-2xl font-bold text-gray-900 mt-6 mb-4">
+            7. Changes to Terms
+          </h2>
+          <p class="text-gray-700 mb-4">
+            We may update these Terms of Service from time to time. We'll let
+            you know about significant changes. Your continued use of the
+            service after changes means you accept the new terms.
+          </p>
+
+          <h2 class="text-2xl font-bold text-gray-900 mt-6 mb-4">
+            8. Account Termination
+          </h2>
+          <p class="text-gray-700 mb-4">
+            You can delete your account at any time. Your data will be removed
+            from our systems in accordance with our privacy practices. If you
+            violate these terms, we may disable your account.
+          </p>
+
+          <h2 class="text-2xl font-bold text-gray-900 mt-6 mb-4">
+            9. Questions?
+          </h2>
+          <p class="text-gray-700 mb-4">
+            If you have questions about these terms, please reach out. We're
+            reasonable people (at least we think so).
+          </p>
+
+          <div class="mt-8 p-6 bg-blue-50 border border-blue-200 rounded-lg">
+            <p class="text-blue-900 text-sm">
+              <strong>TL;DR:</strong> Use the service as intended, keep your password
+              safe, it's your responsibility. We'll keep your data private and try
+              to keep the service running. Don't be a jerk. That's it.
+            </p>
+          </div>
+        </div>
+      </div>
+      <div class="border-t border-gray-200 px-6 py-4 flex justify-end gap-3">
+        <button
+          type="button"
+          class="px-4 py-2 text-sm font-medium text-gray-700 hover:text-gray-900"
+          on:click={() => (showTermsModal = false)}
+        >
+          Close
+        </button>
+        <button
+          type="button"
+          class="btn btn-primary"
+          on:click={() => {
+            showTermsModal = false;
+            formData.terms = true;
+            errors.terms = "";
+          }}
+        >
+          I Agree
+        </button>
+      </div>
+    </div>
+  </div>
+{/if}
