@@ -471,7 +471,7 @@
               </div>
 
               <!-- Color badges -->
-              <div class="flex gap-2 mb-6">
+              <div class="color-pill">
                 {#each getColorIcons(commander.colors) as icon}
                   <img
                     src={icon.src}
@@ -570,7 +570,21 @@
     height: 1.75rem;
     border-radius: 9999px;
     object-fit: cover;
-    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.2);
+    padding: 0;
+    background: transparent;
+    border: none;
+    box-shadow: none;
+  }
+
+  .color-pill {
+    display: inline-flex;
+    gap: 0.35rem;
+    align-items: center;
+    background-color: #f5f5f5;
+    border: 1px solid #e5e7eb;
+    border-radius: 9999px;
+    padding: 0.3rem 0.6rem;
+    width: fit-content;
   }
 
   .color-chip-icon {
@@ -579,6 +593,10 @@
     border-radius: 9999px;
     object-fit: cover;
     pointer-events: none;
+    background-color: #f3f4f6;
+    border: 1px solid #e5e7eb;
+    padding: 0.15rem;
+    box-shadow: inset 0 1px 1px rgba(15, 23, 42, 0.12);
   }
 
   .color-chip-button {
@@ -589,7 +607,8 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    background-color: #fff;
+    background-color: #f3f4f6;
+    box-shadow: inset 0 1px 2px rgba(15, 23, 42, 0.08);
     transition: all 0.2s ease;
     padding: 0;
   }
