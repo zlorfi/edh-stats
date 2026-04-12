@@ -1,5 +1,5 @@
 <script>
-  import { onMount } from "svelte";
+  import { onMount, tick } from "svelte";
   import { browser } from "$app/environment";
   import { authenticatedFetch } from "$stores/auth";
   import NavBar from "$components/NavBar.svelte";
@@ -9,6 +9,7 @@
   let showLogForm = false;
   let games = [];
   let commanders = [];
+  let allCommanders = [];
   let loading = false;
   let loadingMore = false;
   let limit = 20;
@@ -17,6 +18,7 @@
   let submitting = false;
   let editingGame = null;
   let serverError = "";
+  let logFormElement;
 
   let deleteConfirm = {
     show: false,
@@ -47,12 +49,14 @@
       const response = await authenticatedFetch("/api/commanders");
       if (response.ok) {
         const data = await response.json();
-        commanders = data.commanders || [];
+        allCommanders = data.commanders || [];
       }
     } catch (error) {
       console.error("Failed to load commanders:", error);
     }
   }
+
+  $: commanders = deriveCommanderOptions(allCommanders, formData?.commanderId);
 
   async function loadGames({ append = false } = {}) {
     if (append) {
@@ -105,7 +109,7 @@
     await loadGames({ append: true });
   }
 
-  function loadPrefilled() {
+  async function loadPrefilled() {
     if (!browser) return;
 
     const prefilled = localStorage.getItem("edh-prefill-game");
@@ -121,11 +125,8 @@
         showLogForm = true;
         localStorage.removeItem("edh-prefill-game");
 
-        setTimeout(() => {
-          document
-            .querySelector("form")
-            ?.scrollIntoView({ behavior: "smooth" });
-        }, 100);
+        await tick();
+        logFormElement?.scrollIntoView({ behavior: "smooth", block: "start" });
       } catch (error) {
         console.error("Error loading prefilled game data:", error);
       }
@@ -246,7 +247,7 @@
     }
   }
 
-  function startEdit(game) {
+  async function startEdit(game) {
     // Map API response to form fields
     const formattedDate = game.date
       ? new Date(game.date).toISOString().split("T")[0]
@@ -274,9 +275,8 @@
 
     showLogForm = true;
     serverError = "";
-    setTimeout(() => {
-      document.querySelector("form")?.scrollIntoView({ behavior: "smooth" });
-    }, 100);
+    await tick();
+    logFormElement?.scrollIntoView({ behavior: "smooth", block: "start" });
   }
 
   function cancelEdit() {
@@ -340,6 +340,39 @@
       year: "numeric",
     });
   }
+
+  function deriveCommanderOptions(allList, currentCommanderId) {
+    if (!Array.isArray(allList) || allList.length === 0) {
+      return [];
+    }
+
+    const active = allList.filter((cmd) => !cmd.archived);
+    const normalizedId = normalizeCommanderId(currentCommanderId);
+
+    if (normalizedId === null) {
+      return active;
+    }
+
+    const current = allList.find((cmd) => cmd.id === normalizedId);
+    if (
+      current &&
+      current.archived &&
+      !active.some((cmd) => cmd.id === current.id)
+    ) {
+      return [...active, current];
+    }
+
+    return active;
+  }
+
+  function normalizeCommanderId(value) {
+    if (value === undefined || value === null || value === "") {
+      return null;
+    }
+
+    const parsed = Number(value);
+    return Number.isNaN(parsed) ? null : parsed;
+  }
 </script>
 
 <svelte:head>
@@ -377,7 +410,7 @@
           </h2>
 
           {#key editingGame?.id || "new"}
-            <form on:submit={handleLogGame} class="space-y-4">
+            <form on:submit={handleLogGame} class="space-y-4" bind:this={logFormElement}>
               <!-- Date and Commander Row -->
               <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
@@ -411,7 +444,9 @@
                   >
                     <option value="">Select a commander</option>
                     {#each commanders as commander}
-                      <option value={commander.id}>{commander.name}</option>
+                      <option value={commander.id}>
+                        {commander.name}{commander.archived ? " (Archived)" : ""}
+                      </option>
                     {/each}
                   </select>
                 </div>

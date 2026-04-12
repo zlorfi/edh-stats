@@ -17,11 +17,15 @@ CREATE TABLE IF NOT EXISTS commanders (
     name TEXT NOT NULL CHECK(LENGTH(name) >= 2),
     colors JSONB NOT NULL,
     user_id INTEGER NOT NULL,
+    archived BOOLEAN NOT NULL DEFAULT FALSE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
     CONSTRAINT valid_colors CHECK(jsonb_typeof(colors) = 'array')
 );
+
+ALTER TABLE commanders
+    ADD COLUMN IF NOT EXISTS archived BOOLEAN NOT NULL DEFAULT FALSE;
 
 -- Games table with all requested statistics
 CREATE TABLE IF NOT EXISTS games (

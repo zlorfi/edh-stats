@@ -50,10 +50,21 @@ export default async function statsRoutes(fastify, options) {
           [userId]
         )
 
+        const inactiveCommandersResult = await dbManager.get(
+          `
+         SELECT COUNT(*) AS count
+         FROM commanders
+         WHERE user_id = $1 AND archived = TRUE
+       `,
+          [userId]
+        )
+
         reply.send({
           totalGames: stats?.total_games || 0,
           winRate: stats?.win_rate || 0,
           totalCommanders: stats?.total_commanders || 0,
+          inactiveCommanders:
+            parseInt(inactiveCommandersResult?.count, 10) || 0,
           avgRounds: Math.round(stats?.avg_rounds || 0)
         })
       } catch (error) {
