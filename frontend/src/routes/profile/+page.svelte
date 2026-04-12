@@ -5,7 +5,6 @@
   import ProtectedRoute from "$components/ProtectedRoute.svelte";
   import Footer from "$components/Footer.svelte";
 
-  let loading = false;
   let usernameLoading = false;
   let passwordLoading = false;
   let deleteLoading = false;
@@ -80,10 +79,10 @@
       if (response.ok) {
         const data = await response.json();
         usernameSuccess = "Username updated successfully!";
-        
+
         // Update the auth store with new user data
         auth.updateUser(data.user);
-        
+
         newUsername = "";
         showUsernameForm = false;
       } else {
@@ -135,9 +134,11 @@
     } else if (passwordData.newPassword.length < 8) {
       errors.newPassword = "Password must be at least 8 characters";
     } else if (!/(?=.*[a-z])/.test(passwordData.newPassword)) {
-      errors.newPassword = "Password must contain at least one lowercase letter";
+      errors.newPassword =
+        "Password must contain at least one lowercase letter";
     } else if (!/(?=.*[A-Z])/.test(passwordData.newPassword)) {
-      errors.newPassword = "Password must contain at least one uppercase letter";
+      errors.newPassword =
+        "Password must contain at least one uppercase letter";
     } else if (!/(?=.*\d)/.test(passwordData.newPassword)) {
       errors.newPassword = "Password must contain at least one number";
     }
@@ -478,16 +479,16 @@
 
       <!-- Delete Confirmation Modal -->
       {#if showDeleteConfirm}
-        <div class="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center z-50">
+        <div
+          class="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center z-50"
+        >
           <button
             class="absolute inset-0 w-full h-full cursor-default"
             aria-label="Close dialog"
             on:click={() => !deleteLoading && (showDeleteConfirm = false)}
           ></button>
           <div class="relative bg-white rounded-lg p-6 max-w-md w-full mx-4">
-            <h3 class="text-lg font-bold text-gray-900 mb-2">
-              Delete Account
-            </h3>
+            <h3 class="text-lg font-bold text-gray-900 mb-2">Delete Account</h3>
             <p class="text-gray-600 mb-4">
               This will permanently delete your account and all your data. This
               action <strong>cannot be undone</strong>.
@@ -511,7 +512,8 @@
             <div class="flex gap-3">
               <button
                 on:click={handleDeleteAccount}
-                disabled={deleteLoading || deleteConfirmText !== $currentUser?.username}
+                disabled={deleteLoading ||
+                  deleteConfirmText !== $currentUser?.username}
                 class="flex-1 btn btn-danger disabled:opacity-50"
               >
                 {#if deleteLoading}
