@@ -31,12 +31,12 @@
   ];
 
   const colorIconMap = {
-    W: "/images/W.svg",
-    U: "/images/U.svg",
-    B: "/images/B.svg",
-    R: "/images/R.svg",
-    G: "/images/G.svg",
-    C: "/images/C.svg",
+    W: "/images/W.png",
+    U: "/images/U.png",
+    B: "/images/B.png",
+    R: "/images/R.png",
+    G: "/images/G.png",
+    C: "/images/C.png",
   };
 
   onMount(async () => {
@@ -307,8 +307,11 @@
       </div>
 
       {#if hasArchivedCommanders}
-        <div class="mb-6 rounded-md border border-yellow-200 bg-yellow-50 p-4 text-sm text-yellow-800">
-          Archived commanders remain in your history but will not appear when logging new games.
+        <div
+          class="mb-6 rounded-md border border-yellow-200 bg-yellow-50 p-4 text-sm text-yellow-800"
+        >
+          Archived commanders remain in your history but will not appear when
+          logging new games.
         </div>
       {/if}
 
@@ -319,7 +322,11 @@
             {editingCommander ? "Edit Commander" : "Add New Commander"}
           </h2>
 
-          <form on:submit={handleAddCommander} class="space-y-4" bind:this={formElement}>
+          <form
+            on:submit={handleAddCommander}
+            class="space-y-4"
+            bind:this={formElement}
+          >
             <div>
               <label
                 for="name"
@@ -346,11 +353,9 @@
                   <button
                     type="button"
                     on:click={() => toggleColor(color.id)}
-                    class="color-chip-button {formData.colors.includes(
-                      color.id,
-                    )
-                       ? 'border-gray-900 ring-2 ring-offset-2 ring-gray-900'
-                       : 'border-gray-300 hover:border-gray-400'}"
+                    class="color-chip-button {formData.colors.includes(color.id)
+                      ? 'border-gray-900 ring-2 ring-offset-2 ring-gray-900'
+                      : 'border-gray-300 hover:border-gray-400'}"
                     title={color.name}
                   >
                     <img
@@ -380,7 +385,8 @@
                   <span>
                     Archive this commander
                     <span class="block text-xs text-gray-500">
-                      Archived commanders stay visible in this list but cannot be selected when logging games.
+                      Archived commanders stay visible in this list but cannot
+                      be selected when logging games.
                     </span>
                   </span>
                 </label>
@@ -435,7 +441,11 @@
       {:else}
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
           {#each commanders as commander}
-            <div class="card hover:shadow-lg transition-shadow {commander.archived ? 'opacity-80' : ''}">
+            <div
+              class="card hover:shadow-lg transition-shadow {commander.archived
+                ? 'opacity-80'
+                : ''}"
+            >
               <!-- Header with name and actions -->
               <div class="flex items-start justify-between mb-4">
                 <div>
@@ -444,7 +454,9 @@
                       {commander.name}
                     </h3>
                     {#if commander.archived}
-                      <span class="inline-flex items-center rounded-full bg-gray-200 px-2 py-0.5 text-xs font-medium text-gray-700">
+                      <span
+                        class="inline-flex items-center rounded-full bg-gray-200 px-2 py-0.5 text-xs font-medium text-gray-700"
+                      >
                         Archived
                       </span>
                     {/if}
@@ -453,7 +465,7 @@
                 <div class="flex gap-2">
                   <button
                     on:click={() => startEdit(commander)}
-                    class="text-indigo-600 hover:text-indigo-800 text-xl font-medium"
+                    class="text-indigo-600 hover:text-indigo-800 text-xl font-medium opacity-100"
                   >
                     Edit
                   </button>
@@ -463,7 +475,7 @@
                         commander.id || commander.commanderId,
                         commander.name,
                       )}
-                    class="text-red-600 hover:text-red-800 text-xl font-medium"
+                    class="text-red-600 hover:text-red-800 text-xl font-medium opacity-100"
                   >
                     Delete
                   </button>
