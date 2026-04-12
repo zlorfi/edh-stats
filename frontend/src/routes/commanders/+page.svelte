@@ -584,6 +584,8 @@
     object-fit: cover;
     padding: 0;
     background: transparent;
+    background-color: #fff;
+    padding: 0.2rem;
     border: none;
     box-shadow: none;
   }
@@ -600,15 +602,15 @@
   }
 
   .color-chip-icon {
-    width: 80%;
-    height: 80%;
+    width: 90%;
+    height: 90%;
     border-radius: 9999px;
     object-fit: cover;
     pointer-events: none;
-    background-color: #f3f4f6;
-    border: 1px solid #e5e7eb;
-    padding: 0.15rem;
-    box-shadow: inset 0 1px 1px rgba(15, 23, 42, 0.12);
+    background-color: #fff;
+    /*border: 1px solid #e5e7eb;*/
+    padding: 0.2rem;
+    /*box-shadow: inset 0 1px 1px rgba(15, 23, 42, 0.12);*/
   }
 
   .color-chip-button {
