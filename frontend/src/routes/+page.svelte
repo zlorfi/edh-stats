@@ -3,6 +3,30 @@
   import { auth } from "$stores/auth";
 
   let allowRegistration = true;
+  let activeSlide = 0;
+  let slideshowInterval;
+
+  const slides = [
+    { src: "/images/commanders.png", alt: "Commanders management screenshot" },
+    { src: "/images/logs.png", alt: "Game log screenshot" },
+    { src: "/images/stats.png", alt: "Statistics dashboard screenshot" },
+    { src: "/images/timer.png", alt: "Round timer screenshot" },
+  ];
+
+  function nextSlide() {
+    activeSlide = (activeSlide + 1) % slides.length;
+  }
+
+  function goToSlide(index) {
+    const newIndex = (index + slides.length) % slides.length;
+    activeSlide = newIndex;
+    resetInterval();
+  }
+
+  function resetInterval() {
+    clearInterval(slideshowInterval);
+    slideshowInterval = setInterval(nextSlide, 6000);
+  }
 
   onMount(() => {
     (async () => {
@@ -13,8 +37,11 @@
       allowRegistration = $auth.allowRegistration;
     });
 
+    slideshowInterval = setInterval(nextSlide, 6000);
+
     return () => {
       unsubscribe();
+      clearInterval(slideshowInterval);
     };
   });
 </script>
@@ -50,26 +77,86 @@
         </div>
       </div>
 
-      <!-- Features Section -->
+      <!-- Slideshow -->
       <div class="mt-12 max-w-4xl mx-auto">
-        <div class="grid md:grid-cols-3 gap-6">
-          <div class="card text-center">
-            <div class="text-4xl mb-3">📊</div>
-            <h3 class="font-bold text-lg mb-2">Track Games</h3>
-            <p class="text-gray-600">Log your EDH games and commanders</p>
-          </div>
-          <div class="card text-center">
-            <div class="text-4xl mb-3">📈</div>
-            <h3 class="font-bold text-lg mb-2">View Stats</h3>
-            <p class="text-gray-600">Analyze your win rates and performance</p>
-          </div>
-          <div class="card text-center">
-            <div class="text-4xl mb-3">⏱️</div>
-            <h3 class="font-bold text-lg mb-2">Round Counter</h3>
-            <p class="text-gray-600">Track game duration and rounds</p>
+        <div class="carousel">
+          {#each slides as slide, index}
+            <figure
+              class="carousel-slide {index === activeSlide ? 'is-active' : ''}"
+            >
+              <img src={slide.src} alt={slide.alt} loading="lazy" />
+            </figure>
+          {/each}
+          <div class="carousel-dots">
+            {#each slides as _, dotIndex}
+              <button
+                class:active-dot={dotIndex === activeSlide}
+                aria-label={`Go to slide ${dotIndex + 1}`}
+                on:click={() => goToSlide(dotIndex)}
+              ></button>
+            {/each}
           </div>
         </div>
       </div>
     </div>
   </div>
 </div>
+
+<style>
+  .carousel {
+    position: relative;
+    overflow: hidden;
+    border-radius: 1rem;
+    box-shadow: 0 10px 25px rgba(15, 23, 42, 0.15);
+    max-width: 70%;
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  .carousel-slide {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    transition: opacity 700ms ease;
+    margin: 0;
+    pointer-events: none;
+  }
+
+  .carousel-slide.is-active {
+    opacity: 1;
+    position: relative;
+  }
+
+  .carousel-slide img {
+    width: 100%;
+    display: block;
+  }
+
+  .carousel-dots {
+    display: flex;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.75rem 0;
+  }
+
+  .carousel-dots button {
+    width: 0.7rem;
+    height: 0.7rem;
+    border-radius: 9999px;
+    border: none;
+    background: #d1d5db;
+  }
+
+  .carousel-dots button.active-dot {
+    background: #4338ca;
+  }
+
+  @keyframes fade-in {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+</style>
