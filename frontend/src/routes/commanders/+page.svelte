@@ -30,6 +30,15 @@
     { id: "G", name: "Green", hex: "#5A7A3B" },
   ];
 
+  const colorIconMap = {
+    W: "/images/W.svg",
+    U: "/images/U.svg",
+    B: "/images/B.svg",
+    R: "/images/R.svg",
+    G: "/images/G.svg",
+    C: "/images/C.svg",
+  };
+
   onMount(async () => {
     await loadCommanders();
   });
@@ -76,13 +85,18 @@
     }
   }
 
+  function normalizeColorsInput(colors) {
+    if (!colors) return [];
+    if (Array.isArray(colors)) return colors;
+    if (typeof colors === "string") {
+      return colors.split("").map((c) => c.toUpperCase());
+    }
+    return [];
+  }
+
   async function startEdit(commander) {
     // Handle both array and string formats for colors
-    const colorsArray = Array.isArray(commander.colors)
-      ? commander.colors
-      : typeof commander.colors === "string"
-        ? commander.colors.split("")
-        : [];
+    const colorsArray = normalizeColorsInput(commander.colors);
 
     editingCommander = {
       id: commander.id || commander.commanderId,
@@ -175,15 +189,16 @@
     };
   }
 
-  function getColorComponents(colors) {
-    if (!colors || colors.length === 0) return [];
+  function getColorIcons(colors) {
+    const normalized = normalizeColorsInput(colors);
+    const list = normalized.length > 0 ? normalized : ["C"];
 
-    // Handle both string and array formats
-    const colorArray = typeof colors === "string" ? colors.split("") : colors;
-
-    return colorArray
-      .map((c) => mtgColors.find((mc) => mc.id === c))
-      .filter(Boolean);
+    return list
+      .map((colorId) => ({
+        id: colorId,
+        src: colorIconMap[colorId] || null,
+      }))
+      .filter((icon) => Boolean(icon.src));
   }
 
   function formatDate(dateString) {
@@ -331,14 +346,20 @@
                   <button
                     type="button"
                     on:click={() => toggleColor(color.id)}
-                    class="w-12 h-12 rounded-full border-2 transition-all {formData.colors.includes(
+                    class="color-chip-button {formData.colors.includes(
                       color.id,
                     )
-                      ? 'border-gray-900 ring-2 ring-offset-2 ring-gray-900'
-                      : 'border-gray-300 hover:border-gray-400'}"
-                    style="background-color: {color.hex}"
+                       ? 'border-gray-900 ring-2 ring-offset-2 ring-gray-900'
+                       : 'border-gray-300 hover:border-gray-400'}"
                     title={color.name}
                   >
+                    <img
+                      src={colorIconMap[color.id]}
+                      alt=""
+                      class="color-chip-icon"
+                      aria-hidden="true"
+                      loading="lazy"
+                    />
                     <span class="sr-only">{color.name}</span>
                   </button>
                 {/each}
@@ -451,14 +472,13 @@
 
               <!-- Color badges -->
               <div class="flex gap-2 mb-6">
-                {#each getColorComponents(commander.colors) as color}
-                  <div
-                    class="w-8 h-8 rounded"
-                    style="background-color: {color.hex}"
-                    title={color.name}
-                  ></div>
-                {:else}
-                  <span class="text-sm text-gray-500 italic">Colorless</span>
+                {#each getColorIcons(commander.colors) as icon}
+                  <img
+                    src={icon.src}
+                    alt={`${icon.id} color icon`}
+                    class="color-icon"
+                    loading="lazy"
+                  />
                 {/each}
               </div>
 
@@ -543,3 +563,34 @@
     <Footer />
   </div>
 </ProtectedRoute>
+
+<style>
+  .color-icon {
+    width: 1.75rem;
+    height: 1.75rem;
+    border-radius: 9999px;
+    object-fit: cover;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.2);
+  }
+
+  .color-chip-icon {
+    width: 80%;
+    height: 80%;
+    border-radius: 9999px;
+    object-fit: cover;
+    pointer-events: none;
+  }
+
+  .color-chip-button {
+    width: 3rem;
+    height: 3rem;
+    border-radius: 9999px;
+    border-width: 2px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background-color: #fff;
+    transition: all 0.2s ease;
+    padding: 0;
+  }
+</style>
