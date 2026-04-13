@@ -381,10 +381,10 @@
 </svelte:head>
 
 <ProtectedRoute>
-  <div class="min-h-screen bg-gray-50">
+  <div class="min-h-screen bg-gray-50 flex flex-col">
     <NavBar />
 
-    <main class="container mx-auto px-4 py-8">
+    <main class="container mx-auto px-4 py-8 flex-1">
       <div class="flex justify-between items-center mb-6">
         <h1 class="text-3xl font-bold text-gray-900">Game Log</h1>
         <button
@@ -410,7 +410,11 @@
           </h2>
 
           {#key editingGame?.id || "new"}
-            <form on:submit={handleLogGame} class="space-y-4" bind:this={logFormElement}>
+            <form
+              on:submit={handleLogGame}
+              class="space-y-4"
+              bind:this={logFormElement}
+            >
               <!-- Date and Commander Row -->
               <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
@@ -445,7 +449,9 @@
                     <option value="">Select a commander</option>
                     {#each commanders as commander}
                       <option value={commander.id}>
-                        {commander.name}{commander.archived ? " (Archived)" : ""}
+                        {commander.name}{commander.archived
+                          ? " (Archived)"
+                          : ""}
                       </option>
                     {/each}
                   </select>
@@ -671,7 +677,7 @@
               {/if}
             </button>
           </div>
-        {:else if games.length > 0}
+        {:else if hasMore && games.length > 0}
           <p class="text-center text-gray-500 pt-6">
             You have reached the end of the line.
           </p>

@@ -16,7 +16,7 @@
   });
 </script>
 
-<footer class="bg-white border-t border-gray-200 mt-12">
+<footer class="bg-white border-t border-gray-200 mt-12 w-full">
   <div class="container mx-auto px-4 py-6 text-center text-sm text-gray-600">
     <p>EDH Stats • Track your Commander games</p>
     {#if version}

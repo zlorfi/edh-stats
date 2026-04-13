@@ -148,14 +148,19 @@ export default async function commanderRoutes(fastify, options) {
            commanders = await commanderRepo.getCommandersByUserId(userId, limit, offset, sortBy, sortOrder)
          }
 
-        reply.send({
-          commanders: commanders.map(transformCommander),
-          pagination: {
-            total: commanders.length,
-            limit,
-            offset
-          }
-        })
+         const totalCount = q
+           ? await commanderRepo.countCommandersByUserIdAndQuery(userId, q)
+           : await commanderRepo.countCommandersByUserId(userId)
+
+         reply.send({
+           commanders: commanders.map(transformCommander),
+           pagination: {
+             total: totalCount,
+             limit,
+             offset,
+             hasMore: offset + commanders.length < totalCount
+           }
+         })
       } catch (error) {
         if (error instanceof z.ZodError) {
           return reply.code(400).send({

@@ -194,10 +194,10 @@
 </svelte:head>
 
 <ProtectedRoute>
-  <div class="min-h-screen bg-gray-50">
+  <div class="min-h-screen bg-gray-50 flex flex-col">
     <NavBar />
 
-    <main class="container mx-auto px-4 py-8 max-w-2xl">
+    <main class="container mx-auto px-4 py-8 max-w-2xl flex-1">
       <h1 class="text-3xl font-bold text-gray-900 mb-6">Profile Settings</h1>
 
       <!-- Global Success Messages -->

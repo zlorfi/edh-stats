@@ -4,14 +4,19 @@
   import NavBar from "$components/NavBar.svelte";
   import ProtectedRoute from "$components/ProtectedRoute.svelte";
   import Footer from "$components/Footer.svelte";
+  import CommanderListSection from "$components/CommanderListSection.svelte";
 
   let showAddForm = false;
   let commanders = [];
   let loading = false;
+  let loadingMore = false;
   let submitting = false;
   let serverError = "";
   let editingCommander = null;
   let formElement;
+  let limit = 20;
+  let offset = 0;
+  let hasMore = false;
 
   let newCommander = {
     name: "",
@@ -20,7 +25,8 @@
   };
 
   $: formData = editingCommander || newCommander;
-  $: hasArchivedCommanders = commanders.some((cmd) => cmd.archived);
+  $: activeCommanders = commanders.filter((cmd) => !cmd.archived);
+  $: archivedCommanders = commanders.filter((cmd) => cmd.archived);
 
   const mtgColors = [
     { id: "W", name: "White", hex: "#F0E6D2" },
@@ -43,16 +49,30 @@
     await loadCommanders();
   });
 
-  async function loadCommanders() {
-    loading = true;
+  async function loadCommanders({ append = false } = {}) {
+    if (append) {
+      if (loadingMore || !hasMore) return;
+      loadingMore = true;
+    } else {
+      loading = true;
+      offset = 0;
+      hasMore = false;
+    }
     try {
-      // Load all commanders (not just ones with stats)
-      const response = await authenticatedFetch("/api/commanders");
+      // Load commanders with pagination
+      const queryOffset = append ? offset : 0;
+      const params = new URLSearchParams({
+        limit: limit.toString(),
+        offset: queryOffset.toString(),
+      });
+      const response = await authenticatedFetch(
+        `/api/commanders?${params.toString()}`,
+      );
       if (response.ok) {
         const data = await response.json();
         const commandersList = data.commanders || [];
 
-        commanders = commandersList.map((cmd) => ({
+        const mappedCommanders = commandersList.map((cmd) => ({
           ...cmd,
           commanderId: cmd.id,
           totalGames: cmd.totalGames || 0,
@@ -61,12 +81,31 @@
           wins: cmd.totalWins || 0,
           archived: cmd.archived ?? false,
         }));
+
+        if (append) {
+          const existingIds = new Set(
+            commanders.map((cmd) => cmd.id || cmd.commanderId),
+          );
+          const deduped = mappedCommanders.filter(
+            (cmd) => !existingIds.has(cmd.id || cmd.commanderId),
+          );
+          commanders = [...commanders, ...deduped];
+        } else {
+          commanders = mappedCommanders;
+        }
+
+        hasMore = data.pagination?.hasMore ?? false;
+        offset = queryOffset + commandersList.length;
       }
     } catch (error) {
       console.error("Load commanders error:", error);
       serverError = "Failed to load commanders";
     } finally {
-      loading = false;
+      if (append) {
+        loadingMore = false;
+      } else {
+        loading = false;
+      }
     }
   }
 
@@ -274,6 +313,10 @@
       deleteConfirm.deleting = false;
     }
   }
+
+  async function loadMoreCommanders() {
+    await loadCommanders({ append: true });
+  }
 </script>
 
 <svelte:head>
@@ -282,10 +325,10 @@
 </svelte:head>
 
 <ProtectedRoute>
-  <div class="min-h-screen bg-gray-50">
+  <div class="min-h-screen bg-gray-50 flex flex-col">
     <NavBar />
 
-    <main class="container mx-auto px-4 py-8">
+    <main class="container mx-auto px-4 py-8 flex-1">
       <div class="flex justify-between items-center mb-6">
         <h1 class="text-3xl font-bold text-gray-900">Commanders</h1>
         <button
@@ -305,15 +348,6 @@
           {/if}
         </button>
       </div>
-
-      {#if hasArchivedCommanders}
-        <div
-          class="mb-6 rounded-md border border-yellow-200 bg-yellow-50 p-4 text-sm text-yellow-800"
-        >
-          Archived commanders remain in your history but will not appear when
-          logging new games.
-        </div>
-      {/if}
 
       <!-- Add Commander Form -->
       {#if showAddForm}
@@ -439,90 +473,63 @@
           </button>
         </div>
       {:else}
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {#each commanders as commander}
-            <div
-              class="card hover:shadow-lg transition-shadow {commander.archived
-                ? 'opacity-80'
-                : ''}"
-            >
-              <!-- Header with name and actions -->
-              <div class="flex items-start justify-between mb-4">
-                <div>
-                  <div class="flex items-center gap-2">
-                    <h3 class="text-xl font-bold text-gray-900">
-                      {commander.name}
-                    </h3>
-                    {#if commander.archived}
-                      <span
-                        class="inline-flex items-center rounded-full bg-gray-200 px-2 py-0.5 text-xs font-medium text-gray-700"
-                      >
-                        Archived
-                      </span>
-                    {/if}
-                  </div>
-                </div>
-                <div class="flex gap-2">
-                  <button
-                    on:click={() => startEdit(commander)}
-                    class="text-indigo-600 hover:text-indigo-800 text-xl font-medium opacity-100"
-                  >
-                    Edit
-                  </button>
-                  <button
-                    on:click={() =>
-                      showDeleteConfirm(
-                        commander.id || commander.commanderId,
-                        commander.name,
-                      )}
-                    class="text-red-600 hover:text-red-800 text-xl font-medium opacity-100"
-                  >
-                    Delete
-                  </button>
-                </div>
-              </div>
+        <div class="space-y-12">
+          {#if activeCommanders.length > 0}
+            <CommanderListSection
+              commanders={activeCommanders}
+              {getColorIcons}
+              {formatDate}
+              onEdit={startEdit}
+              onDelete={(commander) =>
+                showDeleteConfirm(
+                  commander.id || commander.commanderId,
+                  commander.name,
+                )}
+            />
+          {/if}
 
-              <!-- Color badges -->
-              <div class="color-pill">
-                {#each getColorIcons(commander.colors) as icon}
-                  <img
-                    src={icon.src}
-                    alt={`${icon.id} color icon`}
-                    class="color-icon"
-                    loading="lazy"
-                  />
-                {/each}
+          {#if archivedCommanders.length > 0}
+            <div class="space-y-4">
+              <div
+                class="rounded-md border border-yellow-200 bg-yellow-50 p-4 text-sm text-yellow-800"
+              >
+                Archived commanders remain in your history but will not appear
+                when logging new games.
               </div>
-
-              <!-- Stats Grid -->
-              <div class="grid grid-cols-2 gap-6">
-                <div class="text-center">
-                  <div class="text-3xl font-bold text-gray-900">
-                    {commander.totalGames || 0}
-                  </div>
-                  <div class="text-sm text-gray-600 mt-1">Games Played</div>
-                </div>
-                <div class="text-center">
-                  <div class="text-3xl font-bold text-gray-900">
-                    {Number(commander.winRate || 0).toFixed(1)}%
-                  </div>
-                  <div class="text-sm text-gray-600 mt-1">Win Rate</div>
-                </div>
-                <div class="text-center">
-                  <div class="text-3xl font-bold text-gray-900">
-                    {Number(commander.avgRounds || 0).toFixed(1)}
-                  </div>
-                  <div class="text-sm text-gray-600 mt-1">Avg Rounds</div>
-                </div>
-                <div class="text-center">
-                  <div class="text-sm text-gray-500 mt-2">Added</div>
-                  <div class="text-sm text-gray-700">
-                    {formatDate(commander.createdAt)}
-                  </div>
-                </div>
-              </div>
+              <CommanderListSection
+                commanders={archivedCommanders}
+                archived={true}
+                {getColorIcons}
+                {formatDate}
+                onEdit={startEdit}
+                onDelete={(commander) =>
+                  showDeleteConfirm(
+                    commander.id || commander.commanderId,
+                    commander.name,
+                  )}
+              />
             </div>
-          {/each}
+          {/if}
+
+          {#if hasMore}
+            <div class="flex justify-center pt-6">
+              <button
+                on:click={loadMoreCommanders}
+                class="btn btn-secondary"
+                disabled={loadingMore}
+              >
+                {#if loadingMore}
+                  <div class="loading-spinner w-5 h-5"></div>
+                {:else}
+                  Load More
+                {/if}
+              </button>
+            </div>
+          {:else if hasMore && commanders.length > 0}
+            <p class="text-center text-gray-500 pt-6">
+              You have reached the end of the line.
+            </p>
+          {/if}
         </div>
       {/if}
 
@@ -577,7 +584,7 @@
 </ProtectedRoute>
 
 <style>
-  .color-icon {
+  :global(.color-icon) {
     width: 1.75rem;
     height: 1.75rem;
     border-radius: 9999px;
@@ -590,7 +597,7 @@
     box-shadow: none;
   }
 
-  .color-pill {
+  :global(.color-pill) {
     display: inline-flex;
     gap: 0.35rem;
     align-items: center;

@@ -197,10 +197,10 @@
 </svelte:head>
 
 <ProtectedRoute>
-  <div class="min-h-screen bg-gray-50">
+  <div class="min-h-screen bg-gray-50 flex flex-col">
     <NavBar />
 
-    <main class="container mx-auto px-4 py-8">
+    <main class="container mx-auto px-4 py-8 flex-1">
       {#if loading}
         <div class="flex items-center justify-center py-12">
           <div class="loading-spinner w-12 h-12"></div>

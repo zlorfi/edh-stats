@@ -243,6 +243,22 @@ export class CommanderRepository extends Repository {
   }
 
   /**
+   * Count commanders for a user filtered by name query
+   */
+  async countCommandersByUserIdAndQuery(userId, query) {
+    try {
+      const searchQuery = `%${query}%`
+      const result = await dbManager.query(
+        `SELECT COUNT(*) as count FROM ${this.tableName} WHERE user_id = $1 AND name ILIKE $2`,
+        [userId, searchQuery]
+      )
+      return parseInt(result.rows[0].count, 10) || 0
+    } catch (error) {
+      throw new Error('Failed to count commanders by query')
+    }
+  }
+
+  /**
    * Find commander by name and user
    */
   async findByNameAndUserId(name, userId) {
