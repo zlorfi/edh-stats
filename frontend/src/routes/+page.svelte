@@ -66,7 +66,7 @@
         </p>
 
         <div class="space-y-4">
-          <a href="/login" class="btn btn-primary w-full block"
+          <a href="/dashboard" class="btn btn-primary w-full block"
             >Login to Track Games</a
           >
           {#if allowRegistration}
