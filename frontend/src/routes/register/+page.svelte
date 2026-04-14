@@ -434,7 +434,16 @@
   <div class="fixed inset-0 z-40 flex items-center justify-center">
     <div
       class="absolute inset-0 bg-gray-900 bg-opacity-50"
+      role="button"
+      tabindex="0"
+      aria-label="Close terms of service"
       on:click={() => (showTermsModal = false)}
+      on:keydown={(event) => {
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          showTermsModal = false;
+        }
+      }}
     ></div>
     <div
       class="relative z-50 w-full max-w-3xl mx-4 bg-white rounded-2xl shadow-2xl flex flex-col max-h-[90vh]"
