@@ -7,9 +7,13 @@ CREATE TABLE IF NOT EXISTS users (
     username TEXT UNIQUE NOT NULL CHECK(LENGTH(username) >= 3),
     password_hash TEXT NOT NULL CHECK(LENGTH(password_hash) >= 60),
     email TEXT UNIQUE,
+    is_admin BOOLEAN NOT NULL DEFAULT FALSE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
+ALTER TABLE users
+    ADD COLUMN IF NOT EXISTS is_admin BOOLEAN NOT NULL DEFAULT FALSE;
 
 -- Commanders table with color identity
 CREATE TABLE IF NOT EXISTS commanders (
