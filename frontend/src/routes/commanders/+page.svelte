@@ -1,6 +1,6 @@
 <script>
   import { onMount, tick } from "svelte";
-  import { authenticatedFetch } from "$stores/auth";
+  import { authenticatedFetch, currentUser } from "$stores/auth";
   import NavBar from "$components/NavBar.svelte";
   import ProtectedRoute from "$components/ProtectedRoute.svelte";
   import Footer from "$components/Footer.svelte";
@@ -36,7 +36,7 @@
     { id: "G", name: "Green", hex: "#5A7A3B" },
   ];
 
-  const colorIconMap = {
+  const pngColorIcons = {
     W: "/images/W.png",
     U: "/images/U.png",
     B: "/images/B.png",
@@ -44,6 +44,19 @@
     G: "/images/G.png",
     C: "/images/C.png",
   };
+
+  const svgColorIcons = {
+    W: "/images/W.svg",
+    U: "/images/U.svg",
+    B: "/images/B.svg",
+    R: "/images/R.svg",
+    G: "/images/G.svg",
+    C: "/images/C.svg",
+  };
+
+  let colorIconMap = pngColorIcons;
+
+  $: colorIconMap = $currentUser?.isAdmin ? svgColorIcons : pngColorIcons;
 
   onMount(async () => {
     await loadCommanders();
