@@ -28,8 +28,8 @@ elif [[ $# -ne 1 ]]; then
 fi
 
 USER_ID="$1"
-if ! [[ "$USER_ID" =~ ^[0-9]+$ ]]; then
-  echo "Error: user_id must be a positive integer" >&2
+if ! [[ "$USER_ID" =~ ^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$ ]]; then
+  echo "Error: user_id must be a UUID (e.g., 123e4567-e89b-12d3-a456-426614174000)" >&2
   exit 1
 fi
 
@@ -52,7 +52,7 @@ WITH updated AS (
   UPDATE users
   SET is_admin = TRUE,
       updated_at = CURRENT_TIMESTAMP
-  WHERE id = $USER_ID
+  WHERE id = '$USER_ID'
   RETURNING id, username, is_admin
 )
 SELECT id || '|' || username || '|' || is_admin FROM updated;
