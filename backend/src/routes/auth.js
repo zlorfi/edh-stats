@@ -114,6 +114,18 @@ const ONE_WEEK_IN_SECONDS = 60 * 60 * 24 * 7
 const secureCookies =
   process.env.COOKIE_SECURE === 'true' || process.env.NODE_ENV === 'production'
 
+function presentUser(user) {
+  if (!user) return null
+  return {
+    id: user.id,
+    username: user.username,
+    email: user.email,
+    isAdmin: Boolean(user.is_admin),
+    createdAt: user.created_at,
+    updatedAt: user.updated_at
+  }
+}
+
 function buildCookieOptions(maxAgeSeconds) {
   const base = {
     path: '/',
@@ -240,12 +252,7 @@ export default async function authRoutes(fastify, options) {
 
         reply.code(201).send({
           message: 'User registered successfully',
-          user: {
-            id: user.id,
-            username: user.username,
-            email: user.email,
-            createdAt: user.created_at
-          },
+          user: presentUser(user),
           token
         })
       } catch (error) {
@@ -320,11 +327,7 @@ export default async function authRoutes(fastify, options) {
 
         reply.send({
           message: 'Login successful',
-          user: {
-            id: user.id,
-            username: user.username,
-            email: user.email
-          },
+          user: presentUser(user),
           token
         })
       } catch (error) {
@@ -421,12 +424,7 @@ export default async function authRoutes(fastify, options) {
         }
 
         reply.send({
-          user: {
-            id: user.id,
-            username: user.username,
-            email: user.email,
-            createdAt: user.created_at
-          }
+          user: presentUser(user)
         })
       } catch (error) {
         fastify.log.error('Get profile error:', error)
@@ -450,12 +448,7 @@ export default async function authRoutes(fastify, options) {
 
       reply.send({
         authenticated: true,
-        user: {
-          id: user.id,
-          username: user.username,
-          email: user.email,
-          createdAt: user.created_at
-        }
+        user: presentUser(user)
       })
     } catch (error) {
       reply.send({ authenticated: false })
@@ -500,12 +493,7 @@ export default async function authRoutes(fastify, options) {
 
         reply.send({
           message: 'Profile updated successfully',
-          user: {
-            id: user.id,
-            username: user.username,
-            email: user.email,
-            updated_at: user.updated_at
-          }
+          user: presentUser(user)
         })
       } catch (error) {
         if (error instanceof z.ZodError) {
@@ -580,11 +568,7 @@ export default async function authRoutes(fastify, options) {
 
         reply.send({
           message: 'Username updated successfully',
-          user: {
-            id: user.id,
-            username: user.username,
-            email: user.email
-          }
+          user: presentUser(user)
         })
       } catch (error) {
         if (error instanceof z.ZodError) {

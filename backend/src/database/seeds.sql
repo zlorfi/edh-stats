@@ -4,9 +4,9 @@
 
 -- Insert sample users (passwords are hashed with bcryptjs)
 -- Credentials for testing: testuser / password123, magictg / password123
-INSERT INTO users (id, username, password_hash, email) VALUES
-(1, 'testuser', '$2a$12$x7ndYpA34suHO53/WqNuYOKLFmbrLNlB5BSYxMaJVLnnivT8vfwOW', 'test@example.com'),
-(2, 'magictg', '$2a$12$x7ndYpA34suHO53/WqNuYOKLFmbrLNlB5BSYxMaJVLnnivT8vfwOW', 'magic@example.com')
+INSERT INTO users (id, username, password_hash, email, is_admin) VALUES
+(1, 'testuser', '$2a$12$x7ndYpA34suHO53/WqNuYOKLFmbrLNlB5BSYxMaJVLnnivT8vfwOW', 'test@example.com', FALSE),
+(2, 'magictg', '$2a$12$x7ndYpA34suHO53/WqNuYOKLFmbrLNlB5BSYxMaJVLnnivT8vfwOW', 'magic@example.com', FALSE)
 ON CONFLICT (id) DO NOTHING;
 
 -- Reset sequence for users

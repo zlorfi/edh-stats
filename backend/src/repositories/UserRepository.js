@@ -48,9 +48,9 @@ export class UserRepository extends Repository {
     // Insert user
     const result = await dbManager.query(
       `
-      INSERT INTO ${this.tableName} (username, password_hash, email)
-      VALUES ($1, $2, $3)
-      RETURNING id, username, email, created_at
+      INSERT INTO ${this.tableName} (username, password_hash, email, is_admin)
+      VALUES ($1, $2, $3, FALSE)
+      RETURNING id, username, email, created_at, is_admin
     `,
       [username, passwordHash, email]
     )
