@@ -19,6 +19,99 @@
   let topCommanders = [];
   let loading = true;
   let charts = {};
+  let colorWinRateTotals = null;
+
+  const colorMeta = {
+    W: { label: "White", color: "#F9F5E3" },
+    U: { label: "Blue", color: "#B7DBF6" },
+    B: { label: "Black", color: "#C7C0BC" },
+    R: { label: "Red", color: "#F8B4A6" },
+    G: { label: "Green", color: "#A9D5B8" },
+    C: { label: "Colorless", color: "#D9D9D9" },
+  };
+
+  function normalizeColorsInput(colors) {
+    if (!colors) return ["C"];
+    if (Array.isArray(colors)) {
+      return colors.length
+        ? colors.map((color) => String(color).toUpperCase())
+        : ["C"];
+    }
+    if (typeof colors === "string" && colors.trim().length > 0) {
+      try {
+        const parsed = JSON.parse(colors);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          return parsed.map((color) => String(color).toUpperCase());
+        }
+      } catch (error) {
+        // not JSON, fall back to splitting characters
+      }
+      return colors.split("").map((c) => c.toUpperCase());
+    }
+    return ["C"];
+  }
+
+  function computeColorWinRatesFromRaw(entries = []) {
+    const totals = { W: 0, U: 0, B: 0, R: 0, G: 0, C: 0 };
+    entries.forEach((entry) => {
+      const key = colorMeta[entry.color]?.label ? entry.color : "C";
+      totals[key] += Number(entry.value) || 0;
+    });
+    return totals;
+  }
+
+  function computeColorWinRatesFromCommanders(commanders = []) {
+    const totals = { W: 0, U: 0, B: 0, R: 0, G: 0, C: 0 };
+    commanders.forEach((commander) => {
+      const colors = normalizeColorsInput(commander.colors);
+      const winRate = Number(commander.winRate) || 0;
+      const slice = colors.length > 0 ? colors.length : 1;
+      colors.forEach((color) => {
+        const key = colorMeta[color]?.label ? color : "C";
+        totals[key] += winRate / slice;
+      });
+    });
+    return totals;
+  }
+
+  function computeColorWinRatesFromChartData(chartColors) {
+    if (!chartColors) return null;
+    const { labels = [], data = [] } = chartColors;
+    if (!labels.length) return null;
+    const totals = { W: 0, U: 0, B: 0, R: 0, G: 0, C: 0 };
+    labels.forEach((label, index) => {
+      const colors = normalizeColorsInput(label);
+      const slice = colors.length > 0 ? colors.length : 1;
+      const value = Number(data[index]) || 0;
+      colors.forEach((color) => {
+        const key = colorMeta[color]?.label ? color : "C";
+        totals[key] += value / slice;
+      });
+    });
+    return totals;
+  }
+
+  function hasColorData(winRates) {
+    if (!winRates) return false;
+    return Object.values(winRates).some((value) => Number(value) > 0.01);
+  }
+
+  function buildColorChartDataset(winRates) {
+    if (!winRates) return { labels: [], data: [], colors: [] };
+    const entries = Object.keys(colorMeta)
+      .map((key) => ({ key, value: Number(winRates[key] || 0) }))
+      .filter((entry) => entry.value > 0.01);
+
+    const total = entries.reduce((sum, entry) => sum + entry.value, 0);
+
+    return {
+      labels: entries.map((entry) => colorMeta[entry.key].label),
+      data: entries.map((entry) =>
+        total > 0 ? Number(((entry.value / total) * 100).toFixed(2)) : 0,
+      ),
+      colors: entries.map((entry) => colorMeta[entry.key].color),
+    };
+  }
 
   onMount(async () => {
     if (browser) {
@@ -62,6 +155,21 @@
           : [];
         topCommanders = commanders.slice(0, 5);
 
+        const colorEntriesRaw = commandersData.charts?.colors?.raw || [];
+        let aggregatedColors = computeColorWinRatesFromRaw(colorEntriesRaw);
+
+        if (!hasColorData(aggregatedColors)) {
+          aggregatedColors = computeColorWinRatesFromChartData(
+            commandersData.charts?.colors,
+          );
+        }
+
+        if (!hasColorData(aggregatedColors)) {
+          aggregatedColors = computeColorWinRatesFromCommanders(commanders);
+        }
+
+        colorWinRateTotals = aggregatedColors;
+
         // Initialize charts after data is loaded
         setTimeout(() => initCharts(commandersData.charts), 100);
       }
@@ -98,18 +206,25 @@
       "#C7CEEA",
     ];
 
-    // Color Identity Win Rate Chart
-    const colorLabels = chartData?.colors?.labels || [];
-    const colorData = chartData?.colors?.data || [];
-    const filteredIndices = colorData
-      .map((value, index) => (value > 0 ? index : -1))
-      .filter((index) => index !== -1);
+    // Color Win Rate Chart (aggregated by individual colors)
+    let filteredLabels = [];
+    let filteredData = [];
+    let filteredColors = [];
 
-    const filteredLabels = filteredIndices.map((i) => colorLabels[i]);
-    const filteredData = filteredIndices.map((i) => colorData[i]);
-    const filteredColors = filteredIndices.map(
-      (_, index) => pastelColors[index % pastelColors.length],
-    );
+    let dataset = buildColorChartDataset(colorWinRateTotals);
+
+    if (dataset.data.length === 0 && Array.isArray(chartData?.colors?.labels)) {
+      const fallback = buildColorChartDataset(
+        computeColorWinRatesFromChartData(chartData.colors),
+      );
+      dataset = fallback.data.length > 0 ? fallback : dataset;
+    }
+
+    filteredLabels = dataset.labels;
+    filteredData = dataset.data;
+    filteredColors = dataset.colors.length
+      ? dataset.colors
+      : filteredLabels.map((_, index) => pastelColors[index % pastelColors.length]);
 
     const colorCanvas = document.getElementById("colorWinRateChart");
     if (colorCanvas) {
@@ -121,7 +236,9 @@
           datasets: [
             {
               data: filteredData,
-              backgroundColor: filteredColors,
+              backgroundColor: filteredColors.length
+                ? filteredColors
+                : pastelColors.slice(0, filteredLabels.length),
               borderWidth: 1,
             },
           ],
@@ -131,6 +248,15 @@
           maintainAspectRatio: false,
           plugins: {
             legend: { position: "right" },
+            tooltip: {
+              callbacks: {
+                label: (context) => {
+                  const label = context.label || "";
+                  const value = context.parsed || 0;
+                  return `${label}: ${value.toFixed(2)}%`;
+                },
+              },
+            },
           },
         },
       });
@@ -266,9 +392,7 @@
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
           <!-- Color Win Rate Chart -->
           <div class="card">
-            <h3 class="text-lg font-semibold mb-6">
-              Win Rate by Color Identity
-            </h3>
+            <h3 class="text-lg font-semibold mb-6">Win Rate by Color</h3>
             <div class="h-64 relative">
               <canvas id="colorWinRateChart"></canvas>
             </div>
@@ -356,15 +480,29 @@
             </div>
 
             {#if topCommanders.length === 0}
-              <div class="text-center py-8 text-gray-500">
-                <p>No commanders yet</p>
-                <a
-                  href="/commanders"
-                  class="text-indigo-600 hover:text-indigo-800 mt-2 inline-block"
-                >
-                  Add your first commander
-                </a>
-              </div>
+              {#if stats.totalCommanders > 0}
+                <div class="text-center py-8 text-gray-500">
+                  <p>
+                    Keep playing with your commanders to unlock detailed stats.
+                  </p>
+                  <a
+                    href="/commanders"
+                    class="text-indigo-600 hover:text-indigo-800 mt-2 inline-block"
+                  >
+                    View your commander list
+                  </a>
+                </div>
+              {:else}
+                <div class="text-center py-8 text-gray-500">
+                  <p>No commanders yet</p>
+                  <a
+                    href="/commanders"
+                    class="text-indigo-600 hover:text-indigo-800 mt-2 inline-block"
+                  >
+                    Add your first commander
+                  </a>
+                </div>
+              {/if}
             {:else}
               <div class="space-y-3">
                 {#each topCommanders as commander}
