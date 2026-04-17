@@ -156,6 +156,49 @@ export default async function statsRoutes(fastify, options) {
           [userId]
         )
 
+        const colorWinRateShares = colorStats
+          .map((stat) => {
+            let colorsArray
+            if (Array.isArray(stat.colors)) {
+              colorsArray = stat.colors
+            } else if (typeof stat.colors === 'string') {
+              try {
+                colorsArray = JSON.parse(stat.colors)
+              } catch (error) {
+                colorsArray = stat.colors.split('').filter(Boolean)
+              }
+            } else {
+              colorsArray = []
+            }
+
+            if (!Array.isArray(colorsArray) || colorsArray.length === 0) {
+              colorsArray = ['C']
+            }
+
+            const totalGames = Number(stat.total) || 0
+            const totalWins = Number(stat.wins) || 0
+            const winRate = totalGames > 0 ? (totalWins / totalGames) * 100 : 0
+            const slice = colorsArray.length > 0 ? colorsArray.length : 1
+
+            return colorsArray.map((color) => ({
+              color,
+              value: winRate / slice
+            }))
+          })
+          .flat()
+          .reduce((acc, curr) => {
+            const key = curr.color || 'C'
+            acc[key] = (acc[key] || 0) + curr.value
+            return acc
+          }, {})
+
+        const colorChartEntries = Object.entries(colorWinRateShares).map(
+          ([color, value]) => ({
+            color,
+            value: Number(value.toFixed(2))
+          })
+        )
+
         reply.send({
           stats,
           pagination: {
@@ -171,10 +214,9 @@ export default async function statsRoutes(fastify, options) {
               )
             },
             colors: {
-              labels: colorStats.map((s) =>
-                Array.isArray(s.colors) ? s.colors.join('') : ''
-              ),
-              data: colorStats.map((s) => Math.round((s.wins / s.total) * 100))
+              labels: colorChartEntries.map((entry) => entry.color),
+              data: colorChartEntries.map((entry) => entry.value),
+              raw: colorChartEntries
             }
           }
         })
