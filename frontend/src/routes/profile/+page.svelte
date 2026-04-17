@@ -317,6 +317,16 @@
               </p>
             </div>
           {/if}
+          {#if $currentUser?.isAdmin}
+            <div>
+              <p class="text-sm text-gray-600">Role</p>
+              <span
+                class="inline-flex items-center px-3 py-1 rounded-full bg-indigo-100 text-indigo-800 text-sm font-medium"
+              >
+                Admin
+              </span>
+            </div>
+          {/if}
         </div>
       </div>
 
