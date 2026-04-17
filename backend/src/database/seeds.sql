@@ -4,16 +4,19 @@
 
 -- Insert sample users (passwords are hashed with bcryptjs)
 -- Credentials for testing: testuser / password123, magictg / password123
-INSERT INTO users (id, username, password_hash, email, is_admin) VALUES
-(1, 'testuser', '$2a$12$x7ndYpA34suHO53/WqNuYOKLFmbrLNlB5BSYxMaJVLnnivT8vfwOW', 'test@example.com', FALSE),
-(2, 'magictg', '$2a$12$x7ndYpA34suHO53/WqNuYOKLFmbrLNlB5BSYxMaJVLnnivT8vfwOW', 'magic@example.com', FALSE)
-ON CONFLICT (id) DO NOTHING;
-
--- Reset sequence for users
-SELECT setval('users_id_seq', (SELECT MAX(id) FROM users), true);
+INSERT INTO users (username, password_hash, email, is_admin) VALUES
+('testuser', '$2a$12$x7ndYpA34suHO53/WqNuYOKLFmbrLNlB5BSYxMaJVLnnivT8vfwOW', 'test@example.com', FALSE),
+('magictg', '$2a$12$x7ndYpA34suHO53/WqNuYOKLFmbrLNlB5BSYxMaJVLnnivT8vfwOW', 'magic@example.com', FALSE)
+ON CONFLICT (username) DO NOTHING;
 
 -- Insert sample commanders with various color identities
-INSERT INTO commanders (id, name, colors, user_id) VALUES
+INSERT INTO commanders (id, name, colors, user_id)
+SELECT v.id, v.name, v.colors,
+  CASE v.user_key
+    WHEN 1 THEN (SELECT id FROM users WHERE username = 'testuser')
+    WHEN 2 THEN (SELECT id FROM users WHERE username = 'magictg')
+  END
+FROM (VALUES
 -- Mono-colored commanders
 (1, 'Urza, Lord High Artificer', '["U"]'::jsonb, 1),
 (2, 'Gishath, Sun''s Avatar', '["R","G","W"]'::jsonb, 1),
@@ -23,13 +26,21 @@ INSERT INTO commanders (id, name, colors, user_id) VALUES
 (6, 'Narset of the Ancient Way', '["U","R","W"]'::jsonb, 1),
 (7, 'Tymna the Weaver', '["W","B"]'::jsonb, 2),
 (8, 'Kydele, Chosen of Kruphix', '["U","G"]'::jsonb, 1)
+) AS v(id, name, colors, user_key)
 ON CONFLICT (id) DO NOTHING;
 
 -- Reset sequence for commanders
 SELECT setval('commanders_id_seq', (SELECT MAX(id) FROM commanders), true);
 
 -- Insert sample games with varied statistics
-INSERT INTO games (date, player_count, commander_id, won, rounds, starting_player_won, sol_ring_turn_one_won, notes, user_id) VALUES
+INSERT INTO games (date, player_count, commander_id, won, rounds, starting_player_won, sol_ring_turn_one_won, notes, user_id)
+SELECT v.date, v.player_count, v.commander_id, v.won, v.rounds,
+       v.starting_player_won, v.sol_ring_turn_one_won, v.notes,
+       CASE v.user_key
+         WHEN 1 THEN (SELECT id FROM users WHERE username = 'testuser')
+         WHEN 2 THEN (SELECT id FROM users WHERE username = 'magictg')
+       END
+FROM (VALUES
 -- Games for user 1 (testuser)
 ('2024-01-15', 4, 1, true, 12, false, false, 'Great control game, won with infinite artifacts', 1),
 ('2024-01-18', 3, 1, false, 8, true, true, 'Lost to aggro, Sol Ring helped but not enough', 1),
@@ -186,6 +197,7 @@ INSERT INTO games (date, player_count, commander_id, won, rounds, starting_playe
 ('2024-08-20', 4, 7, true, 14, true, false, 'Tymna card advantage overwhelming', 2),
 ('2024-08-22', 5, 4, false, 15, false, false, 'Krenko got politics''d out', 2),
 ('2024-08-25', 4, 5, false, 12, false, true, 'Ghave got hated out', 2)
+) AS v(date, player_count, commander_id, won, rounds, starting_player_won, sol_ring_turn_one_won, notes, user_key)
 ON CONFLICT DO NOTHING;
 
 -- Reset sequence for games to cover all inserted IDs

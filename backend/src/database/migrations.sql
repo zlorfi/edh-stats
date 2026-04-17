@@ -1,9 +1,11 @@
 -- EDH/Commander Stats Tracker Database Schema
 -- PostgreSQL database with proper constraints
 
+CREATE EXTENSION IF NOT EXISTS "pgcrypto";
+
 -- Users table for authentication
 CREATE TABLE IF NOT EXISTS users (
-    id SERIAL PRIMARY KEY,
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     username TEXT UNIQUE NOT NULL CHECK(LENGTH(username) >= 3),
     password_hash TEXT NOT NULL CHECK(LENGTH(password_hash) >= 60),
     email TEXT UNIQUE,
@@ -20,7 +22,7 @@ CREATE TABLE IF NOT EXISTS commanders (
     id SERIAL PRIMARY KEY,
     name TEXT NOT NULL CHECK(LENGTH(name) >= 2),
     colors JSONB NOT NULL,
-    user_id INTEGER NOT NULL,
+    user_id UUID NOT NULL,
     archived BOOLEAN NOT NULL DEFAULT FALSE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -42,12 +44,64 @@ CREATE TABLE IF NOT EXISTS games (
     starting_player_won BOOLEAN NOT NULL DEFAULT FALSE,
     sol_ring_turn_one_won BOOLEAN NOT NULL DEFAULT FALSE,
     notes TEXT CHECK(LENGTH(notes) <= 1000),
-    user_id INTEGER NOT NULL,
+    user_id UUID NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (commander_id) REFERENCES commanders(id) ON DELETE CASCADE,
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
+
+DO $$
+DECLARE
+    users_id_type TEXT;
+BEGIN
+    DROP VIEW IF EXISTS commander_stats CASCADE;
+    DROP VIEW IF EXISTS user_stats CASCADE;
+
+    SELECT data_type INTO users_id_type
+    FROM information_schema.columns
+    WHERE table_name = 'users' AND column_name = 'id';
+
+    IF users_id_type = 'integer' THEN
+        ALTER TABLE games DROP CONSTRAINT IF EXISTS games_user_id_fkey;
+        ALTER TABLE commanders DROP CONSTRAINT IF EXISTS commanders_user_id_fkey;
+
+        ALTER TABLE users ADD COLUMN new_id UUID DEFAULT gen_random_uuid();
+        UPDATE users SET new_id = gen_random_uuid() WHERE new_id IS NULL;
+
+        ALTER TABLE commanders ADD COLUMN new_user_id UUID;
+        UPDATE commanders
+        SET new_user_id = users.new_id
+        FROM users
+        WHERE commanders.user_id = users.id;
+
+        ALTER TABLE games ADD COLUMN new_user_id UUID;
+        UPDATE games
+        SET new_user_id = users.new_id
+        FROM users
+        WHERE games.user_id = users.id;
+
+        ALTER TABLE users DROP CONSTRAINT IF EXISTS users_pkey;
+        ALTER TABLE users DROP COLUMN id;
+        ALTER TABLE users RENAME COLUMN new_id TO id;
+        ALTER TABLE users ADD CONSTRAINT users_pkey PRIMARY KEY (id);
+
+        ALTER TABLE commanders DROP COLUMN user_id;
+        ALTER TABLE commanders RENAME COLUMN new_user_id TO user_id;
+        ALTER TABLE commanders ALTER COLUMN user_id SET NOT NULL;
+
+        ALTER TABLE games DROP COLUMN user_id;
+        ALTER TABLE games RENAME COLUMN new_user_id TO user_id;
+        ALTER TABLE games ALTER COLUMN user_id SET NOT NULL;
+
+        ALTER TABLE commanders
+            ADD CONSTRAINT commanders_user_id_fkey
+            FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE;
+        ALTER TABLE games
+            ADD CONSTRAINT games_user_id_fkey
+            FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE;
+    END IF;
+END $$;
 
 -- Performance indexes for efficient queries
 CREATE INDEX IF NOT EXISTS idx_commanders_user_id ON commanders(user_id);
