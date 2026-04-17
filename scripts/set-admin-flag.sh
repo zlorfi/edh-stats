@@ -10,7 +10,19 @@
 
 set -euo pipefail
 
-if [[ $# -ne 1 ]]; then
+DB_NAME="${DB_NAME:-edh_stats}"
+
+list_users() {
+  echo "Available users in database '$DB_NAME':"
+  psql -d "$DB_NAME" -P pager=off -c "SELECT id, username, is_admin FROM users ORDER BY id;"
+}
+
+if [[ $# -eq 0 ]]; then
+  list_users
+  echo ""
+  echo "Usage: $0 <user_id>" >&2
+  exit 0
+elif [[ $# -ne 1 ]]; then
   echo "Usage: $0 <user_id>" >&2
   exit 1
 fi
@@ -20,8 +32,6 @@ if ! [[ "$USER_ID" =~ ^[0-9]+$ ]]; then
   echo "Error: user_id must be a positive integer" >&2
   exit 1
 fi
-
-DB_NAME="${DB_NAME:-edh_stats}"
 
 # Ensure the is_admin column exists
 COLUMN_EXISTS=$(psql -qAt -d "$DB_NAME" --set=ON_ERROR_STOP=1 <<SQL
