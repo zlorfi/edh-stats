@@ -10,6 +10,10 @@
   let loading = true;
   let serverError = "";
 
+  let allowRegistration = false;
+  let registrationLoading = true;
+  let registrationSaving = false;
+
   async function loadUsers() {
     loading = true;
     serverError = "";
@@ -33,13 +37,62 @@
     }
   }
 
+  async function loadRegistrationSetting() {
+    registrationLoading = true;
+    try {
+      const response = await authenticatedFetch(
+        "/api/auth/admin/settings/registration",
+      );
+      if (response.ok) {
+        const data = await response.json();
+        allowRegistration = data.allowRegistration;
+      }
+    } catch (error) {
+      if (error.message !== "Authentication required") {
+        serverError = "Failed to load registration setting.";
+      }
+    } finally {
+      registrationLoading = false;
+    }
+  }
+
+  async function toggleRegistration() {
+    const next = !allowRegistration;
+    registrationSaving = true;
+    serverError = "";
+    try {
+      const response = await authenticatedFetch(
+        "/api/auth/admin/settings/registration",
+        {
+          method: "PUT",
+          body: JSON.stringify({ allowRegistration: next }),
+        },
+      );
+      if (response.ok) {
+        const data = await response.json();
+        allowRegistration = data.allowRegistration;
+      } else {
+        serverError = "Failed to update registration setting.";
+      }
+    } catch (error) {
+      if (error.message !== "Authentication required") {
+        serverError = "Failed to update registration setting.";
+      }
+    } finally {
+      registrationSaving = false;
+    }
+  }
+
   function formatDate(value) {
     if (!value) return "\u2014";
     const d = new Date(value);
     return Number.isNaN(d.getTime()) ? "\u2014" : d.toLocaleDateString();
   }
 
-  onMount(loadUsers);
+  onMount(() => {
+    loadUsers();
+    loadRegistrationSetting();
+  });
 </script>
 
 <ProtectedRoute>
@@ -54,6 +107,39 @@
           <p class="text-sm font-medium text-red-800">{serverError}</p>
         </div>
       {/if}
+
+      <!-- Registration toggle -->
+      <div class="bg-white rounded-lg shadow p-4 mb-6 flex items-center justify-between">
+        <div>
+          <p class="text-sm font-medium text-gray-900">New user registration</p>
+          <p class="text-xs text-gray-500">
+            {#if registrationLoading}
+              Loading…
+            {:else if allowRegistration}
+              New users can currently sign up.
+            {:else}
+              Sign-ups are currently disabled.
+            {/if}
+          </p>
+        </div>
+        <button
+          type="button"
+          on:click={toggleRegistration}
+          disabled={registrationLoading || registrationSaving}
+          class="relative inline-flex h-6 w-11 items-center rounded-full transition-colors disabled:opacity-50 {allowRegistration
+            ? 'bg-indigo-600'
+            : 'bg-gray-300'}"
+          role="switch"
+          aria-checked={allowRegistration}
+          aria-label="Toggle new user registration"
+        >
+          <span
+            class="inline-block h-4 w-4 transform rounded-full bg-white transition-transform {allowRegistration
+              ? 'translate-x-6'
+              : 'translate-x-1'}"
+          ></span>
+        </button>
+      </div>
 
       {#if loading}
         <div class="flex items-center justify-center py-16">

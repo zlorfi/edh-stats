@@ -1,6 +1,7 @@
 // Authentication routes
 import { z } from 'zod'
 import UserRepository from '../repositories/UserRepository.js'
+import SettingsRepository from '../repositories/SettingsRepository.js'
 import { registrationConfig } from '../config/jwt.js'
 import {
   validatePasswordStrength,
@@ -154,8 +155,9 @@ function clearAuthCookie(reply) {
 }
 
 export default async function authRoutes(fastify, options) {
-  // Initialize repository
+  // Initialize repositories
   const userRepo = new UserRepository()
+  const settingsRepo = new SettingsRepository()
 
   // Public endpoint to check if registration is allowed
   fastify.get(
@@ -164,8 +166,9 @@ export default async function authRoutes(fastify, options) {
       config: { rateLimit: { max: 10, timeWindow: '10 seconds' } }
     },
     async (request, reply) => {
+      const allowRegistration = await settingsRepo.isRegistrationAllowed()
       return {
-        allowRegistration: registrationConfig.allowRegistration
+        allowRegistration
       }
     }
   )
@@ -178,19 +181,17 @@ export default async function authRoutes(fastify, options) {
     },
     async (request, reply) => {
       try {
-        // Check if registration is allowed
-        if (!registrationConfig.allowRegistration) {
+        // Check if registration is allowed (DB-controlled toggle)
+        const allowRegistration = await settingsRepo.isRegistrationAllowed()
+        if (!allowRegistration) {
           return reply.code(403).send({
             error: 'Registration Disabled',
             message: 'User registration is currently disabled'
           })
         }
 
-        // Check if max user limit has been reached (only if allowRegistration is true and MAX_USERS is set)
-        if (
-          registrationConfig.allowRegistration &&
-          registrationConfig.maxUsers
-        ) {
+        // Check if max user limit has been reached (only if MAX_USERS is set)
+        if (registrationConfig.maxUsers) {
           const userCount = await userRepo.countUsers()
           if (userCount >= registrationConfig.maxUsers) {
             return reply.code(403).send({
@@ -501,6 +502,55 @@ export default async function authRoutes(fastify, options) {
         reply.code(500).send({
           error: 'Internal Server Error',
           message: 'Failed to fetch users'
+        })
+      }
+    }
+  )
+
+  // Get registration toggle state (admin only)
+  fastify.get(
+    '/admin/settings/registration',
+    { preHandler: [requireAdmin] },
+    async (request, reply) => {
+      try {
+        const allowRegistration = await settingsRepo.isRegistrationAllowed()
+        reply.send({ allowRegistration })
+      } catch (error) {
+        fastify.log.error({ err: error }, 'Admin get registration setting error:')
+        reply.code(500).send({
+          error: 'Internal Server Error',
+          message: 'Failed to fetch setting'
+        })
+      }
+    }
+  )
+
+  // Enable/disable new user registration (admin only)
+  fastify.put(
+    '/admin/settings/registration',
+    {
+      preHandler: [requireAdmin],
+      config: { rateLimit: { max: 30, timeWindow: '1 minute' } }
+    },
+    async (request, reply) => {
+      try {
+        const { allowRegistration } = z
+          .object({ allowRegistration: z.boolean() })
+          .parse(request.body)
+
+        await settingsRepo.setRegistrationAllowed(allowRegistration)
+        reply.send({ allowRegistration })
+      } catch (error) {
+        if (error instanceof z.ZodError) {
+          return reply.code(400).send({
+            error: 'Validation Error',
+            message: 'allowRegistration must be a boolean'
+          })
+        }
+        fastify.log.error({ err: error }, 'Admin set registration setting error:')
+        reply.code(500).send({
+          error: 'Internal Server Error',
+          message: 'Failed to update setting'
         })
       }
     }

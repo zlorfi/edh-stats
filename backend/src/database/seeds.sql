@@ -12,6 +12,11 @@ ON CONFLICT (id) DO NOTHING;
 -- Reset sequence for users
 SELECT setval('users_id_seq', (SELECT MAX(id) FROM users), true);
 
+-- Application settings: allow new user registration by default
+INSERT INTO settings (key, value) VALUES
+('allow_registration', 'true')
+ON CONFLICT (key) DO NOTHING;
+
 -- Insert sample commanders with various color identities
 INSERT INTO commanders (id, name, colors, user_id) VALUES
 -- Mono-colored commanders

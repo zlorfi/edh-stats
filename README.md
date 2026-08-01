@@ -7,10 +7,11 @@ A lightweight, responsive web application for tracking Magic: The Gathering EDH/
 ### ✅ Implemented
 
 #### Authentication & Users
-- **Secure Authentication**: JWT-based login/registration system with password hashing (HS512).
+- **Secure Authentication**: JWT-based login/registration system (HS256 tokens) with bcrypt password hashing.
 - **User Profile Management**: View and edit user profile information.
 - **Session Management**: Secure, HttpOnly cookie-based authentication for seamless sessions.
-- **Configurable Registration**: Toggle user registration on/off via `ALLOW_REGISTRATION` environment variable for controlled access.
+- **Admin Users & Roles**: Admin-only section (shown in the user menu for admins) listing all users, their admin status, and commander counts.
+- **Configurable Registration**: Admins can toggle new user registration on/off from the Admin page. The setting is stored in the database and persists across restarts.
 
 #### Commander Management
 - **CRUD Operations**: Create, read, update, and delete Commander decks.
@@ -106,7 +107,7 @@ A lightweight, responsive web application for tracking Magic: The Gathering EDH/
 - **Frontend**: SvelteKit, Tailwind CSS
 - **Visualization**: Chart.js
 - **Containerization**: Docker & Docker Compose
-- **Authentication**: JWT with HS512 hashing
+- **Authentication**: JWT (HS256) via @fastify/jwt, stored in HttpOnly cookies
 - **Password Security**: bcryptjs with 12-round hashing
 - **Rate Limiting**: @fastify/rate-limit plugin with configurable limits
 
@@ -160,10 +161,11 @@ LOG_LEVEL=debug
 # Tighten rate limiting
 RATE_LIMIT_WINDOW=5
 RATE_LIMIT_MAX=50
-
-# Disable user registration
-ALLOW_REGISTRATION=false
 ```
+
+> **Enabling/disabling registration** is no longer an environment variable.
+> It is a database-backed setting that admins toggle from the Admin page
+> (defaults to enabled). See [User Registration](#user-registration).
 
 #### Environment Variables Reference
 
@@ -187,8 +189,10 @@ JWT_SECRET=your-super-secure-jwt-secret-key-change-this-in-production
 # CORS Configuration
 CORS_ORIGIN=http://localhost:80
 
-# User Registration - Set to 'true' to enable signup, 'false' to disable
-ALLOW_REGISTRATION=true
+# User Registration
+# The on/off toggle is stored in the database and managed from the Admin page
+# (see the "User Registration" section). Only the optional user cap is set here.
+MAX_USERS=                           # Max number of users (leave empty for unlimited)
 
 # Rate Limiting (optional - default: 100 requests per 15 minutes)
 RATE_LIMIT_WINDOW=15                 # Time window in MINUTES
@@ -232,43 +236,51 @@ python3 -m http.server 8081 --directory public
 edh-stats/
 ├── backend/
 │   ├── src/
-│   │   ├── config/         # Database & Auth configuration
-│   │   ├── database/       # Migrations & Seeds
-│   │   ├── middleware/     # Fastify middleware
-│   │   ├── models/         # Data access layer (Commander, Game, User)
-│   │   ├── routes/         # API endpoint handlers
-│   │   ├── utils/          # Utility functions
+│   │   ├── config/         # Database, JWT & server configuration
+│   │   ├── database/       # Migrations, seeds & migration runner
+│   │   ├── repositories/   # Data access layer (User, Commander, Game, Settings)
+│   │   ├── routes/         # API endpoint handlers (auth, commanders, games, stats)
+│   │   ├── utils/          # Validators & helpers
 │   │   └── server.js       # Application entry point
 │   ├── package.json        # Node.js dependencies
+│   ├── .dockerignore
 │   └── Dockerfile
 ├── frontend/
 │   ├── src/
-│   │   ├── routes/         # SvelteKit pages and layouts
-│   │   ├── lib/components/ # Shared UI components (NavBar, Footer, etc.)
+│   │   ├── routes/         # SvelteKit pages (dashboard, commanders, games, admin, ...)
+│   │   ├── lib/components/ # Shared UI components (NavBar, Footer, ProtectedRoute, ...)
 │   │   └── lib/stores/     # Svelte stores (auth, derived state)
-│   ├── static/             # Static assets (fonts, images, css)
+│   ├── static/             # Static assets (fonts, images, version.txt)
+│   ├── nginx.conf          # Production nginx config (SPA + /api proxy)
 │   ├── tailwind.config.js  # Tailwind configuration
 │   ├── vite.config.js      # Vite dev/proxy configuration
 │   ├── package.json        # Frontend dependencies
-│   └── Dockerfile*         # Dev/prod Dockerfiles
-├── postgres_data/          # Persisted PostgreSQL data (Docker volume)
-├── docs/                   # Documentation
-├── FIXES.md                # Detailed list of fixes applied
-├── FEATURES.md             # Feature documentation
+│   ├── .dockerignore
+│   └── Dockerfile.svelte   # Production frontend image
+├── scripts/                # Operational scripts (set-admin-flag, db migrate helpers)
+├── postgres_data/          # Persisted PostgreSQL data (bind mount)
 ├── docker-compose.yml      # Development orchestration
-├── deploy.sh               # Production deployment script
+├── deploy.sh               # Production build/push + compose generator
 └── README.md
 ```
 
 ## API Endpoints
 
 ### Authentication (`/api/auth`)
-- `POST /register` - Register new user
+- `GET /config` - Public config (whether registration is currently allowed)
+- `POST /register` - Register new user (blocked when registration is disabled)
 - `POST /login` - Login user
+- `GET /session` - Check current session
 - `GET /me` - Get current user profile
 - `PATCH /me` - Update user profile
 - `POST /change-password` - Change password
 - `POST /refresh` - Refresh authentication token
+- `POST /logout` - Log out (clears the auth cookie)
+
+### Admin (`/api/auth/admin`, admin only)
+- `GET /admin/users` - List all users with admin status and commander counts
+- `GET /admin/settings/registration` - Get the registration toggle state
+- `PUT /admin/settings/registration` - Enable/disable new user registration
 
 ### Commanders (`/api/commanders`)
 - `GET /` - List/Search commanders
@@ -299,6 +311,29 @@ edh-stats/
 1. Navigate to http://localhost:8081
 2. Use the registration or login form
 3. After authentication, you'll be redirected to the dashboard
+
+### User Registration
+
+Whether new users can sign up is controlled by a **database setting**
+(`settings` table, key `allow_registration`), not an environment variable.
+It defaults to **enabled** and is created automatically by the migration.
+
+- Admins toggle it from the **Admin** page (in the user menu).
+- When disabled, `POST /api/auth/register` returns `403` and the sign-up UI is hidden.
+- An optional hard cap on total users can still be set with the `MAX_USERS` env var.
+
+### Admin Access
+
+Admin status is stored per-user (`users.is_admin`). Grant it with the helper script:
+
+```bash
+# From the repo root, against the running stack.
+# Run with no argument to list users and their IDs first.
+docker compose exec -u postgres postgres /scripts/set-admin-flag.sh <user_id>
+```
+
+Admins see an **Admin** entry in the user dropdown that opens a page listing
+all users, their admin status, commander counts, and the registration toggle.
 
 ### Managing Commanders
 1. Click "Commanders" in the navigation
@@ -351,7 +386,7 @@ edh-stats/
 - **Foreign Keys**: Enabled for data integrity
 
 #### Database Objects
-- **Tables**: users, commanders, games, user_stats (summary)
+- **Tables**: users, commanders, games, settings (key/value app config)
 - **Views**: 
   - `user_stats`: Aggregates user-level statistics (total games, win rate, etc.)
   - `commander_stats`: Aggregates per-commander statistics (shown for commanders with 5+ games)
@@ -393,7 +428,7 @@ The application logs connection pool info at startup. To debug connection issues
 ### Authentication Flow
 1. User registers with username and password
 2. Password hashed with bcryptjs (12 rounds)
-3. JWT token generated (HS512 algorithm)
+3. JWT token generated (HS256 algorithm)
 4. Secure session cookie issued to the browser
 5. Protected routes validate the JWT extracted from the cookie
 6. `auth.init()` validates the cookie on app start and hydrates the user store
@@ -406,7 +441,19 @@ The application logs connection pool info at startup. To debug connection issues
 
 ## Recent Changes & Fixes
 
-### Latest Updates (Session 3 - PostgreSQL Migration & Refinements)
+### Latest Updates (Admin & Registration)
+- **Admin Section**: New admin-only page (linked from the user menu for admins)
+  listing all users, their admin status, and commander counts.
+- **DB-backed Registration Toggle**: New user sign-up is enabled/disabled from a
+  database setting (`settings` table) via the Admin page, replacing the old
+  `ALLOW_REGISTRATION` environment variable. The value persists across restarts.
+- **Admin API**: `GET /admin/users`, `GET|PUT /admin/settings/registration`,
+  all protected by a server-side admin guard that re-checks `is_admin` on every request.
+- **Hardening & Fixes**: Structured error logging (errors now logged as objects
+  with full stack traces), safe security headers in nginx, and `version.txt`
+  served with no-cache so clients pick up new versions immediately.
+
+### Session 3 - PostgreSQL Migration & Refinements
 
 #### Major: SQLite → PostgreSQL Migration ✅
 - **Database**: Migrated from SQLite (better-sqlite3) to PostgreSQL 16
@@ -431,8 +478,10 @@ The application logs connection pool info at startup. To debug connection issues
 #### Environment Variables (Simplified)
 - **All configuration**: Centralized in `.env` file
 - **PostgreSQL Connection**: `DB_HOST`, `DB_NAME`, `DB_USER`, `DB_PASSWORD` (port is standard 5432)
+- **Security**: `JWT_SECRET`, `CORS_ORIGIN`
 - **Rate Limiting**: `RATE_LIMIT_WINDOW`, `RATE_LIMIT_MAX` (optional)
 - **Logging**: `LOG_LEVEL` (debug, info, warn, error)
+- **Registration**: on/off is a database setting (Admin page); `MAX_USERS` optionally caps total users
 - **Database Seeding**: `DB_SEED` (optional, for development)
 
 ### Previous Updates (Session 2)
@@ -440,7 +489,7 @@ The application logs connection pool info at startup. To debug connection issues
 - **Game Notes UI**: Expanded textarea width to full width with improved sizing (5 rows)
 - **Data Consistency**: Fixed camelCase/snake_case field naming throughout API and frontend
 - **Environment Configuration**: Fixed .env file loading from root directory in Docker containers
-- **Registration Control**: Added `ALLOW_REGISTRATION` environment variable to toggle signup availability
+- **Registration Control**: Introduced a toggle for signup availability (later moved to a database-backed setting managed from the Admin page)
 - **Game API Response**: Ensured all game endpoints return complete commander information (name, colors)
 - **Form Validation**: Improved notes field handling to prevent null value validation errors
 - **Frontend Error Handling**: Fixed legacy Alpine.js key binding issues in top commanders template prior to the Svelte migration
@@ -455,8 +504,6 @@ This version includes **19+ bug fixes and improvements** addressing:
 - Color parsing and null/undefined value handling
 - Tailwind dark mode conflicts with system theme
 - Navbar text visibility issues
-
-See `FIXES.md` for detailed documentation of all fixes.
 
 ## Future Enhancements
 

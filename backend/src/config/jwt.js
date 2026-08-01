@@ -27,7 +27,9 @@ export const serverConfig = {
 }
 
 export const registrationConfig = {
-  allowRegistration: process.env.ALLOW_REGISTRATION !== 'false',
+  // NOTE: the registration on/off toggle now lives in the database
+  // (settings table, key 'allow_registration'). Only the optional user cap
+  // remains env-configurable here.
   maxUsers: process.env.MAX_USERS ? parseInt(process.env.MAX_USERS) : null
 }
 

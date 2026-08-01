@@ -15,6 +15,18 @@ CREATE TABLE IF NOT EXISTS users (
 ALTER TABLE users
     ADD COLUMN IF NOT EXISTS is_admin BOOLEAN NOT NULL DEFAULT FALSE;
 
+-- Application settings table (key/value store for runtime-configurable options)
+CREATE TABLE IF NOT EXISTS settings (
+    key TEXT PRIMARY KEY,
+    value TEXT NOT NULL,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Seed the registration toggle if it does not exist yet (defaults to enabled).
+INSERT INTO settings (key, value)
+VALUES ('allow_registration', 'true')
+ON CONFLICT (key) DO NOTHING;
+
 -- Commanders table with color identity
 CREATE TABLE IF NOT EXISTS commanders (
     id SERIAL PRIMARY KEY,
@@ -82,6 +94,12 @@ CREATE TRIGGER update_commanders_timestamp
 DROP TRIGGER IF EXISTS update_games_timestamp ON games;
 CREATE TRIGGER update_games_timestamp
     BEFORE UPDATE ON games
+    FOR EACH ROW
+    EXECUTE FUNCTION update_timestamp();
+
+DROP TRIGGER IF EXISTS update_settings_timestamp ON settings;
+CREATE TRIGGER update_settings_timestamp
+    BEFORE UPDATE ON settings
     FOR EACH ROW
     EXECUTE FUNCTION update_timestamp();
 
