@@ -426,7 +426,7 @@ services:
           memory: 256M
           cpus: '0.25'
     healthcheck:
-      test: ['CMD', 'wget', '--no-verbose', '--tries=1', '--spider', 'http://localhost:3000/api/health']
+      test: ['CMD', 'wget', '--no-verbose', '--tries=1', '--spider', 'http://127.0.0.1:3000/api/health']
       interval: 30s
       timeout: 10s
       retries: 3
@@ -439,8 +439,10 @@ services:
     image: ${FRONTEND_IMAGE}
     restart: unless-stopped
     healthcheck:
-      # nginx:alpine ships wget (used by the image's own HEALTHCHECK), not curl.
-      test: ['CMD', 'wget', '--no-verbose', '--tries=1', '--spider', 'http://localhost:80/health']
+      # nginx:alpine ships wget (not curl). Use 127.0.0.1 (not "localhost"),
+      # because wget prefers IPv6 ([::1]) and nginx only listens on IPv4 (listen 80;),
+      # which would otherwise make the check fail with "connection refused".
+      test: ['CMD', 'wget', '--no-verbose', '--tries=1', '--spider', 'http://127.0.0.1:80/health']
       interval: 10s
       timeout: 5s
       retries: 5
