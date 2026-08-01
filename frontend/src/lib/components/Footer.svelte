@@ -5,7 +5,7 @@
 
   onMount(async () => {
     try {
-      const response = await fetch("/version.txt");
+      const response = await fetch("/version.txt", { cache: "no-store" });
       if (response.ok) {
         version = (await response.text()).trim();
       }
