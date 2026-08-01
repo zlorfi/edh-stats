@@ -648,7 +648,8 @@ export default async function gameRoutes(fastify, options) {
       } catch (error) {
         fastify.log.error({ err: error }, 'Delete game error:')
         reply.code(500).send({
-          error: 'Failed to delete game'
+          error: 'Internal Server Error',
+          message: 'Failed to delete game'
         })
       }
     }

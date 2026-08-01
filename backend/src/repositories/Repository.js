@@ -1,9 +1,21 @@
 // Base Repository class providing common database operations
 import dbManager from '../config/database.js'
 
+// Postgres identifiers we generate ourselves must be simple names.
+// This guards the generic insert/update/where helpers against SQL injection
+// if they are ever called with attacker-influenced keys.
+const SAFE_IDENTIFIER = /^[a-zA-Z_][a-zA-Z0-9_]*$/
+
+function assertSafeIdentifier(name, kind = 'identifier') {
+  if (typeof name !== 'string' || !SAFE_IDENTIFIER.test(name)) {
+    throw new Error(`Unsafe ${kind}: ${String(name)}`)
+  }
+  return name
+}
+
 export class Repository {
   constructor(tableName) {
-    this.tableName = tableName
+    this.tableName = assertSafeIdentifier(tableName, 'table name')
   }
 
   /**
@@ -62,6 +74,7 @@ export class Repository {
    */
   async insert(data) {
     const columns = Object.keys(data)
+    columns.forEach((c) => assertSafeIdentifier(c, 'column name'))
     const placeholders = columns.map((_, i) => `$${i + 1}`).join(', ')
     const values = Object.values(data)
 
@@ -79,6 +92,7 @@ export class Repository {
    */
   async update(id, data) {
     const columns = Object.keys(data)
+    columns.forEach((c) => assertSafeIdentifier(c, 'column name'))
     const setClause = columns.map((col, i) => `${col} = $${i + 1}`).join(', ')
     const values = [...Object.values(data), id]
 
