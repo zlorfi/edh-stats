@@ -268,7 +268,7 @@ export default async function authRoutes(fastify, options) {
             message: error.message
           })
         } else {
-          fastify.log.error('Registration error:', error)
+          fastify.log.error({ err: error }, 'Registration error:')
           reply.code(500).send({
             error: 'Internal Server Error',
             message: 'Failed to register user'
@@ -338,7 +338,7 @@ export default async function authRoutes(fastify, options) {
             details: error.errors.map((e) => e.message)
           })
         } else {
-          fastify.log.error('Login error:', error)
+          fastify.log.error({ err: error }, 'Login error:')
           reply.code(500).send({
             error: 'Internal Server Error',
             message: 'Failed to authenticate user'
@@ -427,7 +427,7 @@ export default async function authRoutes(fastify, options) {
           user: presentUser(user)
         })
       } catch (error) {
-        fastify.log.error('Get profile error:', error)
+        fastify.log.error({ err: error }, 'Get profile error:')
         reply.code(500).send({
           error: 'Internal Server Error',
           message: 'Failed to get user profile'
@@ -508,7 +508,7 @@ export default async function authRoutes(fastify, options) {
             message: error.message
           })
         } else {
-          fastify.log.error('Update profile error:', error)
+          fastify.log.error({ err: error }, 'Update profile error:')
           reply.code(500).send({
             error: 'Internal Server Error',
             message: 'Failed to update profile'
@@ -578,7 +578,7 @@ export default async function authRoutes(fastify, options) {
             details: error.errors.map((e) => e.message)
           })
         } else {
-          fastify.log.error('Update username error:', error)
+          fastify.log.error({ err: error }, 'Update username error:')
           reply.code(500).send({
             error: 'Internal Server Error',
             message: 'Failed to update username'
@@ -659,7 +659,7 @@ export default async function authRoutes(fastify, options) {
             details: error.errors.map((e) => e.message)
           })
         } else {
-          fastify.log.error('Change password error:', error)
+          fastify.log.error({ err: error }, 'Change password error:')
           reply.code(500).send({
             error: 'Internal Server Error',
             message: 'Failed to change password'
@@ -740,7 +740,7 @@ export default async function authRoutes(fastify, options) {
             details: error.errors.map((e) => e.message)
           })
         } else {
-          fastify.log.error('Change password error:', error)
+          fastify.log.error({ err: error }, 'Change password error:')
           reply.code(500).send({
             error: 'Internal Server Error',
             message: 'Failed to change password'
@@ -789,7 +789,7 @@ export default async function authRoutes(fastify, options) {
           message: 'Account deleted successfully'
         })
       } catch (error) {
-        fastify.log.error('Delete account error:', error)
+        fastify.log.error({ err: error }, 'Delete account error:')
         reply.code(500).send({
           error: 'Internal Server Error',
           message: 'Failed to delete account'

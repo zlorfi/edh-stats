@@ -169,7 +169,7 @@ export default async function commanderRoutes(fastify, options) {
             details: formatValidationErrors(error)
           })
         } else {
-          fastify.log.error('Get commanders error:', error)
+          fastify.log.error({ err: error }, 'Get commanders error:')
           reply.code(500).send({
             error: 'Internal Server Error',
             message: 'Failed to fetch commanders'
@@ -229,7 +229,7 @@ export default async function commanderRoutes(fastify, options) {
             }
           })
       } catch (error) {
-        fastify.log.error('Get commander error:', error)
+        fastify.log.error({ err: error }, 'Get commander error:')
         reply.code(500).send({
           error: 'Internal Server Error',
           message: 'Failed to fetch commander'
@@ -311,7 +311,7 @@ export default async function commanderRoutes(fastify, options) {
              details: formattedErrors
            })
          } else {
-           fastify.log.error('Create commander error:', error)
+           fastify.log.error({ err: error }, 'Create commander error:')
            reply.code(500).send({
              error: 'Internal Server Error',
              message: 'Failed to create commander'
@@ -388,7 +388,7 @@ export default async function commanderRoutes(fastify, options) {
              details: formattedErrors
            })
          } else {
-           fastify.log.error('Update commander error:', error.message || error)
+           fastify.log.error({ err: error }, 'Update commander error:')
            reply.code(500).send({
              error: 'Internal Server Error',
              message: 'Failed to update commander'
@@ -445,7 +445,7 @@ export default async function commanderRoutes(fastify, options) {
           message: 'Commander deleted successfully'
         })
       } catch (error) {
-        fastify.log.error('Delete commander error:', error)
+        fastify.log.error({ err: error }, 'Delete commander error:')
         reply.code(500).send({
           error: 'Internal Server Error',
           message: 'Failed to delete commander'
@@ -496,7 +496,7 @@ export default async function commanderRoutes(fastify, options) {
            }
          })
       } catch (error) {
-        fastify.log.error('Get commander stats error:', error)
+        fastify.log.error({ err: error }, 'Get commander stats error:')
         reply.code(500).send({
           error: 'Internal Server Error',
           message: 'Failed to fetch commander stats'
@@ -543,7 +543,7 @@ export default async function commanderRoutes(fastify, options) {
             details: formatValidationErrors(error)
           })
         } else {
-          fastify.log.error('Get popular commanders error:', error)
+          fastify.log.error({ err: error }, 'Get popular commanders error:')
           reply.code(500).send({
             error: 'Internal Server Error',
             message: 'Failed to fetch popular commanders'

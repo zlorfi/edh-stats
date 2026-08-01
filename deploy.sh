@@ -14,7 +14,7 @@
 #   - Set GITHUB_REGISTRY_USER environment variable or pass as argument
 ##############################################################################
 
-set -e  # Exit on any error
+set -euo pipefail  # Exit on error, unset variable, or any failure in a pipeline
 
 # Color codes for output
 RED='\033[0;31m'
@@ -23,12 +23,30 @@ YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
+# Restore any working-tree changes we made (e.g. version.txt) if we exit early.
+_ORIGINAL_VERSION_FILE_CONTENT=""
+_VERSION_FILE_PATH="./frontend/static/version.txt"
+_VERSION_FILE_MODIFIED="false"
+
+cleanup_on_exit() {
+    local exit_code=$?
+    if [ "$exit_code" -ne 0 ] && [ "$_VERSION_FILE_MODIFIED" = "true" ]; then
+        printf '%b\n' "${YELLOW}⚠ Deployment failed; restoring ${_VERSION_FILE_PATH}${NC}" >&2
+        printf '%s' "$_ORIGINAL_VERSION_FILE_CONTENT" > "$_VERSION_FILE_PATH"
+    fi
+    return $exit_code
+}
+trap cleanup_on_exit EXIT
+
 # Configuration
 REGISTRY="ghcr.io"
-GITHUB_USER="${GITHUB_USER:=$(git config --get user.name | tr ' ' '-' | tr '[:upper:]' '[:lower:]')}"
+# GITHUB_USER is the GitHub username/org that owns the GHCR namespace.
+# It MUST match your GitHub login (not your display name), otherwise the image
+# paths (ghcr.io/<user>/...) will be wrong. Set it explicitly to be safe.
+GITHUB_USER="${GITHUB_USER:-}"
 PROJECT_NAME="edh-stats"
 VERSION="${1:-latest}"
-GHCR_TOKEN="${2}"
+GHCR_TOKEN="${2:-${GHCR_TOKEN:-}}"
 
 # Image names
 BACKEND_IMAGE="${REGISTRY}/${GITHUB_USER}/${PROJECT_NAME}-backend:${VERSION}"
@@ -85,18 +103,24 @@ validate_prerequisites() {
 
     # Check if Docker buildx is available
     if ! docker buildx version > /dev/null 2>&1; then
-        print_warning "Docker buildx not found. Creating builder..."
-        docker buildx create --use --name multiarch-builder > /dev/null 2>&1 || true
-
-        if ! docker buildx version > /dev/null 2>&1; then
-            print_error "Docker buildx is required for multi-architecture builds."
-            print_error "Please ensure you have Docker with buildx support."
-            exit 1
-        fi
-        print_success "Docker buildx enabled"
-    else
-        print_success "Docker buildx is available"
+        print_error "Docker buildx is required but not available."
+        print_error "Install Docker Desktop or the docker-buildx-plugin package."
+        exit 1
     fi
+    print_success "Docker buildx is available"
+
+    # Ensure a working builder instance exists and is bootstrapped.
+    local builder_name="edh-stats-builder"
+    if ! docker buildx inspect "$builder_name" > /dev/null 2>&1; then
+        print_info "Creating buildx builder '${builder_name}'..."
+        docker buildx create --name "$builder_name" --driver docker-container > /dev/null
+    fi
+    docker buildx use "$builder_name"
+    if ! docker buildx inspect --bootstrap "$builder_name" > /dev/null 2>&1; then
+        print_error "Failed to bootstrap buildx builder '${builder_name}'."
+        exit 1
+    fi
+    print_success "Buildx builder '${builder_name}' ready"
 
     # Check if Git is installed
     if ! command -v git &> /dev/null; then
@@ -111,40 +135,89 @@ validate_prerequisites() {
         exit 1
     fi
     print_success "Running from Git repository"
+
+    # Resolve the GHCR namespace (GitHub username/org)
+    if [ -z "$GITHUB_USER" ]; then
+        # Best-effort guess from the 'origin' remote (github.com/<user>/<repo>)
+        local guessed_user=""
+        local origin_url
+        origin_url="$(git config --get remote.origin.url 2>/dev/null || true)"
+        if [[ "$origin_url" =~ github\.com[:/]([^/]+)/ ]]; then
+            guessed_user="$(printf '%s' "${BASH_REMATCH[1]}" | tr '[:upper:]' '[:lower:]')"
+        fi
+
+        if [ -n "$guessed_user" ]; then
+            GITHUB_USER="$guessed_user"
+            print_warning "GITHUB_USER not set; guessed '${GITHUB_USER}' from git remote."
+            print_info "If this is wrong, re-run with: GITHUB_USER=<login> ./deploy.sh ..."
+        else
+            print_error "GITHUB_USER is not set and could not be inferred from the git remote."
+            print_error "Set it explicitly: GITHUB_USER=<github-login> ./deploy.sh ${VERSION}"
+            exit 1
+        fi
+    fi
+    print_success "GHCR namespace: ${GITHUB_USER}"
+
+    # Recompute image names now that GITHUB_USER is finalized
+    BACKEND_IMAGE="${REGISTRY}/${GITHUB_USER}/${PROJECT_NAME}-backend:${VERSION}"
+    FRONTEND_IMAGE="${REGISTRY}/${GITHUB_USER}/${PROJECT_NAME}-frontend:${VERSION}"
+    BACKEND_IMAGE_LATEST="${REGISTRY}/${GITHUB_USER}/${PROJECT_NAME}-backend:latest"
+    FRONTEND_IMAGE_LATEST="${REGISTRY}/${GITHUB_USER}/${PROJECT_NAME}-frontend:latest"
+
+    # Warn about the 'latest' anti-pattern for reproducible deploys
+    if [ "$VERSION" = "latest" ]; then
+        print_warning "No version supplied; deploying as 'latest' only (not reproducible)."
+        print_info "Recommended: ./deploy.sh <semver>  e.g.  ./deploy.sh 2.5.0"
+    fi
+}
+
+##############################################################################
+# Git working tree check
+##############################################################################
+
+check_git_clean() {
+    print_header "Checking Git Working Tree"
+
+    if [ -n "$(git status --porcelain --untracked-files=no)" ]; then
+        print_warning "You have uncommitted changes. Images built now will NOT be reproducible from a commit."
+        git status --short
+        printf '%b' "${YELLOW}Continue anyway? [y/N]: ${NC}"
+        read -r reply
+        case "$reply" in
+            [yY][eE][sS]|[yY]) print_info "Proceeding with a dirty working tree." ;;
+            *) print_error "Aborting. Commit or stash your changes first."; exit 1 ;;
+        esac
+    else
+        print_success "Working tree is clean"
+    fi
+
+    print_info "Commit: $(git rev-parse --short HEAD 2>/dev/null || echo 'unknown')"
 }
 
 check_github_token() {
     if [ -z "$GHCR_TOKEN" ]; then
-        print_warning "GitHub token not provided. You'll be prompted for credentials when pushing."
-        print_info "Set GHCR_TOKEN environment variable or pass as second argument to skip this prompt"
-        read -sp "Enter GitHub Container Registry Token (or press Enter to use 'docker login'): " GHCR_TOKEN
+        print_warning "GitHub token not provided."
+        print_info "Set GHCR_TOKEN env var or pass it as the second argument to skip this prompt."
+        read -rsp "Enter GitHub Container Registry Token (or press Enter to use existing 'docker login'): " GHCR_TOKEN
         echo
-
-        if [ -z "$GHCR_TOKEN" ]; then
-            print_info "Attempting to use existing Docker credentials..."
-            if ! docker info | grep -q "Username"; then
-                print_warning "No Docker credentials found. Running 'docker login'..."
-                docker login "${REGISTRY}"
-            fi
-        fi
     fi
 }
 
 update_version_file() {
     print_header "Updating Version File"
 
-    local version_file="./frontend/static/version.txt"
-    local current_version=""
+    local version_file="$_VERSION_FILE_PATH"
 
-    # Check if version file exists
+    # Snapshot current content so the EXIT trap can restore it on failure.
     if [ -f "$version_file" ]; then
-        current_version=$(cat "$version_file")
-        print_info "Current version: $current_version"
+        _ORIGINAL_VERSION_FILE_CONTENT="$(cat "$version_file")"
+        print_info "Current version: $(printf '%s' "$_ORIGINAL_VERSION_FILE_CONTENT" | tr -d '\n')"
     fi
 
     # Update version file with new version (strip 'v' prefix if present)
     local new_version="${VERSION#v}"
-    echo "$new_version" > "$version_file"
+    printf '%s\n' "$new_version" > "$version_file"
+    _VERSION_FILE_MODIFIED="true"
     print_success "Updated version file to: $new_version"
 }
 
@@ -199,43 +272,47 @@ login_to_registry() {
     print_header "Authenticating with GitHub Container Registry"
 
     if [ -n "$GHCR_TOKEN" ]; then
-        print_info "Logging in with provided token..."
-        echo "$GHCR_TOKEN" | docker login "${REGISTRY}" -u "${GITHUB_USER}" --password-stdin > /dev/null 2>&1
+        print_info "Logging in to ${REGISTRY} as ${GITHUB_USER}..."
+        if ! printf '%s' "$GHCR_TOKEN" | docker login "${REGISTRY}" -u "${GITHUB_USER}" --password-stdin; then
+            print_error "Docker login failed. Check GITHUB_USER and that the token has 'write:packages'."
+            exit 1
+        fi
+        print_success "Authenticated with registry"
     else
-        print_info "Using existing Docker authentication..."
+        # No token: verify we already have working credentials for this registry.
+        print_info "No token provided; checking for existing credentials for ${REGISTRY}..."
+        if docker system info 2>/dev/null | grep -qi "${REGISTRY}" \
+           || [ -f "${HOME}/.docker/config.json" ] && grep -q "${REGISTRY}" "${HOME}/.docker/config.json" 2>/dev/null; then
+            print_success "Using existing Docker credentials for ${REGISTRY}"
+        else
+            print_warning "No stored credentials for ${REGISTRY} detected. Running 'docker login'..."
+            if ! docker login "${REGISTRY}"; then
+                print_error "Docker login failed."
+                exit 1
+            fi
+            print_success "Authenticated with registry"
+        fi
     fi
-
-    print_success "Successfully authenticated with registry"
 }
-
-push_backend() {
-    print_header "Pushing Backend Image"
-
-    # Images are already pushed during buildx build step
-    print_success "Backend image already pushed: ${BACKEND_IMAGE}"
-    print_success "Latest backend image pushed: ${BACKEND_IMAGE_LATEST}"
-}
-
-push_frontend() {
-    print_header "Pushing Frontend Image"
-
-    # Images are already pushed during buildx build step
-    print_success "Frontend image already pushed: ${FRONTEND_IMAGE}"
-    print_success "Latest frontend image pushed: ${FRONTEND_IMAGE_LATEST}"
-}
-
-##############################################################################
-# Verification Functions
-##############################################################################
 
 verify_images() {
-    print_header "Verifying Built Images"
+    print_header "Verifying Pushed Images"
 
-    print_info "Note: Using buildx for optimized builds"
-    print_info "Images are built for linux/amd64"
-    print_info "Images are pushed directly to registry (not stored locally)"
-    print_success "Backend image built and pushed: ${BACKEND_IMAGE}"
-    print_success "Frontend image built and pushed: ${FRONTEND_IMAGE}"
+    # Confirm the versioned images are actually present in the registry.
+    local ok=true
+    for img in "${BACKEND_IMAGE}" "${FRONTEND_IMAGE}"; do
+        if docker buildx imagetools inspect "$img" > /dev/null 2>&1; then
+            print_success "Verified in registry: ${img}"
+        else
+            print_error "Could not verify image in registry: ${img}"
+            ok=false
+        fi
+    done
+
+    if [ "$ok" != "true" ]; then
+        print_error "Image verification failed."
+        exit 1
+    fi
 }
 
 ##############################################################################
@@ -362,18 +439,18 @@ services:
     image: ${FRONTEND_IMAGE}
     restart: unless-stopped
     healthcheck:
-      test:
-        - CMD
-        - curl
-        - http://localhost:80/health
+      # nginx:alpine ships wget (used by the image's own HEALTHCHECK), not curl.
+      test: ['CMD', 'wget', '--no-verbose', '--tries=1', '--spider', 'http://localhost:80/health']
       interval: 10s
       timeout: 5s
       retries: 5
+      start_period: 10s
     networks:
       - edh-stats-network
       - traefik-network
     depends_on:
-      - backend
+      backend:
+        condition: service_healthy
     labels:
       - traefik.enable=true
       - traefik.http.routers.edh-stats-frontend.rule=Host(\`edh.zlor.fi\`)
@@ -391,9 +468,9 @@ services:
           memory: 128M
           cpus: '0.125'
 
-volumes:
-  postgres_data:
-    driver: local
+# Note: postgres uses a bind mount (./postgres_data) above, so no named
+# volume is declared here. Ensure ./postgres_data, ./scripts and ./backups
+# exist next to this compose file before starting.
 
 networks:
   edh-stats-network:
@@ -405,18 +482,6 @@ networks:
 EOF
 
     print_success "Deployment configuration generated: ${config_file}"
-}
-
-##############################################################################
-# Cleanup
-##############################################################################
-
-cleanup_temp_files() {
-    print_header "Cleaning Up Temporary Files"
-
-    # Note: Dockerfile.prod is now a permanent file in the repository
-    # and should not be deleted after the build completes
-    print_info "No temporary files to clean up"
 }
 
 ##############################################################################
@@ -466,44 +531,39 @@ main() {
 
     print_info "Starting deployment process..."
     print_info "Version: ${VERSION}"
-    print_info "GitHub User: ${GITHUB_USER}"
     print_info "Registry: ${REGISTRY}"
     echo ""
 
-    # Validation
+    # 1. Validate tooling and resolve GITHUB_USER / image names
     validate_prerequisites
 
-    # Check token
+    # 2. Refuse (or confirm) building from a dirty tree for reproducibility
+    check_git_clean
+
+    # 3. Obtain a token if needed
     check_github_token
 
-    # Authenticate (must happen before build to allow --push)
+    # 4. Authenticate (must happen before build so --push works)
     login_to_registry
 
-    # Update version file
+    # 5. Bump version file (baked into frontend build; restored on failure by trap)
     update_version_file
 
-    # Build images
+    # 6. Build + push images (buildx --push handles the upload)
     build_backend
     build_frontend
 
-    # Verify images
+    # 7. Confirm the images actually landed in the registry
     verify_images
 
-    # Push images
-    push_backend
-    push_frontend
-
-    # Generate config
+    # 8. Generate the deployment compose file
     generate_deployment_config
 
-    # Cleanup
-    cleanup_temp_files
-
-    # Summary
+    # 9. Summary / next steps
     print_summary
 
     print_success "Deployment completed successfully!"
 }
 
 # Run main function
-main
+main "$@"

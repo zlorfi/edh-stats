@@ -68,7 +68,7 @@ export default async function statsRoutes(fastify, options) {
           avgRounds: Math.round(stats?.avg_rounds || 0)
         })
       } catch (error) {
-        fastify.log.error('Get stats overview error:', error)
+        fastify.log.error({ err: error }, 'Get stats overview error:')
         reply.code(500).send({
           error: 'Internal Server Error',
           message: 'Failed to fetch stats overview'
@@ -228,7 +228,7 @@ export default async function statsRoutes(fastify, options) {
             details: formatValidationErrors(error)
           })
         } else {
-          fastify.log.error('Get commander stats error:', error)
+          fastify.log.error({ err: error }, 'Get commander stats error:')
           reply.code(500).send({
             error: 'Internal Server Error',
             message: 'Failed to fetch detailed stats'

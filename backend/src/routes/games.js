@@ -315,7 +315,7 @@ export default async function gameRoutes(fastify, options) {
             details: formatValidationErrors(error)
           })
         } else {
-          fastify.log.error('Get games error:', error)
+          fastify.log.error({ err: error }, 'Get games error:')
           reply.code(500).send({
             error: 'Internal Server Error',
             message: 'Failed to fetch games'
@@ -385,7 +385,7 @@ export default async function gameRoutes(fastify, options) {
           }
         })
       } catch (error) {
-        fastify.log.error('Get game error:', error)
+        fastify.log.error({ err: error }, 'Get game error:')
         reply.code(500).send({
           error: 'Internal Server Error',
           message: 'Failed to fetch game'
@@ -477,7 +477,7 @@ export default async function gameRoutes(fastify, options) {
             details: formatValidationErrors(error)
           })
         } else {
-          fastify.log.error('Create game error:', error)
+          fastify.log.error({ err: error }, 'Create game error:')
           reply.code(500).send({
             error: 'Internal Server Error',
             message: 'Failed to log game'
@@ -589,7 +589,7 @@ export default async function gameRoutes(fastify, options) {
             details: error.errors.map((e) => e.message)
           })
         } else {
-          fastify.log.error('Update game error:', error)
+          fastify.log.error({ err: error }, 'Update game error:')
           reply.code(500).send({
             error: 'Internal Server Error',
             message: 'Failed to update game'
@@ -646,7 +646,7 @@ export default async function gameRoutes(fastify, options) {
           message: 'Game deleted successfully'
         })
       } catch (error) {
-        fastify.log.error('Delete game error:', error)
+        fastify.log.error({ err: error }, 'Delete game error:')
         reply.code(500).send({
           error: 'Failed to delete game'
         })
@@ -723,7 +723,7 @@ export default async function gameRoutes(fastify, options) {
             details: formatValidationErrors(error)
           })
         } else {
-          fastify.log.error('Export games error:', error)
+          fastify.log.error({ err: error }, 'Export games error:')
           reply.code(500).send({
             error: 'Internal Server Error',
             message: 'Failed to export games'
