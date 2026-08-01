@@ -173,6 +173,26 @@ export class UserRepository extends Repository {
   }
 
   /**
+   * List all users with their commander count (admin use only).
+   * Returns id, username, email, is_admin, created_at and commander_count.
+   */
+  async getAllUsersWithCommanderCount() {
+    return dbManager.all(
+      `SELECT
+         u.id,
+         u.username,
+         u.email,
+         u.is_admin,
+         u.created_at,
+         COUNT(c.id) AS commander_count
+       FROM ${this.tableName} u
+       LEFT JOIN commanders c ON c.user_id = u.id
+       GROUP BY u.id
+       ORDER BY u.username ASC`
+    )
+  }
+
+  /**
    * Get user statistics
    */
   async getStats(userId) {

@@ -455,6 +455,57 @@ export default async function authRoutes(fastify, options) {
     }
   })
 
+  // Admin-only guard: verify the JWT AND that the user is an admin.
+  // Admin status is always re-checked against the database (never trusted
+  // from the token) so revoking admin takes effect immediately.
+  const requireAdmin = async (request, reply) => {
+    try {
+      await request.jwtVerify()
+    } catch (err) {
+      return reply.code(401).send({
+        error: 'Unauthorized',
+        message: 'Invalid or expired token'
+      })
+    }
+
+    const user = await userRepo.findById(request.user.id)
+    if (!user || !user.is_admin) {
+      return reply.code(403).send({
+        error: 'Forbidden',
+        message: 'Admin access required'
+      })
+    }
+  }
+
+  // List all users with commander counts (admin only)
+  fastify.get(
+    '/admin/users',
+    {
+      preHandler: [requireAdmin],
+      config: { rateLimit: { max: 30, timeWindow: '1 minute' } }
+    },
+    async (request, reply) => {
+      try {
+        const rows = await userRepo.getAllUsersWithCommanderCount()
+        const users = rows.map((row) => ({
+          id: row.id,
+          username: row.username,
+          email: row.email || null,
+          isAdmin: Boolean(row.is_admin),
+          commanderCount: parseInt(row.commander_count, 10) || 0,
+          createdAt: row.created_at
+        }))
+        reply.send({ users })
+      } catch (error) {
+        fastify.log.error({ err: error }, 'Admin list users error:')
+        reply.code(500).send({
+          error: 'Internal Server Error',
+          message: 'Failed to fetch users'
+        })
+      }
+    }
+  )
+
   // Update user profile
   fastify.patch(
     '/me',
