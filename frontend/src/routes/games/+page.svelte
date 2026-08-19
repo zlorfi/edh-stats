@@ -15,6 +15,7 @@
   let limit = 20;
   let offset = 0;
   let hasMore = false;
+  let totalResults = 0;
   let submitting = false;
   let editingGame = null;
   let serverError = "";
@@ -27,7 +28,7 @@
   };
 
   // --- Filters ---
-  const playerCountOptions = [2, 3, 4, 5, 6, 7, 8];
+  const playerCountOptions = [2, 3, 4, 5];
   let selectedPlayerCounts = []; // e.g. [2, 4]
   let resultFilter = "all"; // "all" | "won" | "lost"
 
@@ -125,6 +126,7 @@
           games = incomingGames;
         }
         hasMore = data.pagination?.hasMore ?? false;
+        totalResults = data.pagination?.total ?? games.length;
         offset = queryOffset + incomingGames.length;
       } else {
         console.error("Failed to load games:", await response.text());
@@ -421,7 +423,15 @@
 
     <main class="container mx-auto px-4 py-8 flex-1">
       <div class="flex justify-between items-center mb-6">
-        <h1 class="text-3xl font-bold text-gray-900">Game Log</h1>
+        <div class="flex items-baseline gap-3">
+          <h1 class="text-3xl font-bold text-gray-900">Game Log</h1>
+          {#if !loading && totalResults > 0}
+            <span class="text-sm text-gray-400">
+              {totalResults}
+              {totalResults === 1 ? "result" : "results"}
+            </span>
+          {/if}
+        </div>
         <button
           on:click={() => {
             showLogForm = !showLogForm;

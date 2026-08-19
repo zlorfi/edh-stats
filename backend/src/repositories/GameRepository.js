@@ -42,6 +42,108 @@ export class GameRepository extends Repository {
   /**
    * Get games for a user with filtering and pagination
    */
+  /**
+   * Build the shared WHERE clause + parameters for game list/count queries.
+   * Requires a joined `commanders cmdr` alias for the commander name filter.
+   * @returns {{ clause: string, params: any[], nextParam: number }}
+   */
+  buildGameFilters(userId, filters = {}) {
+    let clause = ' WHERE g.user_id = $1'
+    const params = [userId]
+    let paramCount = 2
+
+    if (filters.commander) {
+      if (typeof filters.commander !== 'string' || filters.commander.length > 100) {
+        throw new Error('Commander filter must be a string with max 100 characters')
+      }
+      clause += ` AND cmdr.name ILIKE $${paramCount}`
+      params.push(`%${filters.commander}%`)
+      paramCount++
+    }
+
+    if (filters.playerCount !== undefined) {
+      if (!Number.isInteger(filters.playerCount) || filters.playerCount < 2 || filters.playerCount > 8) {
+        throw new Error('Player count must be an integer between 2 and 8')
+      }
+      clause += ` AND g.player_count = $${paramCount}`
+      params.push(filters.playerCount)
+      paramCount++
+    }
+
+    if (filters.playerCounts !== undefined) {
+      if (
+        !Array.isArray(filters.playerCounts) ||
+        filters.playerCounts.length === 0 ||
+        !filters.playerCounts.every((n) => Number.isInteger(n) && n >= 2 && n <= 8)
+      ) {
+        throw new Error('Player counts must be integers between 2 and 8')
+      }
+      const placeholders = filters.playerCounts.map((_, i) => `$${paramCount + i}`)
+      clause += ` AND g.player_count IN (${placeholders.join(', ')})`
+      params.push(...filters.playerCounts)
+      paramCount += filters.playerCounts.length
+    }
+
+    if (filters.commanderId !== undefined) {
+      if (!Number.isInteger(filters.commanderId) || filters.commanderId <= 0) {
+        throw new Error('Commander ID must be a positive integer')
+      }
+      clause += ` AND g.commander_id = $${paramCount}`
+      params.push(filters.commanderId)
+      paramCount++
+    }
+
+    if (filters.dateFrom) {
+      if (isNaN(Date.parse(filters.dateFrom))) {
+        throw new Error('dateFrom must be a valid date')
+      }
+      clause += ` AND g.date >= $${paramCount}`
+      params.push(filters.dateFrom)
+      paramCount++
+    }
+
+    if (filters.dateTo) {
+      if (isNaN(Date.parse(filters.dateTo))) {
+        throw new Error('dateTo must be a valid date')
+      }
+      clause += ` AND g.date <= $${paramCount}`
+      params.push(filters.dateTo)
+      paramCount++
+    }
+
+    if (filters.dateFrom && filters.dateTo) {
+      if (new Date(filters.dateFrom) > new Date(filters.dateTo)) {
+        throw new Error('dateFrom must be before or equal to dateTo')
+      }
+    }
+
+    if (filters.won !== undefined) {
+      if (typeof filters.won !== 'boolean') {
+        throw new Error('Won filter must be a boolean')
+      }
+      clause += ` AND g.won = $${paramCount}`
+      params.push(filters.won)
+      paramCount++
+    }
+
+    return { clause, params, nextParam: paramCount }
+  }
+
+  /**
+   * Count games matching the given filters (for accurate pagination totals).
+   */
+  async countGamesByUserId(userId, filters = {}) {
+    const { clause, params } = this.buildGameFilters(userId, filters)
+    const query = `
+      SELECT COUNT(*) AS count
+      FROM ${this.tableName} g
+      LEFT JOIN commanders cmdr ON g.commander_id = cmdr.id
+      ${clause}
+    `
+    const result = await dbManager.get(query, params)
+    return parseInt(result?.count, 10) || 0
+  }
+
   async getGamesByUserId(userId, limit = 50, offset = 0, filters = {}) {
     // Validate pagination parameters
     if (!Number.isInteger(limit) || limit < 1 || limit > 100) {
@@ -50,6 +152,8 @@ export class GameRepository extends Repository {
     if (!Number.isInteger(offset) || offset < 0) {
       throw new Error('Offset must be a non-negative integer')
     }
+
+    const { clause, params, nextParam } = this.buildGameFilters(userId, filters)
 
     let query = `
       SELECT
@@ -68,89 +172,10 @@ export class GameRepository extends Repository {
         g.updated_at
       FROM ${this.tableName} g
       LEFT JOIN commanders cmdr ON g.commander_id = cmdr.id
-      WHERE g.user_id = $1
+      ${clause}
     `
 
-    const params = [userId]
-    let paramCount = 2
-
-    // Apply filters with validation
-    if (filters.commander) {
-      if (typeof filters.commander !== 'string' || filters.commander.length > 100) {
-        throw new Error('Commander filter must be a string with max 100 characters')
-      }
-      query += ` AND cmdr.name ILIKE $${paramCount}`
-      params.push(`%${filters.commander}%`)
-      paramCount++
-    }
-
-    if (filters.playerCount !== undefined) {
-      if (!Number.isInteger(filters.playerCount) || filters.playerCount < 2 || filters.playerCount > 8) {
-        throw new Error('Player count must be an integer between 2 and 8')
-      }
-      query += ` AND g.player_count = $${paramCount}`
-      params.push(filters.playerCount)
-      paramCount++
-    }
-
-    if (filters.playerCounts !== undefined) {
-      if (
-        !Array.isArray(filters.playerCounts) ||
-        filters.playerCounts.length === 0 ||
-        !filters.playerCounts.every((n) => Number.isInteger(n) && n >= 2 && n <= 8)
-      ) {
-        throw new Error('Player counts must be integers between 2 and 8')
-      }
-      const placeholders = filters.playerCounts.map((_, i) => `$${paramCount + i}`)
-      query += ` AND g.player_count IN (${placeholders.join(', ')})`
-      params.push(...filters.playerCounts)
-      paramCount += filters.playerCounts.length
-    }
-
-    if (filters.commanderId !== undefined) {
-      if (!Number.isInteger(filters.commanderId) || filters.commanderId <= 0) {
-        throw new Error('Commander ID must be a positive integer')
-      }
-      query += ` AND g.commander_id = $${paramCount}`
-      params.push(filters.commanderId)
-      paramCount++
-    }
-
-    if (filters.dateFrom) {
-      if (isNaN(Date.parse(filters.dateFrom))) {
-        throw new Error('dateFrom must be a valid date')
-      }
-      query += ` AND g.date >= $${paramCount}`
-      params.push(filters.dateFrom)
-      paramCount++
-    }
-
-    if (filters.dateTo) {
-      if (isNaN(Date.parse(filters.dateTo))) {
-        throw new Error('dateTo must be a valid date')
-      }
-      query += ` AND g.date <= $${paramCount}`
-      params.push(filters.dateTo)
-      paramCount++
-    }
-
-    // Validate date range if both provided
-    if (filters.dateFrom && filters.dateTo) {
-      if (new Date(filters.dateFrom) > new Date(filters.dateTo)) {
-        throw new Error('dateFrom must be before or equal to dateTo')
-      }
-    }
-
-    if (filters.won !== undefined) {
-      if (typeof filters.won !== 'boolean') {
-        throw new Error('Won filter must be a boolean')
-      }
-      query += ` AND g.won = $${paramCount}`
-      params.push(filters.won)
-      paramCount++
-    }
-
-    query += ` ORDER BY g.date DESC LIMIT $${paramCount} OFFSET $${paramCount + 1}`
+    query += ` ORDER BY g.date DESC LIMIT $${nextParam} OFFSET $${nextParam + 1}`
     params.push(limit, offset)
 
     return dbManager.all(query, params)

@@ -290,13 +290,12 @@ export default async function gameRoutes(fastify, options) {
           filters.won = won
         }
 
-        // Fetch one extra game to check if there are more
-        let games = await gameRepo.getGamesByUserId(
-          userId,
-          limit + 1,
-          offset,
-          filters
-        )
+        // Fetch one extra game to check if there are more, plus the total count
+        // matching the current filters (for accurate pagination totals).
+        const [games, total] = await Promise.all([
+          gameRepo.getGamesByUserId(userId, limit + 1, offset, filters),
+          gameRepo.countGamesByUserId(userId, filters)
+        ])
 
         // Check if there are more games beyond the limit
         const hasMore = games.length > limit
@@ -327,7 +326,8 @@ export default async function gameRoutes(fastify, options) {
           pagination: {
             limit,
             offset,
-            hasMore
+            hasMore,
+            total
           }
         })
       } catch (error) {
