@@ -26,6 +26,32 @@
     deleting: false,
   };
 
+  // --- Filters ---
+  const playerCountOptions = [2, 3, 4, 5, 6, 7, 8];
+  let selectedPlayerCounts = []; // e.g. [2, 4]
+  let resultFilter = "all"; // "all" | "won" | "lost"
+
+  $: filtersActive = selectedPlayerCounts.length > 0 || resultFilter !== "all";
+
+  function togglePlayerCount(count) {
+    selectedPlayerCounts = selectedPlayerCounts.includes(count)
+      ? selectedPlayerCounts.filter((c) => c !== count)
+      : [...selectedPlayerCounts, count];
+    loadGames();
+  }
+
+  function setResultFilter(value) {
+    if (resultFilter === value) return;
+    resultFilter = value;
+    loadGames();
+  }
+
+  function clearFilters() {
+    selectedPlayerCounts = [];
+    resultFilter = "all";
+    loadGames();
+  }
+
   let newGame = {
     date: new Date().toISOString().split("T")[0],
     commanderId: "",
@@ -74,6 +100,15 @@
         limit: limit.toString(),
         offset: queryOffset.toString(),
       });
+      if (selectedPlayerCounts.length > 0) {
+        params.set(
+          "playerCounts",
+          [...selectedPlayerCounts].sort((a, b) => a - b).join(","),
+        );
+      }
+      if (resultFilter !== "all") {
+        params.set("won", resultFilter === "won" ? "true" : "false");
+      }
       const response = await authenticatedFetch(
         `/api/games?${params.toString()}`,
       );
@@ -586,10 +621,67 @@
         </div>
       {/if}
 
+      <!-- Filters -->
+      <div
+        class="flex flex-wrap items-center gap-x-6 gap-y-2 mb-6 text-sm text-gray-600"
+      >
+        <div class="flex items-center gap-2">
+          <span class="text-gray-500">Players</span>
+          {#each playerCountOptions as count}
+            <button
+              type="button"
+              on:click={() => togglePlayerCount(count)}
+              aria-pressed={selectedPlayerCounts.includes(count)}
+              class="w-7 h-7 rounded-full border transition-colors {selectedPlayerCounts.includes(
+                count,
+              )
+                ? 'bg-slate-900 text-white border-slate-900'
+                : 'bg-white text-gray-600 border-gray-300 hover:border-gray-400'}"
+            >
+              {count}
+            </button>
+          {/each}
+        </div>
+
+        <div class="flex items-center gap-2">
+          <span class="text-gray-500">Result</span>
+          {#each [["all", "All"], ["won", "Wins"], ["lost", "Losses"]] as [value, label]}
+            <button
+              type="button"
+              on:click={() => setResultFilter(value)}
+              aria-pressed={resultFilter === value}
+              class="px-3 h-7 rounded-full border transition-colors {resultFilter ===
+              value
+                ? 'bg-slate-900 text-white border-slate-900'
+                : 'bg-white text-gray-600 border-gray-300 hover:border-gray-400'}"
+            >
+              {label}
+            </button>
+          {/each}
+        </div>
+
+        {#if filtersActive}
+          <button
+            type="button"
+            on:click={clearFilters}
+            class="text-gray-400 hover:text-gray-600 underline underline-offset-2"
+          >
+            Clear
+          </button>
+        {/if}
+      </div>
+
       <!-- Games List -->
       {#if loading}
         <div class="flex items-center justify-center py-12">
           <div class="loading-spinner w-12 h-12"></div>
+        </div>
+      {:else if games.length === 0 && filtersActive}
+        <div class="card text-center py-12">
+          <p class="text-gray-600 mb-4">No games match the selected filters</p>
+          <button on:click={clearFilters} class="btn btn-secondary">
+            Clear filters
+          </button>
         </div>
       {:else if games.length === 0}
         <div class="card text-center py-12">

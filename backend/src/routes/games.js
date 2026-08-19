@@ -116,6 +116,26 @@ const gameQuerySchema = z
       .min(2, 'Minimum 2 players required')
       .max(8, 'Maximum 8 players allowed')
       .optional(),
+    // Multiple player counts as a comma-separated list, e.g. "2,4,5".
+    playerCounts: z
+      .string('Player counts must be a string')
+      .optional()
+      .transform((val) =>
+        val === undefined
+          ? undefined
+          : val
+              .split(',')
+              .map((s) => s.trim())
+              .filter((s) => s.length > 0)
+              .map((s) => Number(s))
+      )
+      .refine(
+        (arr) =>
+          arr === undefined ||
+          (arr.length > 0 &&
+            arr.every((n) => Number.isInteger(n) && n >= 2 && n <= 8)),
+        { message: 'playerCounts must be integers between 2 and 8' }
+      ),
     commanderId: z.coerce
       .number('Commander ID must be a number')
       .int('Commander ID must be a whole number')
@@ -240,6 +260,7 @@ export default async function gameRoutes(fastify, options) {
           limit,
           offset,
           playerCount,
+          playerCounts,
           commanderId,
           dateFrom,
           dateTo,
@@ -251,7 +272,9 @@ export default async function gameRoutes(fastify, options) {
         if (q) {
           filters.commander = q
         }
-        if (playerCount !== undefined) {
+        if (playerCounts !== undefined && playerCounts.length > 0) {
+          filters.playerCounts = playerCounts
+        } else if (playerCount !== undefined) {
           filters.playerCount = playerCount
         }
         if (commanderId !== undefined) {

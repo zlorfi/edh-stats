@@ -93,6 +93,20 @@ export class GameRepository extends Repository {
       paramCount++
     }
 
+    if (filters.playerCounts !== undefined) {
+      if (
+        !Array.isArray(filters.playerCounts) ||
+        filters.playerCounts.length === 0 ||
+        !filters.playerCounts.every((n) => Number.isInteger(n) && n >= 2 && n <= 8)
+      ) {
+        throw new Error('Player counts must be integers between 2 and 8')
+      }
+      const placeholders = filters.playerCounts.map((_, i) => `$${paramCount + i}`)
+      query += ` AND g.player_count IN (${placeholders.join(', ')})`
+      params.push(...filters.playerCounts)
+      paramCount += filters.playerCounts.length
+    }
+
     if (filters.commanderId !== undefined) {
       if (!Number.isInteger(filters.commanderId) || filters.commanderId <= 0) {
         throw new Error('Commander ID must be a positive integer')
@@ -186,6 +200,20 @@ export class GameRepository extends Repository {
       query += ` AND g.player_count = $${paramCount}`
       params.push(filters.playerCount)
       paramCount++
+    }
+
+    if (filters.playerCounts !== undefined) {
+      if (
+        !Array.isArray(filters.playerCounts) ||
+        filters.playerCounts.length === 0 ||
+        !filters.playerCounts.every((n) => Number.isInteger(n) && n >= 2 && n <= 8)
+      ) {
+        throw new Error('Player counts must be integers between 2 and 8')
+      }
+      const placeholders = filters.playerCounts.map((_, i) => `$${paramCount + i}`)
+      query += ` AND g.player_count IN (${placeholders.join(', ')})`
+      params.push(...filters.playerCounts)
+      paramCount += filters.playerCounts.length
     }
 
     if (filters.commanderId !== undefined) {
